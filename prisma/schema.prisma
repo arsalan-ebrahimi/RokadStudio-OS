@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DecisionSource {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+model User {
+  id                 Int             @id @default(autoincrement())
+  code               String          @unique
+  name               String
+  role               Role            @default(USER)
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  projectMembers     ProjectMember[]
+  attendances        Attendance[]    @relation("UserAttendances")
+  decidedAttendances Attendance[]    @relation("AttendanceDecidedBy")
+  workSessions       WorkSession[]
+  createdProjects    Project[]       @relation("CreatedProjects")
+}
+
+model Project {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String?
+  isActive    Boolean         @default(true)
+  createdById Int
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  createdBy    User            @relation("CreatedProjects", fields: [createdById], references: [id], onDelete: Restrict)
+  members      ProjectMember[]
+  workSessions WorkSession[]
+}
+
+model ProjectMember {
+  id         Int      @id @default(autoincrement())
+  projectId  Int
+  userId     Int
+  assignedAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model Attendance {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  date        DateTime         @db.Date
+  status      AttendanceStatus
+  approval    ApprovalStatus
+  source      DecisionSource
+  decidedById Int?
+  decidedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user         User            @relation("UserAttendances", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy    User?           @relation("AttendanceDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  workSessions WorkSession[]
+
+  @@unique([userId, date])
+  @@index([date, approval])
+}
+
+model WorkSession {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  projectId       Int
+  attendanceId    Int
+  durationSeconds Int
+  createdAt       DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@index([attendanceId])
+  @@index([projectId])
+  @@index([userId, createdAt])
+}
