@@ -28,6 +28,7 @@
     "node-cron": "^3.0.3",
     "pg": "^8.13.3",
     "redis": "^4.7.0",
+    "swagger-ui-express": "^5.0.1",
     "vanta-api": "^1.5.2"
   },
   "devDependencies": {

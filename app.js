@@ -13,10 +13,24 @@ import projectRouter from "./Modules/Project/project.js";
 import attendanceRouter from "./Modules/Attendance/attendance.js";
 import workSessionRouter from "./Modules/WorkSession/workSession.js";
 
+import swaggerUi from "swagger-ui-express";
+import { swaggerDocument, swaggerUiOptions } from "./docs/swagger.js";
+
 const app = express();
 
 // Security and CORS
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": ["'self'", "'unsafe-inline'"],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "validator.swagger.io"],
+      },
+    },
+  })
+);
 
 const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
@@ -71,6 +85,14 @@ app.get("/health", async (req, res) => {
     },
   });
 });
+
+// Swagger / OpenAPI documentation routes (public, unauthenticated)
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerUiOptions));
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  return res.json(swaggerDocument);
+});
+app.get("/docs", (req, res) => res.redirect("/api-docs"));
 
 // Mount modules under /api
 app.use("/api/auth", authRouter);

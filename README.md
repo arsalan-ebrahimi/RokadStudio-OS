@@ -12,7 +12,24 @@ The complete, production-quality backend for the **Rokad Attendance & Time Platf
 - **ORM**: Prisma 7 (`prisma-client` generator + `@prisma/adapter-pg` driver adapter)
 - **Cache & Distributed Locking**: Redis 7 (`node-redis` v4)
 - **Security & Utilities**: `helmet`, `cors`, `jsonwebtoken`, `express-validator`, `vanta-api`, `node-cron`
+- **Documentation & Testing UI**: OpenAPI 3.0.3 with `swagger-ui-express` (Interactive UI at `/api-docs`)
 - **Testing**: Built-in `node:test` and `node:assert` (zero external test dependencies)
+
+---
+
+## Interactive Swagger & API Documentation
+
+The platform comes with a complete, production-ready **OpenAPI 3.0.3** specification and interactive **Swagger UI**:
+
+- **Interactive Swagger UI**: `http://localhost:5000/api-docs` (or `/docs`)
+- **Raw OpenAPI JSON Spec**: `http://localhost:5000/api-docs.json` (or locally at [docs/swagger.json](docs/swagger.json))
+- **Static API Documentation**: [docs/API.md](docs/API.md)
+
+### Using Swagger UI Authentication:
+1. Call `POST /api/auth/login` in the **Auth** section with code `super_admin_2026`.
+2. Copy the resulting `data.token`.
+3. Click the green **Authorize** button at the top right of the Swagger UI and paste your JWT token.
+4. All protected endpoints (`/api/users`, `/api/projects`, `/api/attendance`, `/api/work-sessions`) are now unlocked and ready to test!
 
 ---
 
@@ -52,7 +69,9 @@ The complete, production-quality backend for the **Rokad Attendance & Time Platf
 │  ├─ attendanceState.test.js   # State machine guards and rejection cascade tests
 │  └─ workSessionRules.test.js  # Timer duration limits, row-lock, and CHECK constraints
 ├─ docs/
-│  └─ API.md                    # Complete endpoint contract for frontend integration
+│  ├─ API.md                    # Complete endpoint contract for frontend integration
+│  ├─ swagger.js                # Modular OpenAPI 3.0.3 specification & UI styling
+│  └─ swagger.json              # Full static OpenAPI 3.0.3 specification file
 ├─ scripts/
 │  ├─ smoke.js                  # End-to-end multi-role lifecycle smoke runner
 │  └─ smoke.sh                  # Bash smoke script
