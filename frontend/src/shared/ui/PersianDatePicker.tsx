@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, ChevronRight, ChevronLeft, ChevronDown } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft } from 'lucide-react';
 import { jalaaliMonthLength } from 'jalaali-js';
+import { Select } from './Select';
 import {
   isoToJalali,
   jalaliToIso,
@@ -102,19 +103,18 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
             <span className="text-xs font-black text-sec dark:text-white">
               {toPersianDigits(jy)}
             </span>
-            <div className="relative">
-              <select
+            <div className="w-28">
+              <Select
+                selectSize="sm"
                 value={jm}
                 onChange={(e) => changeMonth(Number(e.target.value))}
-                className="appearance-none pe-6 ps-2.5 py-1 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121824] text-sec dark:text-white focus:outline-none shadow-hard-sm cursor-pointer"
               >
                 {PERSIAN_MONTHS.map((m, idx) => (
                   <option key={m} value={idx + 1}>
                     {m}
                   </option>
                 ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute end-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </Select>
             </div>
           </div>
 
