@@ -13,10 +13,20 @@ interface AuthState {
   hasRole: (roles: Role[]) => boolean;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  token: localStorage.getItem(TOKEN_STORAGE_KEY),
-  user: JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null'),
-  isLoading: Boolean(localStorage.getItem(TOKEN_STORAGE_KEY)),
+export const useAuthStore = create<AuthState>((set, get) => {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  let user: User | null = null;
+  try {
+    user = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null');
+  } catch {
+    user = null;
+  }
+
+  return {
+    token,
+    user,
+    // Only block if token exists but user object is completely missing from cache
+    isLoading: Boolean(token && !user),
 
   login: async (code: string) => {
     const { token, user } = await loginWithCode(code);
@@ -53,5 +63,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const current = get().user;
     return current ? roles.includes(current.role) : false;
   },
-}));
+  };
+});
 

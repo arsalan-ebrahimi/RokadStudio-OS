@@ -3,7 +3,7 @@ import { LogOut, Sun, Moon } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useTodayAttendance, useMidnightWatcher, AttendanceBadge, AttendanceModal } from '@/features/attendance';
 import { useMyProjects, ProjectSelect } from '@/features/projects';
-import { useTimer, TimerDisplay, BreakOverlay } from '@/features/timer';
+import { useTimer, useTimerStore, TimerDisplay, BreakOverlay } from '@/features/timer';
 import { Card } from '@/shared/ui';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { formatToJalali, getTehranTodayString } from '@/shared/lib/date';
@@ -33,6 +33,7 @@ const UserDashboardPage: React.FC = () => {
   useEffect(() => {
     if (selectedProjectId) {
       localStorage.setItem('rokad_selected_project', String(selectedProjectId));
+      useTimerStore.getState().setProjectId(selectedProjectId);
     }
   }, [selectedProjectId]);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
