@@ -52,7 +52,7 @@ const UserDashboardPage: React.FC = () => {
       {/* Header */}
       <header className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#202A5A] p-2 shadow-hard flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0">
             <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
           </div>
           <div>

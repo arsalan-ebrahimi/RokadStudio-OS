@@ -34,7 +34,7 @@ export const AdminLayout: React.FC = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#202A5A] p-2 shadow-hard flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0">
                 <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
               </div>
               <div>
