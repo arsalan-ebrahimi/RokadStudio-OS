@@ -36,6 +36,7 @@ export interface Attendance {
   decidedAt?: string | null;
   sessionsCount?: number;
   totalSeconds?: number;
+  timerResetAt?: number | null;
   user?: Pick<User, 'id' | 'name' | 'role'>;
 }
 

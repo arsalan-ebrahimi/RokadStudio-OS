@@ -1,5 +1,6 @@
-import { catchAsync } from "vanta-api";
+import { catchAsync, HandleERROR } from "vanta-api";
 import prisma from "../../config/prisma.js";
+import { cacheGet, cacheSet } from "../../Utils/cache.js";
 import { todayDate, toDateOnly, formatDate } from "../../Utils/date.js";
 import { getPagination, formatPaginationMeta } from "../../Utils/pagination.js";
 import {
@@ -29,6 +30,7 @@ export const getTodayAttendance = catchAsync(async (req, res, next) => {
     });
   }
 
+  const resetSignal = await cacheGet(`user:timer_reset:${userId}`);
   const sessionAgg = await prisma.workSession.aggregate({
     where: { attendanceId: attendance.id },
     _count: { id: true },
@@ -47,6 +49,7 @@ export const getTodayAttendance = catchAsync(async (req, res, next) => {
     decidedAt: attendance.decidedAt,
     sessionsCount: sessionAgg._count.id,
     totalSeconds: sessionAgg._sum.durationSeconds || 0,
+    timerResetAt: resetSignal?.resetAt || null,
     createdAt: attendance.createdAt,
     updatedAt: attendance.updatedAt,
   };
@@ -242,5 +245,47 @@ export const patchAttendanceDecision = catchAsync(async (req, res, next) => {
       ...result,
       date: formatDate(result.date),
     },
+  });
+});
+
+export const unlockUserTimerByAttendance = catchAsync(async (req, res, next) => {
+  const attendanceId = Number(req.params.id);
+  const attendance = await prisma.attendance.findUnique({
+    where: { id: attendanceId },
+    select: { userId: true },
+  });
+
+  if (!attendance) {
+    return next(new HandleERROR("Attendance record not found", 404));
+  }
+
+  const resetAt = Date.now();
+  await cacheSet(`user:timer_reset:${attendance.userId}`, { resetAt }, 86400);
+
+  return res.status(200).json({
+    success: true,
+    message: "User project lock removed and timer reset successfully",
+    data: { userId: attendance.userId, resetAt },
+  });
+});
+
+export const unlockUserTimerByUserId = catchAsync(async (req, res, next) => {
+  const userId = Number(req.params.userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+
+  if (!user) {
+    return next(new HandleERROR("User not found", 404));
+  }
+
+  const resetAt = Date.now();
+  await cacheSet(`user:timer_reset:${userId}`, { resetAt }, 86400);
+
+  return res.status(200).json({
+    success: true,
+    message: "User project lock removed and timer reset successfully",
+    data: { userId, resetAt },
   });
 });

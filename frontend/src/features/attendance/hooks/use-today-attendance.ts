@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchTodayAttendance, submitTodayAttendance } from '../api/attendance-api';
 import { toast } from '@/shared/ui';
+import { useTimerStore } from '@/features/timer';
 
 export const attendanceKeys = {
   today: () => ['attendance', 'today'] as const,
@@ -14,7 +16,20 @@ export function useTodayAttendance() {
   const query = useQuery({
     queryKey: attendanceKeys.today(),
     queryFn: fetchTodayAttendance,
+    refetchInterval: 5000,
   });
+
+  useEffect(() => {
+    const timerResetAt = query.data?.timerResetAt;
+    if (timerResetAt) {
+      const lastAck = Number(localStorage.getItem('rokad_last_timer_reset_ack') || 0);
+      if (timerResetAt > lastAck) {
+        localStorage.setItem('rokad_last_timer_reset_ack', String(timerResetAt));
+        useTimerStore.getState().forceReset();
+        toast.info('قفل پروژه باز شد و تایمر ریست گردید');
+      }
+    }
+  }, [query.data?.timerResetAt]);
 
   const mutation = useMutation({
     mutationFn: submitTodayAttendance,

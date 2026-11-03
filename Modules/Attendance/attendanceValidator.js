@@ -67,3 +67,19 @@ export const attendanceDecisionValidator = [
     .withMessage("Decision must be APPROVED or REJECTED"),
   handleValidation,
 ];
+
+export const attendanceIdParamValidator = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("Attendance ID must be a positive integer")
+    .toInt(),
+  handleValidation,
+];
+
+export const userIdParamValidator = [
+  param("userId")
+    .isInt({ min: 1 })
+    .withMessage("User ID must be a positive integer")
+    .toInt(),
+  handleValidation,
+];

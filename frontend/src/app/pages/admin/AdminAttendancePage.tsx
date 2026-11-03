@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, X } from 'lucide-react';
-import { Card, Button, Skeleton, EmptyState, toast, PersianDatePicker, Select } from '@/shared/ui';
+import { Check, X, Unlock } from 'lucide-react';
+import { Card, Button, Skeleton, EmptyState, toast, PersianDatePicker, Select, ConfirmDialog } from '@/shared/ui';
 import { AttendanceBadge } from '@/features/attendance/components/AttendanceBadge';
 import { AttendanceDecisionDialog } from '@/features/attendance/components/AttendanceDecisionDialog';
-import { fetchAdminAttendance, decideAttendance } from '@/features/attendance/api/admin-attendance-api';
+import { fetchAdminAttendance, decideAttendance, unlockUserTimer } from '@/features/attendance/api/admin-attendance-api';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import type { Attendance } from '@/shared/types/models';
@@ -14,6 +14,7 @@ export const AdminAttendancePage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(getTehranTodayString());
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; name: string } | null>(null);
+  const [unlockingRecord, setUnlockingRecord] = useState<{ id: number; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-attendance', selectedDate, statusFilter],
@@ -31,6 +32,16 @@ export const AdminAttendancePage: React.FC = () => {
       setActiveDecision(null);
     },
     onError: (err: Error) => toast.error(err.message || 'خطا در ثبت تصمیم'),
+  });
+
+  const unlockMut = useMutation({
+    mutationFn: (id: number) => unlockUserTimer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      toast.success('قفل پروژه باز شد و تایمر ریست گردید');
+      setUnlockingRecord(null);
+    },
+    onError: (err: Error) => toast.error(err.message || 'خطا در ریست تایمر'),
   });
 
   const records = data?.data || [];
@@ -74,10 +85,20 @@ export const AdminAttendancePage: React.FC = () => {
                 <AttendanceBadge attendance={r} />
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <span className="text-xs font-bold text-ink-normal/70 dark:text-gray-300">
                   {toPersianDigits(r.sessionsCount || 0)} دور • {formatDurationToHoursMins(r.totalSeconds || 0)}
                 </span>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setUnlockingRecord({ id: r.id, name: r.user?.name || 'کاربر' })}
+                  title="برداشتن قفل پروژه و ریست تایمر"
+                >
+                  <Unlock className="w-3.5 h-3.5 me-1 text-primary" />
+                  ریست تایمر
+                </Button>
 
                 {r.approval === 'PENDING' && (
                   <div className="flex items-center gap-1.5">
@@ -104,6 +125,16 @@ export const AdminAttendancePage: React.FC = () => {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={Boolean(unlockingRecord)}
+        title="ریست تایمر و قفل پروژه"
+        message={`آیا از باز کردن قفل پروژه و ریست تایمر برای ${unlockingRecord?.name} اطمینان دارید؟`}
+        variant="primary"
+        isLoading={unlockMut.isPending}
+        onConfirm={() => unlockingRecord && unlockMut.mutate(unlockingRecord.id)}
+        onCancel={() => setUnlockingRecord(null)}
+      />
 
       <AttendanceDecisionDialog
         isOpen={Boolean(activeDecision)}

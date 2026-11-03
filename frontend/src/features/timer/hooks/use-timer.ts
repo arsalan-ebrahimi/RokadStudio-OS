@@ -67,6 +67,7 @@ interface TimerStore extends StoredData {
   start: (projectIdOverride?: number | null) => void;
   pause: () => void;
   reset: () => void;
+  forceReset: () => void;
   setProjectId: (projectId: number | null) => void;
   tick: () => void;
 }
@@ -136,6 +137,23 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
 
     set(newState);
     persistState(newState);
+  },
+
+  forceReset: () => {
+    const defaultState: StoredData = {
+      state: 'IDLE',
+      remaining: WORK_DURATION_SECONDS,
+      projectId: null,
+      targetTimestamp: null,
+    };
+    set(defaultState);
+    persistState(defaultState);
+    try {
+      localStorage.removeItem('rokad_selected_project');
+    } catch {}
+    if (typeof document !== 'undefined') {
+      document.title = 'راکاد استودیو | Rokad Studio OS';
+    }
   },
 
   tick: async () => {

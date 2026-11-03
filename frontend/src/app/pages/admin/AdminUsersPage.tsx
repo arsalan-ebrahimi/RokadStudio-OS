@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Copy, Check, Unlock } from 'lucide-react';
 import { Card, Button, Input, Select, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
 import { fetchUsers, createUser, updateUser, deleteUser } from '@/features/users/api/users-api';
+import { unlockUserTimerByUserId } from '@/features/attendance/api/admin-attendance-api';
 import { suggestNextUserCode } from '@/features/users/lib/code-generator';
 import { useAuthStore } from '@/features/auth';
 import type { User, Role } from '@/shared/types/models';
@@ -18,6 +19,7 @@ export const AdminUsersPage: React.FC = () => {
   const [editUserName, setEditUserName] = useState('');
   const [editUserRole, setEditUserRole] = useState<Role>('USER');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [unlockingUser, setUnlockingUser] = useState<{ id: number; name: string } | null>(null);
 
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('IT');
@@ -27,6 +29,15 @@ export const AdminUsersPage: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users', searchTerm],
     queryFn: () => fetchUsers({ search: searchTerm || undefined }),
+  });
+
+  const unlockUserMut = useMutation({
+    mutationFn: (userId: number) => unlockUserTimerByUserId(userId),
+    onSuccess: () => {
+      toast.success('قفل پروژه باز شد و تایمر ریست گردید');
+      setUnlockingUser(null);
+    },
+    onError: (err: Error) => toast.error(err.message || 'خطا در ریست تایمر'),
   });
 
   const users = data?.data || [];
@@ -123,6 +134,14 @@ export const AdminUsersPage: React.FC = () => {
                   <p className="text-xs text-ink-normal/50 dark:text-gray-400 font-mono" dir="ltr">{u.code}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setUnlockingUser({ id: u.id, name: u.name })}
+                    title="برداشتن قفل پروژه و ریست تایمر"
+                  >
+                    <Unlock className="w-3.5 h-3.5" />
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => openEditModal(u)}>
                     <Edit2 className="w-3.5 h-3.5" />
                   </Button>
@@ -217,6 +236,17 @@ export const AdminUsersPage: React.FC = () => {
         isLoading={deleteMut.isPending}
         onConfirm={() => deletingId && deleteMut.mutate(deletingId)}
         onCancel={() => setDeletingId(null)}
+      />
+
+      {/* Unlock & Reset Timer Confirmation */}
+      <ConfirmDialog
+        isOpen={Boolean(unlockingUser)}
+        title="ریست تایمر و قفل پروژه"
+        message={`آیا از باز کردن قفل پروژه و ریست تایمر برای ${unlockingUser?.name} اطمینان دارید؟`}
+        variant="primary"
+        isLoading={unlockUserMut.isPending}
+        onConfirm={() => unlockingUser && unlockUserMut.mutate(unlockingUser.id)}
+        onCancel={() => setUnlockingUser(null)}
       />
     </div>
   );

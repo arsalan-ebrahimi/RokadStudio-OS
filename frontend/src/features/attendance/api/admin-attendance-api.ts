@@ -25,3 +25,17 @@ export async function decideAttendance(id: number, decision: 'APPROVED' | 'REJEC
   return res.data;
 }
 
+export async function unlockUserTimer(attendanceId: number): Promise<{ userId: number; resetAt: number }> {
+  const res = await apiClient<{ userId: number; resetAt: number }>(`/api/attendance/admin/${attendanceId}/unlock-timer`, {
+    method: 'POST',
+  });
+  return res.data;
+}
+
+export async function unlockUserTimerByUserId(userId: number): Promise<{ userId: number; resetAt: number }> {
+  const res = await apiClient<{ userId: number; resetAt: number }>(`/api/attendance/admin/user/${userId}/unlock-timer`, {
+    method: 'POST',
+  });
+  return res.data;
+}
+
