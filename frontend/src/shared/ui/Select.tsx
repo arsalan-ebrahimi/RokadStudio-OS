@@ -39,8 +39,20 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ref
   ) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const selectId = id || name;
+
+    useEffect(() => {
+      if (!isOpen || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 220 && rect.top > 200) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }, [isOpen]);
 
     // Parse options from either `options` prop or `children` (<option>)
     const parsedOptions: SelectOption[] = React.useMemo(() => {
@@ -170,11 +182,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             <div
               role="listbox"
               className={cn(
-                'absolute start-0 top-full mt-1.5 z-50 w-full min-w-[160px]',
+                'absolute start-0 z-50 w-full min-w-[160px]',
+                openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
                 'bg-white dark:bg-[#151C28]',
                 'border-2 border-[#121824] dark:border-gray-700',
                 'rounded-xl p-1.5 shadow-hard',
-                'max-h-60 overflow-y-auto space-y-1',
+                'max-h-56 overflow-y-auto space-y-1',
                 'animate-in fade-in-0 zoom-in-95 duration-100'
               )}
             >
