@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Copy, Check } from 'lucide-react';
 import { Card, Button, Input, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
-import { fetchUsers, createUser, updateUser, deleteUser } from '../api/users-api';
-import { suggestNextUserCode } from '../lib/code-generator';
+import { fetchUsers, createUser, updateUser, deleteUser } from '@/features/users/api/users-api';
+import { suggestNextUserCode } from '@/features/users/lib/code-generator';
 import { useAuthStore } from '@/features/auth';
 import type { User, Role } from '@/shared/types/models';
 
@@ -15,6 +15,8 @@ export const AdminUsersPage: React.FC = () => {
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editUserName, setEditUserName] = useState('');
+  const [editUserRole, setEditUserRole] = useState<Role>('USER');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const [formName, setFormName] = useState('');
@@ -38,7 +40,7 @@ export const AdminUsersPage: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: () => createUser({ name: formName.trim(), code: formCode.trim(), role: formRole }),
-    onSuccess: (newUser) => {
+    onSuccess: (newUser: User) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setIsAddOpen(false);
       setCreatedCode(newUser.code || formCode);
@@ -76,6 +78,12 @@ export const AdminUsersPage: React.FC = () => {
     }
   };
 
+  const openEditModal = (u: User) => {
+    setEditingUser(u);
+    setEditUserName(u.name);
+    setEditUserRole(u.role);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -100,7 +108,7 @@ export const AdminUsersPage: React.FC = () => {
         <EmptyState title="کاربری یافت نشد" />
       ) : (
         <div className="space-y-2.5">
-          {users.map((u) => {
+          {users.map((u: User) => {
             const isSelf = currentUser?.id === u.id;
             return (
               <Card key={u.id} className="p-3.5 flex items-center justify-between">
@@ -115,7 +123,7 @@ export const AdminUsersPage: React.FC = () => {
                   <p className="text-xs text-ink-normal/50 dark:text-gray-400 font-mono" dir="ltr">{u.code}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => setEditingUser(u)}>
+                  <Button size="sm" variant="outline" onClick={() => openEditModal(u)}>
                     <Edit2 className="w-3.5 h-3.5" />
                   </Button>
                   <Button size="sm" variant="danger" disabled={isSelf} onClick={() => setDeletingId(u.id)}>
@@ -180,13 +188,13 @@ export const AdminUsersPage: React.FC = () => {
       {editingUser && (
         <Modal isOpen onClose={() => setEditingUser(null)} title="ویرایش کاربر">
           <div className="space-y-3.5">
-            <Input label="نام کامل" defaultValue={editingUser.name} onChange={(e) => (editingUser.name = e.target.value)} />
+            <Input label="نام کامل" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} />
             <div className="space-y-1">
               <label className="block text-xs font-bold">نقش</label>
               <select
-                defaultValue={editingUser.role}
+                value={editUserRole}
                 disabled={currentUser?.id === editingUser.id}
-                onChange={(e) => (editingUser.role = e.target.value as Role)}
+                onChange={(e) => setEditUserRole(e.target.value as Role)}
                 className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] text-xs font-bold"
               >
                 <option value="USER">کاربر عادی</option>
@@ -198,7 +206,7 @@ export const AdminUsersPage: React.FC = () => {
               variant="primary"
               className="w-full mt-4"
               isLoading={updateMut.isPending}
-              onClick={() => updateMut.mutate({ id: editingUser.id, payload: { name: editingUser.name, role: editingUser.role } })}
+              onClick={() => updateMut.mutate({ id: editingUser.id, payload: { name: editUserName, role: editUserRole } })}
             >
               ذخیره تغییرات
             </Button>

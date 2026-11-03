@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X, Calendar } from 'lucide-react';
 import { Card, Button, Skeleton, EmptyState, toast } from '@/shared/ui';
-import { AttendanceBadge } from '../components/AttendanceBadge';
-import { AttendanceDecisionDialog } from '../components/AttendanceDecisionDialog';
-import { fetchAdminAttendance, decideAttendance } from '../api/admin-attendance-api';
+import { AttendanceBadge } from '@/features/attendance/components/AttendanceBadge';
+import { AttendanceDecisionDialog } from '@/features/attendance/components/AttendanceDecisionDialog';
+import { fetchAdminAttendance, decideAttendance } from '@/features/attendance/api/admin-attendance-api';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import type { Attendance } from '@/shared/types/models';

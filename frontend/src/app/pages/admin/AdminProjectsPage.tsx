@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Users, Edit2, Trash2 } from 'lucide-react';
 import { Card, Button, Input, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
-import { fetchAllProjects } from '../api/projects-api';
-import { createProject, updateProject, deleteProject, fetchProjectDetails, syncMembers } from '../api/projects-crud-api';
+import { fetchAllProjects } from '@/features/projects/api/projects-api';
+import { createProject, updateProject, deleteProject, fetchProjectDetails, syncMembers } from '@/features/projects/api/projects-crud-api';
 import { searchActiveUsers } from '@/features/users/api/users-api';
 import { ApiError } from '@/shared/types/api';
 import type { Project, User } from '@/shared/types/models';
@@ -17,6 +17,8 @@ export const AdminProjectsPage: React.FC = () => {
   const [membersProject, setMembersProject] = useState<Project | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -85,10 +87,16 @@ export const AdminProjectsPage: React.FC = () => {
     setMembersProject(project);
     try {
       const details = await fetchProjectDetails(project.id);
-      setSelectedUserIds(details.members.map((m) => m.id));
+      setSelectedUserIds(details.members.map((m: { id: number }) => m.id));
     } catch {
       setSelectedUserIds([]);
     }
+  };
+
+  const openEditModal = (p: Project) => {
+    setEditingProject(p);
+    setEditName(p.name);
+    setEditDesc(p.description || '');
   };
 
   return (
@@ -107,7 +115,7 @@ export const AdminProjectsPage: React.FC = () => {
         <EmptyState title="هیچ پروژه‌ای ایجاد نشده است" />
       ) : (
         <div className="space-y-2.5">
-          {projects.map((p) => (
+          {projects.map((p: Project) => (
             <Card key={p.id} className="p-4 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
@@ -125,7 +133,7 @@ export const AdminProjectsPage: React.FC = () => {
                   <Users className="w-3.5 h-3.5 me-1" />
                   اعضا
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setEditingProject(p)}>
+                <Button size="sm" variant="outline" onClick={() => openEditModal(p)}>
                   <Edit2 className="w-3.5 h-3.5" />
                 </Button>
                 <Button size="sm" variant="danger" onClick={() => setDeletingId(p.id)}>
@@ -147,6 +155,24 @@ export const AdminProjectsPage: React.FC = () => {
           </Button>
         </div>
       </Modal>
+
+      {/* Edit Project Modal */}
+      {editingProject && (
+        <Modal isOpen onClose={() => setEditingProject(null)} title="ویرایش پروژه">
+          <div className="space-y-3.5">
+            <Input label="نام پروژه" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            <Input label="توضیحات (اختیاری)" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            <Button
+              variant="primary"
+              className="w-full mt-3"
+              isLoading={updateMut.isPending}
+              onClick={() => updateMut.mutate({ id: editingProject.id, payload: { name: editName.trim(), description: editDesc.trim() || undefined } })}
+            >
+              ذخیره تغییرات
+            </Button>
+          </div>
+        </Modal>
+      )}
 
       {/* Manage Members Modal */}
       {membersProject && (

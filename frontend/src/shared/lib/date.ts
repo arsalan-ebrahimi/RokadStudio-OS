@@ -1,4 +1,4 @@
-import jalaali from 'jalaali-js';
+import { toJalaali } from 'jalaali-js';
 import { toPersianDigits } from './formatters';
 
 const PERSIAN_MONTHS = [
@@ -28,7 +28,7 @@ export function formatToJalali(isoDateStr: string): string {
   const gd = parseInt(gdStr, 10);
   if (isNaN(gy) || isNaN(gm) || isNaN(gd)) return isoDateStr;
 
-  const { jy, jm, jd } = jalaali.toJalaali(gy, gm, gd);
+  const { jy, jm, jd } = toJalaali(gy, gm, gd);
   const monthName = PERSIAN_MONTHS[jm - 1] ?? '';
   return `${toPersianDigits(jd)} ${monthName} ${toPersianDigits(jy)}`;
 }
