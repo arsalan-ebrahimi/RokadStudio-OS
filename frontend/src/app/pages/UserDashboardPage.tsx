@@ -27,6 +27,8 @@ const UserDashboardPage: React.FC = () => {
       setSelectedProjectId(savedProjectId);
     } else if (!selectedProjectId && projects.length > 0) {
       setSelectedProjectId(projects[0].id);
+    } else if (selectedProjectId && projects.length > 0 && !projects.some((p) => p.id === selectedProjectId)) {
+      setSelectedProjectId(projects[0].id);
     }
   }, [projects, selectedProjectId, savedProjectId]);
 

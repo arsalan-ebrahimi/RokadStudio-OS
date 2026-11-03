@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, Edit2, Trash2 } from 'lucide-react';
-import { Card, Button, Input, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
+import { Plus, Users, Edit2, Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Card, Button, Input, Select, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
 import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { createProject, updateProject, deleteProject, fetchProjectDetails, syncMembers } from '@/features/projects/api/projects-crud-api';
 import { searchActiveUsers } from '@/features/users/api/users-api';
 import { useAuthStore } from '@/features/auth';
 import { ApiError } from '@/shared/types/api';
+import { cn } from '@/shared/lib/utils';
 import type { Project, User } from '@/shared/types/models';
 
 export const AdminProjectsPage: React.FC = () => {
@@ -14,6 +15,7 @@ export const AdminProjectsPage: React.FC = () => {
   const { user: currentUser } = useAuthStore();
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
 
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED'>('ALL');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
@@ -24,7 +26,9 @@ export const AdminProjectsPage: React.FC = () => {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editIsActive, setEditIsActive] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [togglingProject, setTogglingProject] = useState<{ id: number; name: string; toActive: boolean } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-projects'],
@@ -105,12 +109,57 @@ export const AdminProjectsPage: React.FC = () => {
     setEditingProject(p);
     setEditName(p.name);
     setEditDesc(p.description || '');
+    setEditIsActive(Boolean(p.isActive));
   };
+
+  const activeCount = projects.filter((p: Project) => p.isActive).length;
+  const completedCount = projects.filter((p: Project) => !p.isActive).length;
+
+  const filteredProjects = projects.filter((p: Project) => {
+    if (statusFilter === 'ACTIVE') return p.isActive;
+    if (statusFilter === 'COMPLETED') return !p.isActive;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-black text-sec dark:text-white">مدیریت پروژه‌ها</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setStatusFilter('ALL')}
+            className={cn(
+              'px-3 py-1 text-xs font-bold rounded-lg transition-all',
+              statusFilter === 'ALL'
+                ? 'bg-primary text-white shadow-hard-sm'
+                : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            )}
+          >
+            همه ({projects.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('ACTIVE')}
+            className={cn(
+              'px-3 py-1 text-xs font-bold rounded-lg transition-all',
+              statusFilter === 'ACTIVE'
+                ? 'bg-primary text-white shadow-hard-sm'
+                : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            )}
+          >
+            در حال اجرا ({activeCount})
+          </button>
+          <button
+            onClick={() => setStatusFilter('COMPLETED')}
+            className={cn(
+              'px-3 py-1 text-xs font-bold rounded-lg transition-all',
+              statusFilter === 'COMPLETED'
+                ? 'bg-primary text-white shadow-hard-sm'
+                : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            )}
+          >
+            تمام شده ({completedCount})
+          </button>
+        </div>
+
         {isSuperAdmin && (
           <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)}>
             <Plus className="w-4 h-4 me-1" />
@@ -121,17 +170,17 @@ export const AdminProjectsPage: React.FC = () => {
 
       {isLoading ? (
         <div className="space-y-3">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-      ) : projects.length === 0 ? (
-        <EmptyState title="هیچ پروژه‌ای ایجاد نشده است" />
+      ) : filteredProjects.length === 0 ? (
+        <EmptyState title="هیچ پروژه‌ای در این بخش یافت نشد" />
       ) : (
         <div className="space-y-2.5">
-          {projects.map((p: Project) => (
+          {filteredProjects.map((p: Project) => (
             <Card key={p.id} className="p-4 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-sec dark:text-white">{p.name}</h3>
                   <Badge variant={p.isActive ? 'ecosystem' : 'neutral'}>
-                    {p.isActive ? 'فعال' : 'غیرفعال'}
+                    {p.isActive ? 'در حال اجرا' : 'تمام شده'}
                   </Badge>
                   <span className="text-xs text-ink-normal/50 dark:text-gray-400">({p.memberCount || 0} عضو)</span>
                 </div>
@@ -145,6 +194,27 @@ export const AdminProjectsPage: React.FC = () => {
                 </Button>
                 {isSuperAdmin && (
                   <>
+                    {p.isActive ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setTogglingProject({ id: p.id, name: p.name, toActive: false })}
+                        title="ثبت به عنوان تمام شده"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 me-1 text-primary" />
+                        اتمام
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setTogglingProject({ id: p.id, name: p.name, toActive: true })}
+                        title="فعال‌سازی مجدد پروژه"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 me-1 text-ink-normal/60" />
+                        فعال‌سازی
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => openEditModal(p)} aria-label="ویرایش">
                       <Edit2 className="w-3.5 h-3.5" />
                     </Button>
@@ -176,11 +246,21 @@ export const AdminProjectsPage: React.FC = () => {
           <div className="space-y-3.5">
             <Input label="نام پروژه" value={editName} onChange={(e) => setEditName(e.target.value)} />
             <Input label="توضیحات (اختیاری)" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">وضعیت پروژه</label>
+              <Select
+                value={editIsActive ? 'active' : 'completed'}
+                onChange={(e) => setEditIsActive(e.target.value === 'active')}
+              >
+                <option value="active">در حال اجرا</option>
+                <option value="completed">تمام شده</option>
+              </Select>
+            </div>
             <Button
               variant="primary"
               className="w-full mt-3"
               isLoading={updateMut.isPending}
-              onClick={() => updateMut.mutate({ id: editingProject.id, payload: { name: editName.trim(), description: editDesc.trim() || undefined } })}
+              onClick={() => updateMut.mutate({ id: editingProject.id, payload: { name: editName.trim(), description: editDesc.trim() || undefined, isActive: editIsActive } })}
             >
               ذخیره تغییرات
             </Button>
@@ -252,6 +332,38 @@ export const AdminProjectsPage: React.FC = () => {
         isLoading={deleteMut.isPending}
         onConfirm={() => deletingId && deleteMut.mutate(deletingId)}
         onCancel={() => setDeletingId(null)}
+      />
+
+      {/* Toggle Completed Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(togglingProject)}
+        title={togglingProject?.toActive ? 'فعال‌سازی مجدد پروژه' : 'اتمام پروژه'}
+        message={
+          togglingProject?.toActive
+            ? `آیا از فعال‌سازی مجدد پروژه «${togglingProject?.name}» اطمینان دارید؟`
+            : `آیا از ثبت پروژه «${togglingProject?.name}» به عنوان «تمام شده» اطمینان دارید؟ پروژه از دسترس کاربران عادی خارج خواهد شد.`
+        }
+        variant="primary"
+        isLoading={updateMut.isPending}
+        onConfirm={() => {
+          if (!togglingProject) return;
+          updateMut.mutate(
+            {
+              id: togglingProject.id,
+              payload: { isActive: togglingProject.toActive },
+            },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+                toast.success(
+                  togglingProject.toActive ? 'پروژه فعال شد' : 'پروژه به عنوان تمام شده ثبت شد'
+                );
+                setTogglingProject(null);
+              },
+            }
+          );
+        }}
+        onCancel={() => setTogglingProject(null)}
       />
     </div>
   );
