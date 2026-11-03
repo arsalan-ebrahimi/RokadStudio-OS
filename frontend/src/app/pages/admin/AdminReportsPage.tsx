@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { Card, Button, Skeleton, EmptyState, PersianDatePicker, Select } from '@/shared/ui';
 import { fetchWorkSessionsSummary } from '@/features/reports/api/reports-api';
+import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { exportReportsToCsv } from '@/features/reports/lib/export-csv';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { getTehranTodayString, getJalaliWeekRange, getJalaliMonthRange } from '@/shared/lib/date';
@@ -11,11 +12,18 @@ export const AdminReportsPage: React.FC = () => {
   const today = getTehranTodayString();
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
+  const [projectId, setProjectId] = useState<number | undefined>(undefined);
   const [groupBy, setGroupBy] = useState<'user' | 'project' | 'user_project'>('user_project');
 
+  const { data: projectsRes } = useQuery({
+    queryKey: ['admin-projects-list'],
+    queryFn: () => fetchAllProjects({ limit: 100, isActive: true }),
+  });
+  const projects = projectsRes?.data || [];
+
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['reports-summary', dateFrom, dateTo, groupBy],
-    queryFn: () => fetchWorkSessionsSummary({ dateFrom, dateTo, groupBy }),
+    queryKey: ['reports-summary', dateFrom, dateTo, groupBy, projectId],
+    queryFn: () => fetchWorkSessionsSummary({ dateFrom, dateTo, groupBy, projectId }),
   });
 
   const totalSeconds = rows.reduce((acc, r) => acc + r.totalSeconds, 0);
@@ -75,6 +83,21 @@ export const AdminReportsPage: React.FC = () => {
             <PersianDatePicker value={dateFrom} onChange={setDateFrom} allowStep={false} />
             <span className="text-xs text-gray-400">تا</span>
             <PersianDatePicker value={dateTo} onChange={setDateTo} allowStep={false} />
+          </div>
+
+          <div className="w-40">
+            <Select
+              selectSize="sm"
+              value={projectId ?? ''}
+              onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : undefined)}
+            >
+              <option value="">همه پروژه‌ها</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <div className="w-36">
