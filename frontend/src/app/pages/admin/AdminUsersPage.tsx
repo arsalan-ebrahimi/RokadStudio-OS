@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Copy, Check } from 'lucide-react';
-import { Card, Button, Input, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
+import { Card, Button, Input, Select, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
 import { fetchUsers, createUser, updateUser, deleteUser } from '@/features/users/api/users-api';
 import { suggestNextUserCode } from '@/features/users/lib/code-generator';
 import { useAuthStore } from '@/features/auth';
@@ -153,18 +153,15 @@ export const AdminUsersPage: React.FC = () => {
             />
             <Input label="کد پرسنلی پیشنهادی" value={formCode} onChange={(e) => setFormCode(e.target.value.toUpperCase())} />
           </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">نقش کاربر</label>
-            <select
-              value={formRole}
-              onChange={(e) => setFormRole(e.target.value as Role)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] text-xs font-bold"
-            >
-              <option value="USER">کاربر عادی</option>
-              <option value="ADMIN">ادمین</option>
-              <option value="SUPER_ADMIN">مدیر ارشد</option>
-            </select>
-          </div>
+          <Select
+            label="نقش کاربر"
+            value={formRole}
+            onChange={(e) => setFormRole(e.target.value as Role)}
+          >
+            <option value="USER">کاربر عادی</option>
+            <option value="ADMIN">ادمین</option>
+            <option value="SUPER_ADMIN">مدیر ارشد</option>
+          </Select>
           <Button variant="primary" className="w-full mt-4" isLoading={createMut.isPending} onClick={() => createMut.mutate()}>
             ثبت کاربر
           </Button>
@@ -189,19 +186,16 @@ export const AdminUsersPage: React.FC = () => {
         <Modal isOpen onClose={() => setEditingUser(null)} title="ویرایش کاربر">
           <div className="space-y-3.5">
             <Input label="نام کامل" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} />
-            <div className="space-y-1">
-              <label className="block text-xs font-bold">نقش</label>
-              <select
-                value={editUserRole}
-                disabled={currentUser?.id === editingUser.id}
-                onChange={(e) => setEditUserRole(e.target.value as Role)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] text-xs font-bold"
-              >
-                <option value="USER">کاربر عادی</option>
-                <option value="ADMIN">ادمین</option>
-                <option value="SUPER_ADMIN">مدیر ارشد</option>
-              </select>
-            </div>
+            <Select
+              label="نقش"
+              value={editUserRole}
+              disabled={currentUser?.id === editingUser.id}
+              onChange={(e) => setEditUserRole(e.target.value as Role)}
+            >
+              <option value="USER">کاربر عادی</option>
+              <option value="ADMIN">ادمین</option>
+              <option value="SUPER_ADMIN">مدیر ارشد</option>
+            </Select>
             <Button
               variant="primary"
               className="w-full mt-4"

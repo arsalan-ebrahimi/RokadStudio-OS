@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X } from 'lucide-react';
-import { Card, Button, Skeleton, EmptyState, toast, PersianDatePicker } from '@/shared/ui';
+import { Card, Button, Skeleton, EmptyState, toast, PersianDatePicker, Select } from '@/shared/ui';
 import { AttendanceBadge } from '@/features/attendance/components/AttendanceBadge';
 import { AttendanceDecisionDialog } from '@/features/attendance/components/AttendanceDecisionDialog';
 import { fetchAdminAttendance, decideAttendance } from '@/features/attendance/api/admin-attendance-api';
@@ -41,16 +41,18 @@ export const AdminAttendancePage: React.FC = () => {
         <h1 className="text-lg font-black text-sec dark:text-white">کارتابل حضور و غیاب</h1>
         <div className="flex items-center gap-2">
           <PersianDatePicker value={selectedDate} onChange={setSelectedDate} />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#151C28] text-xs font-bold focus:outline-none"
-          >
-            <option value="ALL">همه وضعیت‌ها</option>
-            <option value="PENDING">در انتظار تایید</option>
-            <option value="APPROVED">تایید شده</option>
-            <option value="REJECTED">رد شده</option>
-          </select>
+          <div className="w-36">
+            <Select
+              selectSize="sm"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">همه وضعیت‌ها</option>
+              <option value="PENDING">در انتظار تایید</option>
+              <option value="APPROVED">تایید شده</option>
+              <option value="REJECTED">رد شده</option>
+            </Select>
+          </div>
         </div>
       </div>
 

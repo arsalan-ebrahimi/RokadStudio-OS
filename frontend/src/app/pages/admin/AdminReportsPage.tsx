@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
-import { Card, Button, Skeleton, EmptyState, PersianDatePicker } from '@/shared/ui';
+import { Card, Button, Skeleton, EmptyState, PersianDatePicker, Select } from '@/shared/ui';
 import { fetchWorkSessionsSummary } from '@/features/reports/api/reports-api';
 import { exportReportsToCsv } from '@/features/reports/lib/export-csv';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
@@ -77,15 +77,17 @@ export const AdminReportsPage: React.FC = () => {
             <PersianDatePicker value={dateTo} onChange={setDateTo} allowStep={false} />
           </div>
 
-          <select
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#151C28] text-xs font-bold focus:outline-none"
-          >
-            <option value="user_project">کاربر و پروژه</option>
-            <option value="user">تفکیک کاربر</option>
-            <option value="project">تفکیک پروژه</option>
-          </select>
+          <div className="w-36">
+            <Select
+              selectSize="sm"
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
+            >
+              <option value="user_project">کاربر و پروژه</option>
+              <option value="user">تفکیک کاربر</option>
+              <option value="project">تفکیک پروژه</option>
+            </Select>
+          </div>
 
           <Button size="sm" variant="outline" onClick={() => exportReportsToCsv(rows)}>
             <Download className="w-3.5 h-3.5 me-1" />
