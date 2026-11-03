@@ -15,8 +15,12 @@ export const AttendanceBadge: React.FC<AttendanceBadgeProps> = ({ attendance }) 
     return <Badge variant="female">غایب</Badge>;
   }
 
-  if (attendance.approval === 'PENDING') {
-    return <Badge variant="college">در انتظار تایید</Badge>;
+  if (attendance.status === 'PRESENT' && attendance.approval === 'PENDING') {
+    return <Badge variant="ecosystem">حاضر (در انتظار تایید)</Badge>;
+  }
+
+  if (attendance.approval === 'APPROVED') {
+    return <Badge variant="ecosystem">حاضر (تایید شده)</Badge>;
   }
 
   return <Badge variant="ecosystem">حاضر</Badge>;

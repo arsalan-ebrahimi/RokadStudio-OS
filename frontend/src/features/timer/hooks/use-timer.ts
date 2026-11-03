@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { WORK_DURATION_SECONDS, BREAK_DURATION_SECONDS, TIMER_STORAGE_KEY } from '@/shared/config/constants';
 import { submitWorkSession } from '../api/timer-api';
@@ -15,70 +15,60 @@ interface StoredTimer {
   targetTimestamp: number | null;
 }
 
+function getStoredTimer(): StoredTimer {
+  try {
+    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
+    if (!raw) return { state: 'IDLE', remaining: WORK_DURATION_SECONDS, projectId: null, targetTimestamp: null };
+    const data: StoredTimer = JSON.parse(raw);
+
+    // If it was running, calculate exact time elapsed since targetTimestamp
+    if (data.state === 'RUNNING' && data.targetTimestamp) {
+      const diff = Math.max(0, Math.round((data.targetTimestamp - Date.now()) / 1000));
+      if (diff > 0) {
+        return { ...data, remaining: diff };
+      }
+      // If time expired while away, enter break
+      return { state: 'BREAK', remaining: BREAK_DURATION_SECONDS, projectId: data.projectId, targetTimestamp: Date.now() + BREAK_DURATION_SECONDS * 1000 };
+    }
+
+    if (data.state === 'BREAK' && data.targetTimestamp) {
+      const diff = Math.max(0, Math.round((data.targetTimestamp - Date.now()) / 1000));
+      if (diff > 0) {
+        return { ...data, remaining: diff };
+      }
+      return { state: 'DONE', remaining: 0, projectId: data.projectId, targetTimestamp: null };
+    }
+
+    return data;
+  } catch {
+    return { state: 'IDLE', remaining: WORK_DURATION_SECONDS, projectId: null, targetTimestamp: null };
+  }
+}
+
 export function useTimer(selectedProjectId: number | null) {
   const queryClient = useQueryClient();
-  const [state, setState] = useState<TimerState>('IDLE');
-  const [remaining, setRemaining] = useState<number>(WORK_DURATION_SECONDS);
-  const targetTimeRef = useRef<number | null>(null);
+  const initial = useRef(getStoredTimer());
 
-  // Restore on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(TIMER_STORAGE_KEY);
-    if (!saved) return;
-    try {
-      const data: StoredTimer = JSON.parse(saved);
-      if (data.state === 'RUNNING' && data.targetTimestamp) {
-        const diff = Math.max(0, Math.round((data.targetTimestamp - Date.now()) / 1000));
-        setRemaining(diff);
-        setState(diff > 0 ? 'RUNNING' : 'BREAK');
-        targetTimeRef.current = data.targetTimestamp;
-      } else {
-        setState(data.state);
-        setRemaining(data.remaining);
-      }
-    } catch {
-      localStorage.removeItem(TIMER_STORAGE_KEY);
-    }
+  const [state, setState] = useState<TimerState>(initial.current.state);
+  const [remaining, setRemaining] = useState<number>(initial.current.remaining);
+  const targetTimeRef = useRef<number | null>(initial.current.targetTimestamp);
+  const isCompletedRef = useRef(false);
+
+  // Sync to localStorage
+  const saveState = useCallback((s: TimerState, r: number, target: number | null, pid: number | null) => {
+    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify({
+      state: s,
+      remaining: r,
+      projectId: pid,
+      targetTimestamp: target,
+    }));
   }, []);
 
-  // Save on change
-  useEffect(() => {
-    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify({
-      state,
-      remaining,
-      projectId: selectedProjectId,
-      targetTimestamp: targetTimeRef.current,
-    }));
-  }, [state, remaining, selectedProjectId]);
-
-  // Tab Title
-  useEffect(() => {
-    if (state === 'RUNNING' || state === 'BREAK') {
-      document.title = `${formatSecondsToTime(remaining)} | پلتفرم استودیو رکاد`;
-    } else {
-      document.title = 'پلتفرم حضور و زمان استودیو رکاد';
-    }
-  }, [remaining, state]);
-
-  // Timer Tick
-  useEffect(() => {
-    if (state !== 'RUNNING' && state !== 'BREAK') return;
-
-    const interval = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          handleCycleComplete();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [state, selectedProjectId]);
-
-  const handleCycleComplete = async () => {
+  const handleCycleComplete = useCallback(async () => {
+    if (isCompletedRef.current) return;
+    isCompletedRef.current = true;
     playCompletionChime();
+
     if (state === 'RUNNING') {
       if (selectedProjectId) {
         try {
@@ -91,38 +81,87 @@ export function useTimer(selectedProjectId: number | null) {
           toast.error(msg);
         }
       }
+      const newTarget = Date.now() + BREAK_DURATION_SECONDS * 1000;
+      targetTimeRef.current = newTarget;
       setState('BREAK');
       setRemaining(BREAK_DURATION_SECONDS);
-      targetTimeRef.current = Date.now() + BREAK_DURATION_SECONDS * 1000;
+      saveState('BREAK', BREAK_DURATION_SECONDS, newTarget, selectedProjectId);
     } else if (state === 'BREAK') {
+      targetTimeRef.current = null;
       setState('DONE');
       setRemaining(0);
-      targetTimeRef.current = null;
+      saveState('DONE', 0, null, selectedProjectId);
       toast.info('استراحت پایان یافت');
     }
-  };
+
+    setTimeout(() => {
+      isCompletedRef.current = false;
+    }, 1000);
+  }, [state, selectedProjectId, queryClient, saveState]);
+
+  // Timer Tick based on wall-clock target time
+  useEffect(() => {
+    if (state !== 'RUNNING' && state !== 'BREAK') return;
+
+    const interval = setInterval(() => {
+      if (targetTimeRef.current) {
+        const diff = Math.max(0, Math.round((targetTimeRef.current - Date.now()) / 1000));
+        setRemaining(diff);
+        saveState(state, diff, targetTimeRef.current, selectedProjectId);
+
+        if (diff <= 0) {
+          clearInterval(interval);
+          handleCycleComplete();
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state, selectedProjectId, handleCycleComplete, saveState]);
+
+  // Tab Title
+  useEffect(() => {
+    if (state === 'RUNNING' || state === 'BREAK') {
+      document.title = `${formatSecondsToTime(remaining)} | راکاد استودیو`;
+    } else {
+      document.title = 'راکاد استودیو | Rokad Studio OS';
+    }
+  }, [remaining, state]);
 
   const start = () => {
     if (!selectedProjectId) {
       toast.error('ابتدا پروژه را انتخاب کنید');
       return;
     }
+    const currentRemaining = remaining > 0 ? remaining : WORK_DURATION_SECONDS;
+    const target = Date.now() + currentRemaining * 1000;
+    targetTimeRef.current = target;
     setState('RUNNING');
-    targetTimeRef.current = Date.now() + remaining * 1000;
+    setRemaining(currentRemaining);
+    saveState('RUNNING', currentRemaining, target, selectedProjectId);
   };
 
   const pause = () => {
-    setState('PAUSED');
     targetTimeRef.current = null;
+    setState('PAUSED');
+    saveState('PAUSED', remaining, null, selectedProjectId);
   };
 
   const reset = () => {
     if (state !== 'DONE') return;
+    targetTimeRef.current = null;
     setState('IDLE');
     setRemaining(WORK_DURATION_SECONDS);
-    targetTimeRef.current = null;
+    saveState('IDLE', WORK_DURATION_SECONDS, null, selectedProjectId);
   };
 
-  return { state, remaining, start, pause, reset, isLocked: state === 'RUNNING' || state === 'PAUSED' || state === 'BREAK' };
+  return {
+    state,
+    remaining,
+    start,
+    pause,
+    reset,
+    savedProjectId: initial.current.projectId,
+    isLocked: state === 'RUNNING' || state === 'PAUSED' || state === 'BREAK',
+  };
 }
-

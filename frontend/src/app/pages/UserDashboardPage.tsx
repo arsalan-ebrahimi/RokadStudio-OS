@@ -13,15 +13,27 @@ const UserDashboardPage: React.FC = () => {
   useMidnightWatcher();
 
   const { data: projects = [], isLoading: projectsLoading } = useMyProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(() => {
+    const saved = localStorage.getItem('rokad_selected_project');
+    return saved ? Number(saved) : null;
+  });
+
+  const { state, remaining, start, pause, reset, isLocked, savedProjectId } = useTimer(selectedProjectId);
 
   useEffect(() => {
-    if (!selectedProjectId && projects.length > 0) {
+    if (savedProjectId && !selectedProjectId) {
+      setSelectedProjectId(savedProjectId);
+    } else if (!selectedProjectId && projects.length > 0) {
       setSelectedProjectId(projects[0].id);
     }
-  }, [projects, selectedProjectId]);
+  }, [projects, selectedProjectId, savedProjectId]);
 
-  const { state, remaining, start, pause, reset, isLocked } = useTimer(selectedProjectId);
+  useEffect(() => {
+    if (selectedProjectId) {
+      localStorage.setItem('rokad_selected_project', String(selectedProjectId));
+    }
+  }, [selectedProjectId]);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   const toggleTheme = () => {
