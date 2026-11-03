@@ -152,7 +152,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
       localStorage.removeItem('rokad_selected_project');
     } catch {}
     if (typeof document !== 'undefined') {
-      document.title = 'راکاد استودیو | Rokad Studio OS';
+      document.title = 'رکاد استودیو | Rokad Studio OS';
     }
   },
 
@@ -163,7 +163,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
       if (!targetTimestamp) return;
       const diff = Math.max(0, Math.round((targetTimestamp - Date.now()) / 1000));
 
-      document.title = `${formatSecondsToTime(diff)} | راکاد استودیو`;
+      document.title = `${formatSecondsToTime(diff)} | رکاد استودیو`;
       set({ remaining: diff });
 
       if (diff <= 0) {
@@ -194,7 +194,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
       if (!targetTimestamp) return;
       const diff = Math.max(0, Math.round((targetTimestamp - Date.now()) / 1000));
 
-      document.title = `${formatSecondsToTime(diff)} | استراحت راکاد`;
+      document.title = `${formatSecondsToTime(diff)} | استراحت رکاد`;
       set({ remaining: diff });
 
       if (diff <= 0) {
@@ -208,12 +208,12 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
         };
         set(doneState);
         persistState(doneState);
-        document.title = 'راکاد استودیو | Rokad Studio OS';
+        document.title = 'رکاد استودیو | Rokad Studio OS';
       } else {
         persistState({ state, remaining: diff, projectId, targetTimestamp });
       }
     } else {
-      document.title = 'راکاد استودیو | Rokad Studio OS';
+      document.title = 'رکاد استودیو | Rokad Studio OS';
     }
   },
 }));

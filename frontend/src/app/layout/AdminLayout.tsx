@@ -38,7 +38,7 @@ export const AdminLayout: React.FC = () => {
                 <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
               </div>
               <div>
-                <h2 className="text-sm font-black text-sec dark:text-white leading-tight">راکاد استودیو</h2>
+                <h2 className="text-sm font-black text-sec dark:text-white leading-tight">رکاد استودیو</h2>
                 <p className="text-[11px] text-ink-normal/60 dark:text-gray-400 mt-0.5">{user?.name}</p>
               </div>
             </div>

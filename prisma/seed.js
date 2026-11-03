@@ -61,7 +61,7 @@ export const runSeed = async () => {
   // 4. Seed Projects
   const projectsData = [
     {
-      name: "توسعه راکاد استودیو OS",
+      name: "توسعه رکاد استودیو OS",
       description: "سامانه حضور و غیاب، تایمر متمرکز و پلتفرم داخلی تیم",
       members: [seededUsers[0].id, seededUsers[2].id, seededUsers[1].id],
     },
