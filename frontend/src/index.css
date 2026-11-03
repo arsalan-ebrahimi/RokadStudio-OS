@@ -2,8 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'IRANSansX';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IRANSansX-RegularD4.woff2') format('woff2'),
+       url('/fonts/IRANSansX-RegularD4.woff') format('woff'),
+       url('/fonts/IRANSansX-RegularD4.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansX';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/IRANSansX-MediumD4.woff2') format('woff2'),
+       url('/fonts/IRANSansX-MediumD4.woff') format('woff'),
+       url('/fonts/IRANSansX-MediumD4.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansX';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/IRANSansX-DemiBoldD4.woff2') format('woff2'),
+       url('/fonts/IRANSansX-DemiBoldD4.woff') format('woff'),
+       url('/fonts/IRANSansX-DemiBoldD4.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansX';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/IRANSansX-BoldD4.woff2') format('woff2'),
+       url('/fonts/IRANSansX-BoldD4.woff') format('woff'),
+       url('/fonts/IRANSansX-BoldD4.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansX';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/IRANSansX-ExtraBoldD4.woff2') format('woff2'),
+       url('/fonts/IRANSansX-ExtraBoldD4.woff') format('woff'),
+       url('/fonts/IRANSansX-ExtraBoldD4.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansX';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/fonts/IRANSansX-BlackD4.woff2') format('woff2'),
+       url('/fonts/IRANSansX-BlackD4.woff') format('woff'),
+       url('/fonts/IRANSansX-BlackD4.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansXFaNum';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IRANSansXFaNum-RegularD4.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'IRANSansXFaNum';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/IRANSansXFaNum-BoldD4.ttf') format('truetype');
+}
+
 :root {
-  --font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family: "IRANSansXFaNum", "IRANSansX", "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --color-primary: #59BBAF;
   --color-sec: #202A5A;
   --color-girl: #E0195B;

@@ -33,9 +33,14 @@ export const AdminLayout: React.FC = () => {
       )}>
         <div className="space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
-            <div>
-              <h2 className="text-base font-black text-sec dark:text-white">پنل مدیریت رکاد</h2>
-              <p className="text-xs text-ink-normal/60 dark:text-gray-400 mt-0.5">{user?.name}</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#202A5A] p-2 shadow-hard flex items-center justify-center shrink-0">
+                <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-sec dark:text-white leading-tight">راکاد استودیو</h2>
+                <p className="text-[11px] text-ink-normal/60 dark:text-gray-400 mt-0.5">{user?.name}</p>
+              </div>
             </div>
             <button onClick={() => setMobileOpen(false)} className="md:hidden p-1 text-gray-500">
               <X className="w-5 h-5" />
