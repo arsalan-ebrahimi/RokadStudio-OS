@@ -2,10 +2,10 @@ import "dotenv/config";
 import prisma from "../config/prisma.js";
 
 export const runSeed = async () => {
-  const adminCode = process.env.SEED_SUPERADMIN_CODE || "super_admin_2026";
+  const adminCode = process.env.SEED_SUPERADMIN_CODE || "SP0001";
   const adminName = process.env.SEED_SUPERADMIN_NAME || "Studio Super Admin";
 
-  // 1. Seed Super Admin
+  // 1. Seed Super Admin (6 chars: SP0001)
   const admin = await prisma.user.upsert({
     where: { code: adminCode },
     update: {
@@ -21,16 +21,16 @@ export const runSeed = async () => {
     },
   });
 
-  // 2. Seed Regular User
+  // 2. Seed Regular User (6 chars: RK1101)
   const regularUser = await prisma.user.upsert({
-    where: { code: "ROK1101" },
+    where: { code: "RK1101" },
     update: {
       name: "علی محمدی",
       role: "USER",
       isActive: true,
     },
     create: {
-      code: "ROK1101",
+      code: "RK1101",
       name: "علی محمدی",
       role: "USER",
       isActive: true,

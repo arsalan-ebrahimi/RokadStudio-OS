@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '@/shared/ui';
+import { OtpInput } from './OtpInput';
 import { useAuthStore } from '../hooks/use-auth-store';
-import { toEnglishDigits } from '@/shared/lib/formatters';
 import { ApiError } from '@/shared/types/api';
 
 interface LoginFormProps {
@@ -17,18 +17,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanCode = toEnglishDigits(code).trim();
-    if (cleanCode.length < 6) {
-      setError('کد پرسنلی باید حداقل ۶ کاراکتر باشد');
-      return;
-    }
+  const handleComplete = async (submittedCode: string) => {
+    const finalCode = (submittedCode || code).trim().toUpperCase();
+    if (finalCode.length < 6) return;
 
     setError(null);
     setLoading(true);
     try {
-      const user = await login(cleanCode);
+      const user = await login(finalCode);
       if (isAdmin && user.role === 'USER') {
         setError('دسترسی مدیریت ندارید');
         return;
@@ -42,7 +38,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
       if (err instanceof ApiError && err.status === 429) {
         setError('تعداد تلاش بیش از حد مجاز. ۱۵ دقیقه بعد تلاش کنید.');
       } else {
-        setError(err instanceof Error ? err.message : 'کد نامعتبر است یا حساب غیرفعال شده است');
+        setError('کد نامعتبر است یا حساب غیرفعال شده است');
       }
     } finally {
       setLoading(false);
@@ -56,22 +52,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
           <h1 className="text-lg font-black text-sec dark:text-white">{title}</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">
-              {isAdmin ? 'کد مدیریت' : 'کد پرسنلی'}
-            </label>
-            <input
-              type="text"
-              dir="ltr"
-              autoFocus
-              disabled={loading}
-              value={code}
-              onChange={(e) => setCode(toEnglishDigits(e.target.value).trim())}
-              placeholder={isAdmin ? 'super_admin_2026' : 'ROK1101'}
-              className="w-full px-4 py-3 text-center text-base sm:text-lg font-black font-mono tracking-widest rounded-xl border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1A2234] text-sec dark:text-white shadow-hard-sm focus:outline-none focus:border-primary transition-all"
-            />
-          </div>
+        <div className="space-y-4">
+          <OtpInput
+            onComplete={(val) => {
+              setCode(val);
+              handleComplete(val);
+            }}
+            isLoading={loading}
+            hasError={Boolean(error)}
+          />
 
           {error && (
             <p className="text-xs text-[#C60036] font-bold text-center leading-relaxed">
@@ -79,10 +68,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
             </p>
           )}
 
-          <Button type="submit" variant="primary" className="w-full mt-2" isLoading={loading} disabled={code.trim().length < 6}>
+          <Button
+            variant="primary"
+            className="w-full"
+            isLoading={loading}
+            disabled={code.length < 6}
+            onClick={() => handleComplete(code)}
+          >
             ورود
           </Button>
-        </form>
+        </div>
       </Card>
     </div>
   );
