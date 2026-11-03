@@ -94,3 +94,4 @@ export const AdminReportsPage: React.FC = () => {
 };
 
 export default AdminReportsPage;
+

@@ -43,3 +43,4 @@ export async function searchActiveUsers(q?: string): Promise<User[]> {
   const res = await apiClient<User[]>('/api/users/search', { params: { q } });
   return res.data;
 }
+

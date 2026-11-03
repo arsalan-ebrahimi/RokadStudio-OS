@@ -20,3 +20,4 @@ export function playCompletionChime(): void {
     // Ignore audio autoplay restrictions
   }
 }
+

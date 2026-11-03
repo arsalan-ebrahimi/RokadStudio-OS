@@ -56,3 +56,4 @@ export interface WorkSessionSummaryRow {
   user?: { id: number; name: string };
   project?: { id: number; name: string };
 }
+

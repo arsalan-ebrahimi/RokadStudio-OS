@@ -78,3 +78,4 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
     </div>
   );
 };
+

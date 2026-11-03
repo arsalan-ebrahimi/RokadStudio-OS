@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary, ToastContainer } from '../shared/ui';
+import { useAuthStore } from '@/features/auth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,6 +14,10 @@ const queryClient = new QueryClient({
 });
 
 export const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useEffect(() => {
+    useAuthStore.getState().init();
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -22,3 +27,4 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     </ErrorBoundary>
   );
 };
+

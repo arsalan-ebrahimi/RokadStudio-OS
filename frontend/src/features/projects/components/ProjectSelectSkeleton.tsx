@@ -9,3 +9,4 @@ export const ProjectSelectSkeleton: React.FC = () => {
     </div>
   );
 };
+

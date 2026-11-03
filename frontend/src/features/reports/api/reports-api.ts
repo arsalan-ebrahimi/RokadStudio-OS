@@ -16,3 +16,4 @@ export async function fetchWorkSessionsSummary(params: ReportsSummaryParams = {}
   });
   return res.data;
 }
+

@@ -24,3 +24,4 @@ export async function decideAttendance(id: number, decision: 'APPROVED' | 'REJEC
   });
   return res.data;
 }
+

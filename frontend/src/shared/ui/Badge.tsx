@@ -28,3 +28,4 @@ export const Badge: React.FC<BadgeProps> = ({ className, variant = 'ecosystem', 
     </span>
   );
 };
+

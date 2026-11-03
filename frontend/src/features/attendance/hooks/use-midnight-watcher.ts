@@ -28,3 +28,4 @@ export function useMidnightWatcher(onMidnightPassed?: () => void) {
     };
   }, [queryClient, onMidnightPassed]);
 }
+

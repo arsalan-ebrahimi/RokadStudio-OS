@@ -10,3 +10,4 @@ export const THEME_STORAGE_KEY = 'rokad_theme';
 export const TIMER_STORAGE_KEY = 'rokad_timer_state';
 
 export const OTP_LENGTH = 6;
+

@@ -8,3 +8,4 @@ export const AttendanceSkeleton: React.FC = () => {
     </div>
   );
 };
+

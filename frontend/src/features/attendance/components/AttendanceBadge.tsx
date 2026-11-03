@@ -21,3 +21,4 @@ export const AttendanceBadge: React.FC<AttendanceBadgeProps> = ({ attendance }) 
 
   return <Badge variant="ecosystem">حاضر</Badge>;
 };
+

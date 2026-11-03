@@ -29,3 +29,4 @@ export function exportReportsToCsv(rows: WorkSessionSummaryRow[], filename = 'ro
   a.click();
   URL.revokeObjectURL(url);
 }
+

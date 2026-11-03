@@ -24,3 +24,4 @@ export function formatDurationToHoursMins(totalSeconds: number): string {
   }
   return `${toPersianDigits(minutes)} دقیقه`;
 }
+

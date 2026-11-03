@@ -16,7 +16,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   token: localStorage.getItem(TOKEN_STORAGE_KEY),
   user: JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null'),
-  isLoading: true,
+  isLoading: Boolean(localStorage.getItem(TOKEN_STORAGE_KEY)),
 
   login: async (code: string) => {
     const { token, user } = await loginWithCode(code);
@@ -54,3 +54,4 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return current ? roles.includes(current.role) : false;
   },
 }));
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LogOut, Sun, Moon } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useTodayAttendance, useMidnightWatcher, AttendanceBadge, AttendanceModal } from '@/features/attendance';
@@ -14,6 +14,12 @@ const UserDashboardPage: React.FC = () => {
 
   const { data: projects = [], isLoading: projectsLoading } = useMyProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!selectedProjectId && projects.length > 0) {
+      setSelectedProjectId(projects[0].id);
+    }
+  }, [projects, selectedProjectId]);
 
   const { state, remaining, start, pause, reset, isLocked } = useTimer(selectedProjectId);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
@@ -103,3 +109,4 @@ const UserDashboardPage: React.FC = () => {
 };
 
 export default UserDashboardPage;
+

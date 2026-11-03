@@ -45,3 +45,4 @@ export async function fetchProjectDetails(id: number): Promise<Project & { membe
   const res = await apiClient<Project & { members: { id: number; name: string }[] }>(`/api/projects/${id}`);
   return res.data;
 }
+

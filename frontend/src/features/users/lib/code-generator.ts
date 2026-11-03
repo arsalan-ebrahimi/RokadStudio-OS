@@ -18,3 +18,4 @@ export function suggestNextUserCode(users: User[], prefix = 'IT'): string {
 
   return `${cleanPrefix}${maxNum + 1}`;
 }
+

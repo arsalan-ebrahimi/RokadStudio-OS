@@ -36,3 +36,4 @@ export function useTodayAttendance() {
     isSubmitting: mutation.isPending,
   };
 }
+

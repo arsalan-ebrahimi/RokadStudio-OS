@@ -18,3 +18,4 @@ export async function fetchMyAttendance(params?: { page?: number; limit?: number
   const res = await apiClient<Attendance[]>('/api/attendance/me', { params });
   return res;
 }
+

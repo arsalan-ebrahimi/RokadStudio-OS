@@ -10,3 +10,4 @@ export async function fetchAllProjects(params?: { page?: number; limit?: number;
   const res = await apiClient<Project[]>('/api/projects', { params });
   return res;
 }
+

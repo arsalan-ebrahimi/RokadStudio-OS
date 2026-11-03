@@ -21,3 +21,4 @@ export const BreakOverlay: React.FC<BreakOverlayProps> = ({ remaining }) => {
     </div>
   );
 };
+

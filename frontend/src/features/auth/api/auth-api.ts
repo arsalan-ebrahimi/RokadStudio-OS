@@ -22,3 +22,4 @@ export async function fetchCurrentUser(): Promise<User> {
   const res = await apiClient<User>('/api/auth/me');
   return res.data;
 }
+

@@ -125,3 +125,4 @@ export function useTimer(selectedProjectId: number | null) {
 
   return { state, remaining, start, pause, reset, isLocked: state === 'RUNNING' || state === 'PAUSED' || state === 'BREAK' };
 }
+

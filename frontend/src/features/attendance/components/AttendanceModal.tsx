@@ -32,3 +32,4 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
     </Modal>
   );
 };
+

@@ -23,3 +23,4 @@ export async function fetchMySessionsToday(): Promise<MySessionsResponse> {
   const res = await apiClient<MySessionsResponse>('/api/work-sessions/me');
   return res.data;
 }
+
