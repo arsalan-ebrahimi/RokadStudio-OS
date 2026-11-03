@@ -87,7 +87,7 @@ export const AdminLayout: React.FC = () => {
             <Menu className="w-6 h-6" />
           </button>
           <span className="text-xs sm:text-sm font-bold text-sec dark:text-gray-300">
-            امروز: {formatToJalali(getTehranTodayString())}
+            امروز: {formatToJalali(getTehranTodayString(), true)}
           </span>
         </header>
 

@@ -6,6 +6,7 @@ import { useMyProjects, ProjectSelect } from '@/features/projects';
 import { useTimer, TimerDisplay, BreakOverlay } from '@/features/timer';
 import { Card } from '@/shared/ui';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
+import { formatToJalali, getTehranTodayString } from '@/shared/lib/date';
 
 const UserDashboardPage: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -55,8 +56,11 @@ const UserDashboardPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-sm sm:text-base font-black text-sec dark:text-white leading-tight">{user?.name}</h1>
-            <div className="mt-1">
+            <div className="mt-1 flex items-center gap-2">
               <AttendanceBadge attendance={attendance} />
+              <span className="text-[11px] text-ink-normal/50 dark:text-gray-400 font-bold">
+                {formatToJalali(getTehranTodayString(), true)}
+              </span>
             </div>
           </div>
         </div>

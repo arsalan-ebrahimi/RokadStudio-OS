@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, X, Calendar } from 'lucide-react';
-import { Card, Button, Skeleton, EmptyState, toast } from '@/shared/ui';
+import { Check, X } from 'lucide-react';
+import { Card, Button, Skeleton, EmptyState, toast, PersianDatePicker } from '@/shared/ui';
 import { AttendanceBadge } from '@/features/attendance/components/AttendanceBadge';
 import { AttendanceDecisionDialog } from '@/features/attendance/components/AttendanceDecisionDialog';
 import { fetchAdminAttendance, decideAttendance } from '@/features/attendance/api/admin-attendance-api';
@@ -40,15 +40,7 @@ export const AdminAttendancePage: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-lg font-black text-sec dark:text-white">کارتابل حضور و غیاب</h1>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#151C28] text-xs font-bold">
-            <Calendar className="w-4 h-4 text-primary" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent focus:outline-none text-xs"
-            />
-          </div>
+          <PersianDatePicker value={selectedDate} onChange={setSelectedDate} />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
