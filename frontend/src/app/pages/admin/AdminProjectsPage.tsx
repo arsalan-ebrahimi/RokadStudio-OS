@@ -5,16 +5,21 @@ import { Card, Button, Input, Modal, ConfirmDialog, Skeleton, EmptyState, Badge,
 import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { createProject, updateProject, deleteProject, fetchProjectDetails, syncMembers } from '@/features/projects/api/projects-crud-api';
 import { searchActiveUsers } from '@/features/users/api/users-api';
+import { useAuthStore } from '@/features/auth';
 import { ApiError } from '@/shared/types/api';
 import type { Project, User } from '@/shared/types/models';
 
 export const AdminProjectsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuthStore();
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
 
   const [membersProject, setMembersProject] = useState<Project | null>(null);
+  const [projectMembers, setProjectMembers] = useState<{ id: number; name: string }[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editName, setEditName] = useState('');
@@ -29,7 +34,7 @@ export const AdminProjectsPage: React.FC = () => {
   const { data: activeUsers = [] } = useQuery({
     queryKey: ['active-users'],
     queryFn: () => searchActiveUsers(),
-    enabled: Boolean(membersProject),
+    enabled: Boolean(membersProject && isSuperAdmin),
   });
 
   const projects = data?.data || [];
@@ -87,8 +92,11 @@ export const AdminProjectsPage: React.FC = () => {
     setMembersProject(project);
     try {
       const details = await fetchProjectDetails(project.id);
-      setSelectedUserIds(details.members.map((m: { id: number }) => m.id));
+      const members = details.members || [];
+      setProjectMembers(members);
+      setSelectedUserIds(members.map((m: { id: number }) => m.id));
     } catch {
+      setProjectMembers([]);
       setSelectedUserIds([]);
     }
   };
@@ -103,10 +111,12 @@ export const AdminProjectsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-black text-sec dark:text-white">مدیریت پروژه‌ها</h1>
-        <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)}>
-          <Plus className="w-4 h-4 me-1" />
-          پروژه جدید
-        </Button>
+        {isSuperAdmin && (
+          <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)}>
+            <Plus className="w-4 h-4 me-1" />
+            پروژه جدید
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -133,12 +143,16 @@ export const AdminProjectsPage: React.FC = () => {
                   <Users className="w-3.5 h-3.5 me-1" />
                   اعضا
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => openEditModal(p)}>
-                  <Edit2 className="w-3.5 h-3.5" />
-                </Button>
-                <Button size="sm" variant="danger" onClick={() => setDeletingId(p.id)}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+                {isSuperAdmin && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => openEditModal(p)} aria-label="ویرایش">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => setDeletingId(p.id)} aria-label="حذف">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
+                )}
               </div>
             </Card>
           ))}
@@ -177,33 +191,55 @@ export const AdminProjectsPage: React.FC = () => {
       {/* Manage Members Modal */}
       {membersProject && (
         <Modal isOpen onClose={() => setMembersProject(null)} title={`اعضای پروژه ${membersProject.name}`}>
-          <div className="space-y-3 max-h-80 overflow-y-auto p-1">
-            {activeUsers.map((u: User) => {
-              const isSelected = selectedUserIds.includes(u.id);
-              return (
-                <label key={u.id} className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer">
-                  <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">{u.name}</span>
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedUserIds([...selectedUserIds, u.id]);
-                      else setSelectedUserIds(selectedUserIds.filter((id) => id !== u.id));
-                    }}
-                    className="w-4 h-4 text-primary rounded"
-                  />
-                </label>
-              );
-            })}
-          </div>
-          <Button
-            variant="primary"
-            className="w-full mt-4"
-            isLoading={syncMembersMut.isPending}
-            onClick={() => syncMembersMut.mutate({ id: membersProject.id, userIds: selectedUserIds })}
-          >
-            ذخیره اعضا ({selectedUserIds.length})
-          </Button>
+          {isSuperAdmin ? (
+            <>
+              <div className="space-y-3 max-h-80 overflow-y-auto p-1">
+                {activeUsers.map((u: User) => {
+                  const isSelected = selectedUserIds.includes(u.id);
+                  return (
+                    <label key={u.id} className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer">
+                      <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">{u.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedUserIds([...selectedUserIds, u.id]);
+                          else setSelectedUserIds(selectedUserIds.filter((id) => id !== u.id));
+                        }}
+                        className="w-4 h-4 text-primary rounded"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+              <Button
+                variant="primary"
+                className="w-full mt-4"
+                isLoading={syncMembersMut.isPending}
+                onClick={() => syncMembersMut.mutate({ id: membersProject.id, userIds: selectedUserIds })}
+              >
+                ذخیره اعضا ({selectedUserIds.length})
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-3">
+              {projectMembers.length === 0 ? (
+                <EmptyState title="عضوی برای این پروژه ثبت نشده است" />
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto p-1">
+                  {projectMembers.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#151C28]/50"
+                    >
+                      <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">{m.name}</span>
+                      <Badge variant="neutral">عضو</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </Modal>
       )}
 

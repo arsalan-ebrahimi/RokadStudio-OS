@@ -43,7 +43,7 @@ projectRouter.post(
 
 projectRouter.get(
   "/:id",
-  allowedRoles("SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN"),
   projectIdValidator,
   getProjectById
 );
