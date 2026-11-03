@@ -152,7 +152,7 @@ export const AdminReportsPage: React.FC = () => {
                 return (
                   <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50">
                     <td className="p-3.5 font-bold text-sec dark:text-white">{label}</td>
-                    <td className="p-3.5 font-mono">{toPersianDigits(row.sessionsCount)} دور</td>
+                    <td className="p-3.5 font-bold tabular-nums text-sec dark:text-white">{toPersianDigits(row.sessionsCount)} دور</td>
                     <td className="p-3.5 font-bold text-primary">{formatDurationToHoursMins(row.totalSeconds)}</td>
                   </tr>
                 );
