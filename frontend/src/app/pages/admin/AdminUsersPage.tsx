@@ -168,7 +168,13 @@ export const AdminUsersPage: React.FC = () => {
 
       {/* Add Modal */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="افزودن کاربر جدید">
-        <div className="space-y-3.5">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (formName.trim() && formCode.trim()) createMut.mutate();
+          }}
+          className="space-y-3.5"
+        >
           <Input label="نام و نام خانوادگی" value={formName} onChange={(e) => setFormName(e.target.value)} />
           <div className="grid grid-cols-2 gap-3">
             <Input
@@ -192,10 +198,16 @@ export const AdminUsersPage: React.FC = () => {
             <option value="ADMIN">ادمین</option>
             <option value="SUPER_ADMIN">مدیر ارشد</option>
           </Select>
-          <Button variant="primary" className="w-full mt-4" isLoading={createMut.isPending} onClick={() => createMut.mutate()}>
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full mt-4"
+            isLoading={createMut.isPending}
+            disabled={!formName.trim() || !formCode.trim()}
+          >
             ثبت کاربر
           </Button>
-        </div>
+        </form>
       </Modal>
 
       {/* Created Code Presentation Modal */}
@@ -214,7 +226,15 @@ export const AdminUsersPage: React.FC = () => {
       {/* Edit Modal */}
       {editingUser && (
         <Modal isOpen onClose={() => setEditingUser(null)} title="ویرایش کاربر">
-          <div className="space-y-3.5">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editUserName.trim()) {
+                updateMut.mutate({ id: editingUser.id, payload: { name: editUserName.trim(), role: editUserRole } });
+              }
+            }}
+            className="space-y-3.5"
+          >
             <Input label="نام کامل" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} />
             <Select
               label="نقش"
@@ -227,14 +247,15 @@ export const AdminUsersPage: React.FC = () => {
               <option value="SUPER_ADMIN">مدیر ارشد</option>
             </Select>
             <Button
+              type="submit"
               variant="primary"
               className="w-full mt-4"
               isLoading={updateMut.isPending}
-              onClick={() => updateMut.mutate({ id: editingUser.id, payload: { name: editUserName, role: editUserRole } })}
+              disabled={!editUserName.trim()}
             >
-              ذخیره تغییرات
+              ذخیره
             </Button>
-          </div>
+          </form>
         </Modal>
       )}
 

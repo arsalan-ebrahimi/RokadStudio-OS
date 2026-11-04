@@ -44,7 +44,7 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         className={cn(
-          'relative w-full max-w-md my-auto bg-white dark:bg-[#151C28] rounded-2xl sm:rounded-3xl border-2 border-primary/40 shadow-hard-lg dark:shadow-dark-hard p-5 sm:p-6 transition-all',
+          'relative w-full max-w-md my-auto bg-white dark:bg-[#151C28] rounded-2xl sm:rounded-3xl border-2 border-primary/40 shadow-hard-lg dark:shadow-dark-hard p-4 sm:p-6 transition-all',
           className
         )}
       >
