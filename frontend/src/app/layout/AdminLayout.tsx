@@ -82,16 +82,33 @@ export const AdminLayout: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 md:ms-64 flex flex-col min-h-screen">
-        <header className="h-16 px-4 sm:px-6 bg-white/90 dark:bg-[#121824]/90 backdrop-blur-md border-b border-[#EAEAEA] dark:border-gray-800 flex items-center justify-between sticky top-0 z-40">
-          <button onClick={() => setMobileOpen(true)} className="md:hidden p-2 text-gray-600 dark:text-gray-200">
-            <Menu className="w-6 h-6" />
-          </button>
-          <span className="text-xs sm:text-sm font-bold text-sec dark:text-gray-300">
-            امروز: {formatToJalali(getTehranTodayString(), true)}
-          </span>
+        <header className="h-16 px-4 sm:px-6 lg:px-8 bg-white/90 dark:bg-[#121824]/90 backdrop-blur-md border-b border-[#EAEAEA] dark:border-gray-800 flex items-center justify-between sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMobileOpen(true)} className="md:hidden p-2 text-gray-600 dark:text-gray-200" aria-label="منو">
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="hidden md:flex items-center gap-2">
+              <span className="text-xs font-bold text-ink-normal/50 dark:text-gray-400">سامانه مدیریت</span>
+              <span className="text-xs text-ink-normal/30 dark:text-gray-600">/</span>
+              <span className="text-xs font-black text-sec dark:text-white">رکاد استودیو</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-sec dark:text-gray-300 bg-gray-100 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+              امروز: {formatToJalali(getTehranTodayString(), true)}
+            </span>
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-sec dark:hover:text-white shadow-hard-sm transition-all"
+              aria-label="تغییر تم"
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 max-w-6xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
       </div>

@@ -8,6 +8,7 @@ import { searchActiveUsers } from '@/features/users/api/users-api';
 import { useAuthStore } from '@/features/auth';
 import { ApiError } from '@/shared/types/api';
 import { cn } from '@/shared/lib/utils';
+import { toPersianDigits } from '@/shared/lib/formatters';
 import type { Project, User } from '@/shared/types/models';
 
 export const AdminProjectsPage: React.FC = () => {
@@ -173,27 +174,29 @@ export const AdminProjectsPage: React.FC = () => {
       ) : filteredProjects.length === 0 ? (
         <EmptyState title="هیچ پروژه‌ای در این بخش یافت نشد" />
       ) : (
-        <div className="space-y-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredProjects.map((p: Project) => (
-            <Card key={p.id} className="p-4 flex items-center justify-between">
+            <Card key={p.id} className="p-4 sm:p-5 flex flex-col justify-between space-y-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-sec dark:text-white">{p.name}</h3>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm sm:text-base font-bold text-sec dark:text-white leading-snug">{p.name}</h3>
                   <Badge variant={p.isActive ? 'ecosystem' : 'neutral'}>
                     {p.isActive ? 'در حال اجرا' : 'تمام شده'}
                   </Badge>
-                  <span className="text-xs text-ink-normal/50 dark:text-gray-400">({p.memberCount || 0} عضو)</span>
                 </div>
-                {p.description && <p className="text-xs text-ink-normal/60 dark:text-gray-400 mt-1">{p.description}</p>}
+                <p className="text-xs text-ink-normal/60 dark:text-gray-400 mt-2 line-clamp-2 min-h-[32px]">
+                  {p.description || 'بدون توضیحات'}
+                </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
                 <Button size="sm" variant="outline" onClick={() => openMembersModal(p)}>
-                  <Users className="w-3.5 h-3.5 me-1" />
-                  اعضا
+                  <Users className="w-3.5 h-3.5 me-1 text-primary" />
+                  اعضا ({toPersianDigits(p.memberCount || 0)})
                 </Button>
+
                 {isSuperAdmin && (
-                  <>
+                  <div className="flex items-center gap-1.5">
                     {p.isActive ? (
                       <Button
                         size="sm"
@@ -201,8 +204,7 @@ export const AdminProjectsPage: React.FC = () => {
                         onClick={() => setTogglingProject({ id: p.id, name: p.name, toActive: false })}
                         title="ثبت به عنوان تمام شده"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 me-1 text-primary" />
-                        اتمام
+                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                       </Button>
                     ) : (
                       <Button
@@ -211,8 +213,7 @@ export const AdminProjectsPage: React.FC = () => {
                         onClick={() => setTogglingProject({ id: p.id, name: p.name, toActive: true })}
                         title="فعال‌سازی مجدد پروژه"
                       >
-                        <RotateCcw className="w-3.5 h-3.5 me-1 text-ink-normal/60" />
-                        فعال‌سازی
+                        <RotateCcw className="w-3.5 h-3.5 text-ink-normal/60" />
                       </Button>
                     )}
                     <Button size="sm" variant="outline" onClick={() => openEditModal(p)} aria-label="ویرایش">
@@ -221,7 +222,7 @@ export const AdminProjectsPage: React.FC = () => {
                     <Button size="sm" variant="danger" onClick={() => setDeletingId(p.id)} aria-label="حذف">
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </Card>

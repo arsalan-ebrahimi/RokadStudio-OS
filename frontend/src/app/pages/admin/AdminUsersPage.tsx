@@ -118,36 +118,47 @@ export const AdminUsersPage: React.FC = () => {
       ) : users.length === 0 ? (
         <EmptyState title="کاربری یافت نشد" />
       ) : (
-        <div className="space-y-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {users.map((u: User) => {
             const isSelf = currentUser?.id === u.id;
             return (
-              <Card key={u.id} className="p-3.5 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-sec dark:text-white">{u.name}</p>
-                    <Badge variant={u.role === 'SUPER_ADMIN' ? 'female' : u.role === 'ADMIN' ? 'college' : 'male'}>
-                      {u.role === 'SUPER_ADMIN' ? 'مدیر ارشد' : u.role === 'ADMIN' ? 'ادمین' : 'کاربر'}
-                    </Badge>
-                    {!u.isActive && <Badge variant="neutral">غیرفعال</Badge>}
+              <Card key={u.id} className="p-4 sm:p-5 flex flex-col justify-between space-y-4">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm sm:text-base font-bold text-sec dark:text-white">{u.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={u.role === 'SUPER_ADMIN' ? 'female' : u.role === 'ADMIN' ? 'college' : 'male'}>
+                        {u.role === 'SUPER_ADMIN' ? 'مدیر ارشد' : u.role === 'ADMIN' ? 'ادمین' : 'کاربر'}
+                      </Badge>
+                      {!u.isActive && <Badge variant="neutral">غیرفعال</Badge>}
+                    </div>
                   </div>
-                  <p className="text-xs text-ink-normal/50 dark:text-gray-400 font-mono" dir="ltr">{u.code}</p>
+
+                  <div className="flex items-center justify-between bg-gray-50 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <span className="text-[11px] text-ink-normal/60 dark:text-gray-400 font-bold">کد پرسنلی:</span>
+                    <span className="text-xs font-mono font-bold text-sec dark:text-white tracking-wide" dir="ltr">{u.code}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+
+                <div className="pt-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setUnlockingUser({ id: u.id, name: u.name })}
                     title="برداشتن قفل پروژه و ریست تایمر"
                   >
-                    <Unlock className="w-3.5 h-3.5" />
+                    <Unlock className="w-3.5 h-3.5 me-1 text-primary" />
+                    ریست تایمر
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => openEditModal(u)}>
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button size="sm" variant="danger" disabled={isSelf} onClick={() => setDeletingId(u.id)}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+
+                  <div className="flex items-center gap-1.5">
+                    <Button size="sm" variant="outline" onClick={() => openEditModal(u)} aria-label="ویرایش">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="sm" variant="danger" disabled={isSelf} onClick={() => setDeletingId(u.id)} aria-label="حذف">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             );

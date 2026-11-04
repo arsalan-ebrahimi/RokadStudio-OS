@@ -48,17 +48,24 @@ export const AdminReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-lg font-black text-sec dark:text-white">گزارش عملکرد</h1>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="outline" onClick={() => exportReportsToCsv(rows)}>
+          <Download className="w-3.5 h-3.5 me-1" />
+          خروجی
+        </Button>
+      </div>
+
+      <Card className="p-3.5 sm:p-4">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Preset Buttons */}
-          <div className="flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700">
             <button
               onClick={applyToday}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
                 dateFrom === today && dateTo === today
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-white shadow-hard-sm'
                   : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
@@ -66,26 +73,30 @@ export const AdminReportsPage: React.FC = () => {
             </button>
             <button
               onClick={applyThisWeek}
-              className="px-2.5 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              className="px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
             >
               این هفته
             </button>
             <button
               onClick={applyThisMonth}
-              className="px-2.5 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              className="px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
             >
               این ماه
             </button>
           </div>
 
+          <div className="h-6 w-px bg-gray-200 dark:border-gray-700 hidden sm:block" />
+
           {/* Date Pickers */}
           <div className="flex items-center gap-1.5">
             <PersianDatePicker value={dateFrom} onChange={setDateFrom} allowStep={false} />
-            <span className="text-xs text-gray-400">تا</span>
+            <span className="text-xs text-ink-normal/50 dark:text-gray-400 font-bold">تا</span>
             <PersianDatePicker value={dateTo} onChange={setDateTo} allowStep={false} />
           </div>
 
-          <div className="w-40">
+          <div className="h-6 w-px bg-gray-200 dark:border-gray-700 hidden lg:block" />
+
+          <div className="w-44">
             <Select
               selectSize="sm"
               value={projectId ?? ''}
@@ -100,7 +111,7 @@ export const AdminReportsPage: React.FC = () => {
             </Select>
           </div>
 
-          <div className="w-36">
+          <div className="w-40">
             <Select
               selectSize="sm"
               value={groupBy}
@@ -111,15 +122,10 @@ export const AdminReportsPage: React.FC = () => {
               <option value="project">تفکیک پروژه</option>
             </Select>
           </div>
-
-          <Button size="sm" variant="outline" onClick={() => exportReportsToCsv(rows)}>
-            <Download className="w-3.5 h-3.5 me-1" />
-            خروجی
-          </Button>
         </div>
-      </div>
+      </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4 text-center">
           <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">مجموع دورها</span>
           <p className="text-2xl font-black text-sec dark:text-white mt-1">{toPersianDigits(totalRounds)}</p>
@@ -127,6 +133,16 @@ export const AdminReportsPage: React.FC = () => {
         <Card className="p-4 text-center">
           <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">مجموع ساعات</span>
           <p className="text-2xl font-black text-primary mt-1">{formatDurationToHoursMins(totalSeconds)}</p>
+        </Card>
+        <Card className="p-4 text-center">
+          <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">تعداد موارد</span>
+          <p className="text-2xl font-black text-sec dark:text-white mt-1">{toPersianDigits(rows.length)}</p>
+        </Card>
+        <Card className="p-4 text-center">
+          <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">میانگین هر دور</span>
+          <p className="text-2xl font-black text-third mt-1">
+            {formatDurationToHoursMins(totalRounds > 0 ? Math.round(totalSeconds / totalRounds) : 0)}
+          </p>
         </Card>
       </div>
 
@@ -139,9 +155,9 @@ export const AdminReportsPage: React.FC = () => {
           <table className="w-full text-right text-xs executive-table">
             <thead className="bg-gray-50 dark:bg-[#182030] text-ink-normal/60 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="p-3.5 font-bold">نام</th>
-                <th className="p-3.5 font-bold">تعداد دور</th>
-                <th className="p-3.5 font-bold">مجموع زمان</th>
+                <th className="p-3.5 sm:p-4 font-bold md:w-1/2">نام</th>
+                <th className="p-3.5 sm:p-4 font-bold md:w-1/4">تعداد دور</th>
+                <th className="p-3.5 sm:p-4 font-bold md:w-1/4">مجموع زمان</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -150,10 +166,10 @@ export const AdminReportsPage: React.FC = () => {
                   ? `${row.user.name} (${row.project.name})`
                   : (row.user?.name || row.project?.name || '—');
                 return (
-                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50">
-                    <td className="p-3.5 font-bold text-sec dark:text-white">{label}</td>
-                    <td className="p-3.5 font-bold tabular-nums text-sec dark:text-white">{toPersianDigits(row.sessionsCount)} دور</td>
-                    <td className="p-3.5 font-bold text-primary">{formatDurationToHoursMins(row.totalSeconds)}</td>
+                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50 transition-colors">
+                    <td className="p-3.5 sm:p-4 font-bold text-sec dark:text-white">{label}</td>
+                    <td className="p-3.5 sm:p-4 font-bold tabular-nums text-sec dark:text-white">{toPersianDigits(row.sessionsCount)} دور</td>
+                    <td className="p-3.5 sm:p-4 font-bold text-primary">{formatDurationToHoursMins(row.totalSeconds)}</td>
                   </tr>
                 );
               })}

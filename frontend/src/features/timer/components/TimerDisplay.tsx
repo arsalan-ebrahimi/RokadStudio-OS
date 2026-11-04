@@ -26,28 +26,28 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   const isDone = state === 'DONE';
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 space-y-6">
+    <div className="flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 space-y-6">
       <div
         className={cn(
-          'w-64 h-64 rounded-full flex flex-col items-center justify-center border-4 shadow-hard-lg transition-all',
-          isRunning && 'border-primary shadow-ecosystem bg-ecosystem-light/30 dark:bg-ecosystem-darker/20',
+          'w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full flex flex-col items-center justify-center border-4 shadow-hard-lg transition-all',
+          isRunning && 'border-primary shadow-ecosystem bg-ecosystem-light/30 dark:bg-ecosystem-darker/20 scale-[1.02]',
           state === 'PAUSED' && 'border-third shadow-college bg-college-light/30 dark:bg-college-darker/20',
-          state === 'BREAK' && 'border-girl shadow-female bg-female-light/30 dark:bg-female-darker/20',
+          state === 'BREAK' && 'border-girl shadow-female bg-female-light/30 dark:bg-female-darker/20 scale-[1.02]',
           state === 'IDLE' && 'border-gray-300 dark:border-gray-700 bg-white dark:bg-[#151C28]',
           isDone && 'border-primary shadow-ecosystem bg-white dark:bg-[#151C28]'
         )}
       >
-        <span className="text-5xl font-black tracking-tight tabular-nums text-sec dark:text-white" dir="ltr">
+        <span className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight tabular-nums text-sec dark:text-white" dir="ltr">
           {toPersianDigits(formatSecondsToTime(remaining))}
         </span>
-        <span className="text-xs font-bold text-ink-normal/60 dark:text-gray-400 mt-2">
+        <span className="text-xs sm:text-sm font-bold text-ink-normal/60 dark:text-gray-400 mt-2 sm:mt-3">
           {state === 'BREAK' ? 'استراحت' : 'تمرکز'}
         </span>
       </div>
 
       <div className="flex items-center gap-3">
         {isRunning ? (
-          <Button variant="secondary" size="lg" onClick={onPause} className="w-32">
+          <Button variant="secondary" size="lg" onClick={onPause} className="w-32 sm:w-36">
             <Pause className="w-4 h-4 me-1.5" />
             توقف
           </Button>
@@ -57,7 +57,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
             size="lg"
             onClick={onStart}
             disabled={!canStart || state === 'BREAK' || isDone}
-            className="w-32"
+            className="w-32 sm:w-36"
           >
             <Play className="w-4 h-4 me-1.5" />
             شروع
@@ -69,7 +69,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
           size="lg"
           onClick={onReset}
           disabled={!isDone}
-          className="w-28"
+          className="w-28 sm:w-32"
         >
           <RotateCcw className="w-4 h-4 me-1.5" />
           ریست

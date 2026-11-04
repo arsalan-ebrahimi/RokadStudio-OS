@@ -46,13 +46,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm p-6 space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#F8F9FA] via-[#F4F6F9] to-[#EAEFF5] dark:from-[#0B0F17] dark:via-[#0F141F] dark:to-[#121824]">
+      <Card className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 space-y-6 shadow-hard-lg dark:shadow-dark-hard">
         <div className="text-center space-y-3">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-[#612B89] p-2.5 shadow-hard flex items-center justify-center">
             <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
           </div>
-          <h1 className="text-lg font-black text-sec dark:text-white">{title}</h1>
+          <h1 className="text-lg sm:text-xl font-black text-sec dark:text-white">{title}</h1>
         </div>
 
         <div className="space-y-4">

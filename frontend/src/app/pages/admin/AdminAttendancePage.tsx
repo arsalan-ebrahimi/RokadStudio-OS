@@ -76,20 +76,32 @@ export const AdminAttendancePage: React.FC = () => {
       ) : (
         <div className="space-y-3">
           {records.map((r: Attendance) => (
-            <Card key={r.id} className="p-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <Card
+              key={r.id}
+              className="p-4 md:p-5 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 transition-all"
+            >
+              <div className="md:col-span-5 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-sm shrink-0 border border-gray-200 dark:border-gray-700">
+                  {r.user?.name?.slice(0, 1) || 'ک'}
+                </div>
                 <div>
-                  <p className="text-sm font-bold text-sec dark:text-white">{r.user?.name || 'کاربر'}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-sec dark:text-white">{r.user?.name || 'کاربر'}</p>
+                    <AttendanceBadge attendance={r} />
+                  </div>
                   <p className="text-xs text-ink-normal/60 dark:text-gray-400 mt-0.5">{formatToJalali(r.date)}</p>
                 </div>
-                <AttendanceBadge attendance={r} />
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-ink-normal/70 dark:text-gray-300">
-                  {toPersianDigits(r.sessionsCount || 0)} دور • {formatDurationToHoursMins(r.totalSeconds || 0)}
-                </span>
+              <div className="md:col-span-3 flex items-center">
+                <div className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300">
+                  <span className="tabular-nums text-sec dark:text-white font-extrabold">{toPersianDigits(r.sessionsCount || 0)}</span> دور
+                  <span className="mx-1 opacity-40">•</span>
+                  <span className="text-primary font-extrabold">{formatDurationToHoursMins(r.totalSeconds || 0)}</span>
+                </div>
+              </div>
 
+              <div className="md:col-span-4 flex items-center justify-start md:justify-end gap-2 flex-wrap">
                 <Button
                   size="sm"
                   variant="outline"
