@@ -98,7 +98,7 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute top-full start-0 mt-1.5 z-50 w-64 p-3 bg-white dark:bg-[#182030] rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-hard space-y-3">
+        <div className="absolute top-full start-0 mt-1.5 z-50 w-64 max-w-[calc(100vw-2rem)] p-3 bg-white dark:bg-[#182030] rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-hard space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
             <span className="text-xs font-black text-sec dark:text-white">
               {toPersianDigits(jy)}
@@ -127,7 +127,7 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
                   type="button"
                   onClick={() => changeDay(d)}
                   className={cn(
-                    'h-7 w-7 text-xs font-bold rounded-lg flex items-center justify-center transition-all',
+                    'h-7 w-7 text-xs font-bold rounded-lg flex items-center justify-center transition-all select-none touch-manipulation',
                     isSelected
                       ? 'bg-primary text-white shadow-hard-sm'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-ink-normal dark:text-gray-300'

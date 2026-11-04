@@ -23,7 +23,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            'w-full px-3.5 py-2.5 rounded-xl border bg-[#FAFAFA] dark:bg-[#1C2536] text-ink-normal dark:text-white text-xs sm:text-sm font-medium transition-all focus:outline-none',
+            'w-full px-3.5 py-2.5 rounded-xl border bg-[#FAFAFA] dark:bg-[#1C2536] text-ink-normal dark:text-white text-base sm:text-sm font-medium transition-all focus:outline-none',
             error
               ? 'border-[#C60036] focus:border-[#C60036] focus:ring-1 focus:ring-[#C60036]'
               : 'border-gray-200 dark:border-gray-700 focus:border-primary focus:bg-white dark:focus:bg-[#1C2536]',

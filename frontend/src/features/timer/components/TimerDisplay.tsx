@@ -26,10 +26,10 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   const isDone = state === 'DONE';
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="flex flex-col items-center justify-center p-2 sm:p-6 lg:p-8 space-y-6">
       <div
         className={cn(
-          'w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full flex flex-col items-center justify-center border-4 shadow-hard-lg transition-all',
+          'w-56 h-56 min-[400px]:w-64 min-[400px]:h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full flex flex-col items-center justify-center border-4 shadow-hard-lg transition-all',
           isRunning && 'border-primary shadow-ecosystem bg-ecosystem-light/30 dark:bg-ecosystem-darker/20 scale-[1.02]',
           state === 'PAUSED' && 'border-third shadow-college bg-college-light/30 dark:bg-college-darker/20',
           state === 'BREAK' && 'border-girl shadow-female bg-female-light/30 dark:bg-female-darker/20 scale-[1.02]',
@@ -37,7 +37,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
           isDone && 'border-primary shadow-ecosystem bg-white dark:bg-[#151C28]'
         )}
       >
-        <span className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight tabular-nums text-sec dark:text-white" dir="ltr">
+        <span className="text-4xl min-[400px]:text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight tabular-nums text-sec dark:text-white" dir="ltr">
           {toPersianDigits(formatSecondsToTime(remaining))}
         </span>
         <span className="text-xs sm:text-sm font-bold text-ink-normal/60 dark:text-gray-400 mt-2 sm:mt-3">

@@ -97,16 +97,16 @@ export const AdminUsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <h1 className="text-lg font-black text-sec dark:text-white">مدیریت پرسنل</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Input
             placeholder="جستجوی نام..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-44 py-1.5 text-xs"
+            className="flex-1 sm:w-44 py-1.5 text-xs"
           />
-          <Button size="sm" variant="primary" onClick={handleOpenAdd}>
+          <Button size="sm" variant="primary" onClick={handleOpenAdd} className="shrink-0">
             <Plus className="w-4 h-4 me-1" />
             افزودن کاربر
           </Button>

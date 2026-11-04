@@ -26,6 +26,15 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-[#F8F9FA] dark:bg-[#0B0F17]">
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
       <aside className={cn(
         'fixed inset-y-0 start-0 z-50 w-64 bg-white dark:bg-[#121824] border-e border-[#EAEAEA] dark:border-gray-800 p-4 flex flex-col justify-between transition-transform duration-200 md:translate-x-0',
@@ -82,21 +91,29 @@ export const AdminLayout: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 md:ms-64 flex flex-col min-h-screen">
-        <header className="h-16 px-4 sm:px-6 lg:px-8 bg-white/90 dark:bg-[#121824]/90 backdrop-blur-md border-b border-[#EAEAEA] dark:border-gray-800 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} className="md:hidden p-2 text-gray-600 dark:text-gray-200" aria-label="منو">
-              <Menu className="w-6 h-6" />
+        <header className="h-16 px-3.5 sm:px-6 lg:px-8 bg-white/90 dark:bg-[#121824]/90 backdrop-blur-md border-b border-[#EAEAEA] dark:border-gray-800 flex items-center justify-between sticky top-0 z-30">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="md:hidden p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-600 dark:text-gray-200 shadow-hard-sm"
+              aria-label="منو"
+            >
+              <Menu className="w-5 h-5" />
             </button>
             <div className="hidden md:flex items-center gap-2">
               <span className="text-xs font-bold text-ink-normal/50 dark:text-gray-400">سامانه مدیریت</span>
               <span className="text-xs text-ink-normal/30 dark:text-gray-600">/</span>
               <span className="text-xs font-black text-sec dark:text-white">رکاد استودیو</span>
             </div>
+            <span className="md:hidden text-xs font-black text-sec dark:text-white truncate">
+              رکاد استودیو
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-sec dark:text-gray-300 bg-gray-100 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
-              امروز: {formatToJalali(getTehranTodayString(), true)}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <span className="text-[11px] sm:text-xs font-bold text-sec dark:text-gray-300 bg-gray-100 dark:bg-[#182030] px-2.5 sm:px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 whitespace-nowrap">
+              <span className="hidden sm:inline">امروز: </span>
+              <span>{formatToJalali(getTehranTodayString(), false)}</span>
             </span>
             <button
               onClick={toggleTheme}

@@ -202,7 +202,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     disabled={opt.disabled}
                     onClick={() => !opt.disabled && handleSelect(opt.value)}
                     className={cn(
-                      'w-full text-right px-3 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-between',
+                      'w-full text-right px-3 py-2.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-between select-none touch-manipulation',
                       opt.disabled && 'opacity-40 cursor-not-allowed',
                       !opt.disabled && !isSelected && 'text-sec dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/80 hover:text-primary dark:hover:text-primary',
                       isSelected && 'bg-primary text-white shadow-hard-sm'

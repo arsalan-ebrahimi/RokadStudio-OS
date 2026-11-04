@@ -48,11 +48,11 @@ export const AdminAttendancePage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <h1 className="text-lg font-black text-sec dark:text-white">کارتابل حضور و غیاب</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <PersianDatePicker value={selectedDate} onChange={setSelectedDate} />
-          <div className="w-36">
+          <div className="flex-1 sm:w-36 min-w-[130px]">
             <Select
               selectSize="sm"
               value={statusFilter}
@@ -107,17 +107,19 @@ export const AdminAttendancePage: React.FC = () => {
                   variant="outline"
                   onClick={() => setUnlockingRecord({ id: r.id, name: r.user?.name || 'کاربر' })}
                   title="برداشتن قفل پروژه و ریست تایمر"
+                  className="flex-1 sm:flex-initial"
                 >
                   <Unlock className="w-3.5 h-3.5 me-1 text-primary" />
                   ریست تایمر
                 </Button>
 
                 {r.approval === 'PENDING' && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
                     <Button
                       size="sm"
                       variant="primary"
                       onClick={() => setActiveDecision({ id: r.id, decision: 'APPROVED', name: r.user?.name || '' })}
+                      className="flex-1 sm:flex-initial"
                     >
                       <Check className="w-3.5 h-3.5" />
                       تایید
@@ -126,6 +128,7 @@ export const AdminAttendancePage: React.FC = () => {
                       size="sm"
                       variant="danger"
                       onClick={() => setActiveDecision({ id: r.id, decision: 'REJECTED', name: r.user?.name || '' })}
+                      className="flex-1 sm:flex-initial"
                     >
                       <X className="w-3.5 h-3.5" />
                       رد

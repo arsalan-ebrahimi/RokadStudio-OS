@@ -45,12 +45,14 @@ export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasEr
   };
 
   return (
-    <div dir="ltr" className={cn('flex justify-center gap-2 sm:gap-3', hasError && 'animate-bounce')}>
+    <div dir="ltr" className={cn('flex justify-center gap-1.5 min-[370px]:gap-2 sm:gap-3', hasError && 'animate-bounce')}>
       {digits.map((digit, idx) => (
         <input
           key={idx}
           ref={(el) => { inputsRef.current[idx] = el; }}
           type="text"
+          inputMode="text"
+          autoCapitalize="characters"
           value={digit}
           disabled={isLoading}
           onChange={(e) => handleChange(idx, e.target.value)}
@@ -59,7 +61,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasEr
           maxLength={1}
           autoFocus={idx === 0}
           className={cn(
-            'w-11 h-13 sm:w-13 sm:h-15 text-center text-xl font-bold rounded-xl border bg-white dark:bg-[#1C2536] text-ink-normal dark:text-white shadow-hard-sm transition-all focus:outline-none uppercase',
+            'w-9 h-12 min-[370px]:w-11 min-[370px]:h-13 sm:w-13 sm:h-15 text-center text-lg sm:text-xl font-bold rounded-xl border bg-white dark:bg-[#1C2536] text-ink-normal dark:text-white shadow-hard-sm transition-all focus:outline-none uppercase',
             hasError
               ? 'border-[#C60036] ring-1 ring-[#C60036]'
               : 'border-gray-200 dark:border-gray-700 focus:border-primary focus:shadow-ecosystem'

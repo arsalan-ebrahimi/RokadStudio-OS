@@ -75,32 +75,33 @@ const UserDashboardPage: React.FC = () => {
     <div className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-xl lg:max-w-5xl mx-auto space-y-6 lg:space-y-8">
       {/* Header */}
       <header className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0">
             <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
           </div>
-          <div>
-            <h1 className="text-sm sm:text-base font-black text-sec dark:text-white leading-tight">{user?.name}</h1>
-            <div className="mt-1 flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-base font-black text-sec dark:text-white leading-tight truncate">{user?.name}</h1>
+            <div className="mt-1 flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <AttendanceBadge attendance={attendance} />
-              <span className="text-[11px] text-ink-normal/50 dark:text-gray-400 font-bold">
-                {formatToJalali(getTehranTodayString(), true)}
+              <span className="text-[10px] sm:text-[11px] text-ink-normal/50 dark:text-gray-400 font-bold whitespace-nowrap">
+                <span className="hidden sm:inline">{formatToJalali(getTehranTodayString(), true)}</span>
+                <span className="sm:hidden">{formatToJalali(getTehranTodayString(), false)}</span>
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={toggleTheme}
-            className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-gray-900 dark:hover:text-white shadow-hard-sm transition-all"
+            className="p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-gray-900 dark:hover:text-white shadow-hard-sm transition-all"
             aria-label="تغییر تم"
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
           <button
             onClick={logout}
-            className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-[#C60036] shadow-hard-sm transition-all"
+            className="p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-[#C60036] shadow-hard-sm transition-all"
             aria-label="خروج"
           >
             <LogOut className="w-4 h-4" />

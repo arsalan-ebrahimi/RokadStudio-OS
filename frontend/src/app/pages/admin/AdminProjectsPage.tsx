@@ -124,12 +124,12 @@ export const AdminProjectsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto max-w-full">
           <button
             onClick={() => setStatusFilter('ALL')}
             className={cn(
-              'px-3 py-1 text-xs font-bold rounded-lg transition-all',
+              'px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'ALL'
                 ? 'bg-primary text-white shadow-hard-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -140,7 +140,7 @@ export const AdminProjectsPage: React.FC = () => {
           <button
             onClick={() => setStatusFilter('ACTIVE')}
             className={cn(
-              'px-3 py-1 text-xs font-bold rounded-lg transition-all',
+              'px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'ACTIVE'
                 ? 'bg-primary text-white shadow-hard-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -151,7 +151,7 @@ export const AdminProjectsPage: React.FC = () => {
           <button
             onClick={() => setStatusFilter('COMPLETED')}
             className={cn(
-              'px-3 py-1 text-xs font-bold rounded-lg transition-all',
+              'px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'COMPLETED'
                 ? 'bg-primary text-white shadow-hard-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -162,7 +162,7 @@ export const AdminProjectsPage: React.FC = () => {
         </div>
 
         {isSuperAdmin && (
-          <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)}>
+          <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 me-1" />
             پروژه جدید
           </Button>

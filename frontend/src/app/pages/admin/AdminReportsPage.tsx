@@ -57,13 +57,13 @@ export const AdminReportsPage: React.FC = () => {
         </Button>
       </div>
 
-      <Card className="p-3.5 sm:p-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
           {/* Preset Buttons */}
-          <div className="flex items-center gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between sm:justify-start gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto">
             <button
               onClick={applyToday}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 sm:flex-initial px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 dateFrom === today && dateTo === today
                   ? 'bg-primary text-white shadow-hard-sm'
                   : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -73,13 +73,13 @@ export const AdminReportsPage: React.FC = () => {
             </button>
             <button
               onClick={applyThisWeek}
-              className="px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              className="flex-1 sm:flex-initial px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all whitespace-nowrap"
             >
               این هفته
             </button>
             <button
               onClick={applyThisMonth}
-              className="px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              className="flex-1 sm:flex-initial px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all whitespace-nowrap"
             >
               این ماه
             </button>
@@ -88,15 +88,19 @@ export const AdminReportsPage: React.FC = () => {
           <div className="h-6 w-px bg-gray-200 dark:border-gray-700 hidden sm:block" />
 
           {/* Date Pickers */}
-          <div className="flex items-center gap-1.5">
-            <PersianDatePicker value={dateFrom} onChange={setDateFrom} allowStep={false} />
-            <span className="text-xs text-ink-normal/50 dark:text-gray-400 font-bold">تا</span>
-            <PersianDatePicker value={dateTo} onChange={setDateTo} allowStep={false} />
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 flex-wrap">
+            <div className="flex-1 sm:flex-initial">
+              <PersianDatePicker value={dateFrom} onChange={setDateFrom} allowStep={false} />
+            </div>
+            <span className="text-xs text-ink-normal/50 dark:text-gray-400 font-bold shrink-0">تا</span>
+            <div className="flex-1 sm:flex-initial">
+              <PersianDatePicker value={dateTo} onChange={setDateTo} allowStep={false} />
+            </div>
           </div>
 
           <div className="h-6 w-px bg-gray-200 dark:border-gray-700 hidden lg:block" />
 
-          <div className="w-44">
+          <div className="w-full sm:w-44">
             <Select
               selectSize="sm"
               value={projectId ?? ''}
@@ -111,7 +115,7 @@ export const AdminReportsPage: React.FC = () => {
             </Select>
           </div>
 
-          <div className="w-40">
+          <div className="w-full sm:w-40">
             <Select
               selectSize="sm"
               value={groupBy}
@@ -152,29 +156,31 @@ export const AdminReportsPage: React.FC = () => {
         <EmptyState title="داده‌ای در این بازه زمانی ثبت نشده است" />
       ) : (
         <Card className="overflow-hidden">
-          <table className="w-full text-right text-xs executive-table">
-            <thead className="bg-gray-50 dark:bg-[#182030] text-ink-normal/60 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th className="p-3.5 sm:p-4 font-bold md:w-1/2">نام</th>
-                <th className="p-3.5 sm:p-4 font-bold md:w-1/4">تعداد دور</th>
-                <th className="p-3.5 sm:p-4 font-bold md:w-1/4">مجموع زمان</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {rows.map((row, idx) => {
-                const label = row.user && row.project
-                  ? `${row.user.name} (${row.project.name})`
-                  : (row.user?.name || row.project?.name || '—');
-                return (
-                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50 transition-colors">
-                    <td className="p-3.5 sm:p-4 font-bold text-sec dark:text-white">{label}</td>
-                    <td className="p-3.5 sm:p-4 font-bold tabular-nums text-sec dark:text-white">{toPersianDigits(row.sessionsCount)} دور</td>
-                    <td className="p-3.5 sm:p-4 font-bold text-primary">{formatDurationToHoursMins(row.totalSeconds)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs executive-table min-w-[340px]">
+              <thead className="bg-gray-50 dark:bg-[#182030] text-ink-normal/60 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="p-3.5 sm:p-4 font-bold md:w-1/2">نام</th>
+                  <th className="p-3.5 sm:p-4 font-bold md:w-1/4">تعداد دور</th>
+                  <th className="p-3.5 sm:p-4 font-bold md:w-1/4">مجموع زمان</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {rows.map((row, idx) => {
+                  const label = row.user && row.project
+                    ? `${row.user.name} (${row.project.name})`
+                    : (row.user?.name || row.project?.name || '—');
+                  return (
+                    <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50 transition-colors">
+                      <td className="p-3.5 sm:p-4 font-bold text-sec dark:text-white">{label}</td>
+                      <td className="p-3.5 sm:p-4 font-bold tabular-nums text-sec dark:text-white">{toPersianDigits(row.sessionsCount)} دور</td>
+                      <td className="p-3.5 sm:p-4 font-bold text-primary">{formatDurationToHoursMins(row.totalSeconds)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </div>
