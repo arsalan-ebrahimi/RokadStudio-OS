@@ -40,12 +40,36 @@ export const runSeed = async () => {
     },
   });
 
-  // 3. Seed Regular Personnel Users (USER)
+  // 3. Remove old regular users (non-admin)
+  console.log("🧹 Removing existing non-admin users...");
+  await prisma.user.deleteMany({
+    where: {
+      role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
+    },
+  });
+
+  // 4. Seed Regular Personnel Users (USER) partitioned by Department
+  // IT: مهندسا (Engineers)
+  // AR: آرتیستا (Artists)
+  // AF: آچارفرانسه‌ها (Generalists)
   const usersData = [
-    { code: "RK1101", name: "علی محمدی" },
-    { code: "RK1102", name: "سارا احمدی" },
-    { code: "RK1103", name: "مهدی اکبری" },
-    { code: "RK1104", name: "مریم رضایی" },
+    // مهندسا (IT)
+    { code: "IT1101", name: "آرتین امیری" },
+    { code: "IT1102", name: "محمدمهدی صادقی" },
+    { code: "IT1103", name: "ارسلان ابراهیمی" },
+    { code: "IT1104", name: "مهدیار توکلی" },
+    { code: "IT1105", name: "ستاره صیاد" },
+    // آرتیستا (AR)
+    { code: "AR1101", name: "مهدیار حسن‌زاده" },
+    { code: "AR1102", name: "پارسا رحمانی" },
+    { code: "AR1103", name: "متین قانعی" },
+    // آچارفرانسه‌ها (AF)
+    { code: "AF1101", name: "سروش حسنی" },
+    { code: "AF1102", name: "حسین خوشرفتار" },
+    { code: "AF1103", name: "الیسا ولی‌زاده" },
+    { code: "AF1104", name: "ملیکا ترک" },
+    { code: "AF1105", name: "محمدرضا نبوی" },
+    { code: "AF1106", name: "بهار بذرافشان" },
   ];
 
   const seededUsers = [];
@@ -58,27 +82,47 @@ export const runSeed = async () => {
     seededUsers.push(user);
   }
 
-  // 4. Seed Projects
+  // 5. Seed Projects
   const projectsData = [
     {
       name: "توسعه رکاد استودیو OS",
       description: "سامانه حضور و غیاب، تایمر متمرکز و پلتفرم داخلی تیم",
-      members: [seededUsers[0].id, seededUsers[2].id, seededUsers[1].id],
+      members: [
+        seededUsers[0].id,
+        seededUsers[1].id,
+        seededUsers[2].id,
+        seededUsers[3].id,
+        seededUsers[4].id,
+      ],
     },
     {
       name: "طراحی دیزاین سیستم و هویت بصری",
       description: "مستندسازی توکن‌ها، فونت‌ها و کامپوننت‌های نئوبروتالیسم",
-      members: [seededUsers[1].id, seededUsers[0].id],
+      members: [
+        seededUsers[5].id,
+        seededUsers[6].id,
+        seededUsers[7].id,
+        seededUsers[8].id,
+      ],
     },
     {
       name: "کمپین دیجیتال مارکتینگ کالج",
       description: "برنامه‌ریزی و اجرای کمپین‌های جذب متقاضیان بوت‌کمپ",
-      members: [seededUsers[3].id, seededUsers[1].id],
+      members: [
+        seededUsers[9].id,
+        seededUsers[10].id,
+        seededUsers[11].id,
+      ],
     },
     {
       name: "پلتفرم منتورینگ و دوره‌ها",
       description: "سیستم مدیریت مصاحبه‌ها، مشاوره و بررسی تمارین",
-      members: [seededUsers[0].id, seededUsers[2].id, seededUsers[3].id],
+      members: [
+        seededUsers[11].id,
+        seededUsers[12].id,
+        seededUsers[13].id,
+        seededUsers[0].id,
+      ],
     },
   ];
 
@@ -106,8 +150,8 @@ export const runSeed = async () => {
     seededProjects.push(proj);
   }
 
-  // 5. Seed Attendance for Today (for testing admin approvals)
-  // RK1101: Present, PENDING (ready for admin approval)
+  // 6. Seed Attendance for Today (for testing admin approvals)
+  // IT1101: Present, PENDING (ready for admin approval)
   const att1 = await prisma.attendance.upsert({
     where: { userId_date: { userId: seededUsers[0].id, date: today } },
     update: { status: "PRESENT", approval: "PENDING", source: "USER" },
@@ -120,7 +164,7 @@ export const runSeed = async () => {
     },
   });
 
-  // RK1102: Present, PENDING (ready for admin approval)
+  // IT1102: Present, PENDING (ready for admin approval)
   await prisma.attendance.upsert({
     where: { userId_date: { userId: seededUsers[1].id, date: today } },
     update: { status: "PRESENT", approval: "PENDING", source: "USER" },
@@ -133,7 +177,7 @@ export const runSeed = async () => {
     },
   });
 
-  // RK1103: Present, APPROVED (already approved by admin)
+  // IT1103: Present, APPROVED (already approved by admin)
   const att3 = await prisma.attendance.upsert({
     where: { userId_date: { userId: seededUsers[2].id, date: today } },
     update: { status: "PRESENT", approval: "APPROVED", source: "ADMIN", decidedById: simpleAdmin.id, decidedAt: new Date() },
@@ -148,7 +192,7 @@ export const runSeed = async () => {
     },
   });
 
-  // 6. Seed Sample Work Sessions for Today (1500s each = 25 mins)
+  // 7. Seed Sample Work Sessions for Today (1500s each = 25 mins)
   const existingSessions = await prisma.workSession.count({ where: { attendanceId: att1.id } });
   if (existingSessions === 0) {
     await prisma.workSession.createMany({
