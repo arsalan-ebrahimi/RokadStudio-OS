@@ -232,20 +232,58 @@ export const AdminProjectsPage: React.FC = () => {
 
       {/* Add Project Modal */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="ایجاد پروژه">
-        <div className="space-y-3.5">
-          <Input label="نام پروژه" value={formName} onChange={(e) => setFormName(e.target.value)} />
-          <Input label="توضیحات (اختیاری)" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
-          <Button variant="primary" className="w-full mt-3" isLoading={createMut.isPending} onClick={() => createMut.mutate()}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (formName.trim() && !createMut.isPending) createMut.mutate();
+          }}
+          className="space-y-4"
+        >
+          <Input
+            label="نام پروژه"
+            placeholder="مثال: طراحی وب‌سایت"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            autoFocus
+          />
+          <Input
+            label="توضیحات (اختیاری)"
+            placeholder="توضیحات مختصر..."
+            value={formDesc}
+            onChange={(e) => setFormDesc(e.target.value)}
+          />
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full mt-2"
+            isLoading={createMut.isPending}
+            disabled={!formName.trim() || createMut.isPending}
+          >
             ثبت پروژه
           </Button>
-        </div>
+        </form>
       </Modal>
 
       {/* Edit Project Modal */}
       {editingProject && (
         <Modal isOpen onClose={() => setEditingProject(null)} title="ویرایش پروژه">
-          <div className="space-y-3.5">
-            <Input label="نام پروژه" value={editName} onChange={(e) => setEditName(e.target.value)} />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editName.trim() && !updateMut.isPending) {
+                updateMut.mutate({
+                  id: editingProject.id,
+                  payload: {
+                    name: editName.trim(),
+                    description: editDesc.trim() || undefined,
+                    isActive: editIsActive,
+                  },
+                });
+              }
+            }}
+            className="space-y-4"
+          >
+            <Input label="نام پروژه" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
             <Input label="توضیحات (اختیاری)" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">وضعیت پروژه</label>
@@ -258,14 +296,15 @@ export const AdminProjectsPage: React.FC = () => {
               </Select>
             </div>
             <Button
+              type="submit"
               variant="primary"
-              className="w-full mt-3"
+              className="w-full mt-2"
               isLoading={updateMut.isPending}
-              onClick={() => updateMut.mutate({ id: editingProject.id, payload: { name: editName.trim(), description: editDesc.trim() || undefined, isActive: editIsActive } })}
+              disabled={!editName.trim() || updateMut.isPending}
             >
               ذخیره تغییرات
             </Button>
-          </div>
+          </form>
         </Modal>
       )}
 

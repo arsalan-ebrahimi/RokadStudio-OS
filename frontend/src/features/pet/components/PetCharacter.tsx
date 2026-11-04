@@ -211,3 +211,4 @@ export const PetCharacter: React.FC<PetCharacterProps> = ({
     </div>
   );
 };
+

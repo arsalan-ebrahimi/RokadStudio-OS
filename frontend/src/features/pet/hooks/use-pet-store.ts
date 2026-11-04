@@ -45,3 +45,4 @@ export const usePetStore = create<PetState>((set, get) => {
     },
   };
 });
+
