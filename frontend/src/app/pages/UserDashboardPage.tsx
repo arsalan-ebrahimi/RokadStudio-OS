@@ -124,24 +124,31 @@ const UserDashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         {/* Focus Timer Area */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-          <Card className="p-5 sm:p-7 space-y-6">
-            {!projectsLoading && (
-              <ProjectSelect
-                projects={projects}
-                selectedProjectId={selectedProjectId}
-                onSelect={setSelectedProjectId}
-                isLocked={isLocked}
-              />
-            )}
-
-            <TimerDisplay
-              remaining={remaining}
-              state={state}
-              onStart={start}
-              onPause={pause}
-              onReset={reset}
-              canStart={hasDeclaredToday && Boolean(selectedProjectId)}
+          <Card className="p-5 sm:p-7 space-y-6 relative overflow-hidden">
+            {/* Studio Pattern Watermark */}
+            <div
+              className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-[0.03] dark:opacity-[0.09]"
+              style={{ backgroundImage: "url('/layout-pattern.png')" }}
             />
+            <div className="relative z-10 space-y-6">
+              {!projectsLoading && (
+                <ProjectSelect
+                  projects={projects}
+                  selectedProjectId={selectedProjectId}
+                  onSelect={setSelectedProjectId}
+                  isLocked={isLocked}
+                />
+              )}
+
+              <TimerDisplay
+                remaining={remaining}
+                state={state}
+                onStart={start}
+                onPause={pause}
+                onReset={reset}
+                canStart={hasDeclaredToday && Boolean(selectedProjectId)}
+              />
+            </div>
           </Card>
 
           {/* Desktop Keyboard Tip */}

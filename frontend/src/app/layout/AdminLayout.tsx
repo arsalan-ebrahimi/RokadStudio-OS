@@ -37,10 +37,15 @@ export const AdminLayout: React.FC = () => {
 
       {/* Sidebar */}
       <aside className={cn(
-        'fixed inset-y-0 start-0 z-50 w-64 bg-white dark:bg-[#121824] border-e border-[#EAEAEA] dark:border-gray-800 p-4 flex flex-col justify-between transition-transform duration-200 md:translate-x-0',
+        'fixed inset-y-0 start-0 z-50 w-64 bg-white dark:bg-[#121824] border-e border-[#EAEAEA] dark:border-gray-800 p-4 flex flex-col justify-between transition-transform duration-200 md:translate-x-0 relative overflow-hidden',
         mobileOpen ? 'translate-x-0' : 'max-md:translate-x-full'
       )}>
-        <div className="space-y-6">
+        {/* Subtle Sidebar Pattern */}
+        <div
+          className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-[0.03] dark:opacity-[0.09]"
+          style={{ backgroundImage: "url('/layout-pattern.png')" }}
+        />
+        <div className="space-y-6 relative z-10">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0">
@@ -79,7 +84,7 @@ export const AdminLayout: React.FC = () => {
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+        <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between relative z-10">
           <button onClick={toggleTheme} className="p-2 rounded-xl text-gray-500 hover:text-sec dark:hover:text-white">
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
