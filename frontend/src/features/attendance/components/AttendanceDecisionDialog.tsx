@@ -29,7 +29,7 @@ export const AttendanceDecisionDialog: React.FC<AttendanceDecisionDialogProps> =
           ? `آیا از رد حضور ${targetName} اطمینان دارید؟ با رد حضور، تمامی سشن‌های کاری ثبت‌شده امروز این فرد حذف شده و وضعیت به غایب تغییر می‌کند.`
           : `آیا حضور امروز ${targetName} تایید می‌شود؟`
       }
-      confirmLabel={isReject ? 'رد' : 'تایید'}
+      confirmLabel={isReject ? 'رد قطعی' : 'تایید'}
       variant={isReject ? 'danger' : 'primary'}
       isLoading={isLoading}
       onConfirm={onConfirm}

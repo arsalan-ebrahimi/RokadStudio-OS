@@ -8,13 +8,8 @@ interface BreakOverlayProps {
 
 export const BreakOverlay: React.FC<BreakOverlayProps> = ({ remaining }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in relative overflow-hidden">
-      {/* Studio Background Pattern */}
-      <div
-        className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-25"
-        style={{ backgroundImage: "url('/layout-pattern.png')" }}
-      />
-      <div className="relative w-full max-w-sm bg-white dark:bg-[#151C28] rounded-3xl border-2 border-girl shadow-female p-8 text-center space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
+      <div className="w-full max-w-sm bg-white dark:bg-[#151C28] rounded-3xl border-2 border-girl shadow-female p-8 text-center space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-female-light dark:bg-female-darker/60 flex items-center justify-center mx-auto text-girl">
           <Coffee className="w-8 h-8" />
         </div>

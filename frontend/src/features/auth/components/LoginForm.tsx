@@ -47,13 +47,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#F8F9FA] via-[#F4F6F9] to-[#EAEFF5] dark:from-[#0B0F17] dark:via-[#0F141F] dark:to-[#121824] relative overflow-hidden">
-      {/* Studio Background Pattern */}
-      <div
-        className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-[0.05] dark:opacity-[0.20] transition-opacity"
-        style={{ backgroundImage: "url('/layout-pattern.png')" }}
-      />
-      <Card className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 space-y-6 shadow-hard-lg dark:shadow-dark-hard relative z-10">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#F8F9FA] via-[#F4F6F9] to-[#EAEFF5] dark:from-[#0B0F17] dark:via-[#0F141F] dark:to-[#121824]">
+      <Card className="w-full max-w-sm sm:max-w-md p-6 sm:p-8 space-y-6 shadow-hard-lg dark:shadow-dark-hard">
         <div className="text-center space-y-3">
           <StudioTiltLogo />
           <h1 className="text-lg sm:text-xl font-black text-sec dark:text-white">{title}</h1>

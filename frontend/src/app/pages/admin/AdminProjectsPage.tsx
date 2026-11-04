@@ -302,7 +302,7 @@ export const AdminProjectsPage: React.FC = () => {
               isLoading={updateMut.isPending}
               disabled={!editName.trim() || updateMut.isPending}
             >
-              ذخیره
+              ذخیره تغییرات
             </Button>
           </form>
         </Modal>
