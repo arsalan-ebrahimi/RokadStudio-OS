@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Users, Edit2, Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
-import { Card, Button, Input, Select, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
+import { Card, Button, Input, Checkbox, Select, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
 import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { createProject, updateProject, deleteProject, fetchProjectDetails, syncMembers } from '@/features/projects/api/projects-crud-api';
 import { searchActiveUsers } from '@/features/users/api/users-api';
@@ -277,16 +277,29 @@ export const AdminProjectsPage: React.FC = () => {
                 {activeUsers.map((u: User) => {
                   const isSelected = selectedUserIds.includes(u.id);
                   return (
-                    <label key={u.id} className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer">
-                      <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">{u.name}</span>
-                      <input
-                        type="checkbox"
+                    <label
+                      key={u.id}
+                      className={cn(
+                        'flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer select-none',
+                        isSelected
+                          ? 'border-primary bg-primary/10 dark:bg-primary/15 shadow-[2px_2px_0_#202A5A] dark:shadow-[2px_2px_0_#59BBAF]'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] hover:border-gray-300 dark:hover:border-gray-600'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">{u.name}</span>
+                        {u.role && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                            {u.role === 'SUPER_ADMIN' ? 'مدیر ارشد' : u.role === 'ADMIN' ? 'ادمین' : 'کاربر'}
+                          </span>
+                        )}
+                      </div>
+                      <Checkbox
                         checked={isSelected}
                         onChange={(e) => {
                           if (e.target.checked) setSelectedUserIds([...selectedUserIds, u.id]);
                           else setSelectedUserIds(selectedUserIds.filter((id) => id !== u.id));
                         }}
-                        className="w-4 h-4 text-primary rounded"
                       />
                     </label>
                   );
