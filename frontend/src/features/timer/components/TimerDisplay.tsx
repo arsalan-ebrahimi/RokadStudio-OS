@@ -1,7 +1,9 @@
-import React from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Play, Pause, RotateCcw, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Button } from '@/shared/ui';
 import { formatSecondsToTime, toPersianDigits } from '@/shared/lib/formatters';
+import { WORK_DURATION_SECONDS, BREAK_DURATION_SECONDS } from '@/shared/config/constants';
 import type { TimerState } from '../hooks/use-timer';
 import { cn } from '@/shared/lib/utils';
 
@@ -24,25 +26,107 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
 }) => {
   const isRunning = state === 'RUNNING';
   const isDone = state === 'DONE';
+  const prevStateRef = useRef<TimerState>(state);
+
+  // Trigger celebration confetti when session completes or transitions to break/done
+  useEffect(() => {
+    if (prevStateRef.current === 'RUNNING' && (state === 'BREAK' || state === 'DONE')) {
+      confetti({
+        particleCount: 70,
+        spread: 60,
+        origin: { y: 0.65 },
+        colors: ['#59BBAF', '#E0195B', '#F8A41D', '#612B89', '#202A5A'],
+        shapes: ['square', 'circle'],
+        ticks: 200,
+      });
+    }
+    prevStateRef.current = state;
+  }, [state]);
+
+  const totalDuration = state === 'BREAK' ? BREAK_DURATION_SECONDS : WORK_DURATION_SECONDS;
+  const progress = Math.max(0, Math.min(1, remaining / totalDuration));
+  const radius = 120;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - progress);
+
+  const strokeColor =
+    state === 'BREAK'
+      ? '#E0195B'
+      : state === 'PAUSED'
+      ? '#F8A41D'
+      : isRunning
+      ? '#59BBAF'
+      : '#CBD5E1';
 
   return (
     <div className="flex flex-col items-center justify-center p-2 sm:p-6 lg:p-8 space-y-6">
-      <div
-        className={cn(
-          'w-56 h-56 min-[400px]:w-64 min-[400px]:h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full flex flex-col items-center justify-center border-4 shadow-hard-lg transition-all',
-          isRunning && 'border-primary shadow-ecosystem bg-ecosystem-light/30 dark:bg-ecosystem-darker/20 scale-[1.02]',
-          state === 'PAUSED' && 'border-third shadow-college bg-college-light/30 dark:bg-college-darker/20',
-          state === 'BREAK' && 'border-girl shadow-female bg-female-light/30 dark:bg-female-darker/20 scale-[1.02]',
-          state === 'IDLE' && 'border-gray-300 dark:border-gray-700 bg-white dark:bg-[#151C28]',
-          isDone && 'border-primary shadow-ecosystem bg-white dark:bg-[#151C28]'
+      <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 flex items-center justify-center select-none">
+        {/* Ambient Glow */}
+        {isRunning && (
+          <div className="absolute inset-4 rounded-full bg-primary/10 dark:bg-primary/15 blur-2xl animate-pulse pointer-events-none" />
         )}
-      >
-        <span className="text-4xl min-[400px]:text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight tabular-nums text-sec dark:text-white" dir="ltr">
-          {toPersianDigits(formatSecondsToTime(remaining))}
-        </span>
-        <span className="text-xs sm:text-sm font-bold text-ink-normal/60 dark:text-gray-400 mt-2 sm:mt-3">
-          {state === 'BREAK' ? 'استراحت' : 'تمرکز'}
-        </span>
+        {state === 'BREAK' && (
+          <div className="absolute inset-4 rounded-full bg-girl/15 dark:bg-girl/20 blur-2xl animate-pulse pointer-events-none" />
+        )}
+
+        {/* SVG Progress Ring */}
+        <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 280 280">
+          {/* Background track */}
+          <circle
+            cx="140"
+            cy="140"
+            r={radius}
+            fill="none"
+            strokeWidth="10"
+            className="stroke-gray-100 dark:stroke-[#1A2333] transition-colors"
+          />
+          {/* Active progress stroke */}
+          <circle
+            cx="140"
+            cy="140"
+            r={radius}
+            fill="none"
+            strokeWidth="11"
+            strokeLinecap="round"
+            stroke={strokeColor}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="transition-all duration-700 ease-out"
+          />
+        </svg>
+
+        {/* Inner Card Content */}
+        <div
+          className={cn(
+            'absolute inset-5 rounded-full flex flex-col items-center justify-center shadow-hard-lg transition-all',
+            'bg-white dark:bg-[#151C28] border-2 border-[#121824] dark:border-gray-700',
+            isRunning && 'border-primary dark:border-primary shadow-ecosystem',
+            state === 'PAUSED' && 'border-third dark:border-third shadow-college',
+            state === 'BREAK' && 'border-girl dark:border-girl shadow-female'
+          )}
+        >
+          <span
+            className="text-4xl min-[400px]:text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight tabular-nums text-sec dark:text-white"
+            dir="ltr"
+          >
+            {toPersianDigits(formatSecondsToTime(remaining))}
+          </span>
+
+          <div className="mt-2 sm:mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 dark:bg-[#1C2536] border border-gray-200 dark:border-gray-700 text-xs font-bold">
+            {state === 'BREAK' ? (
+              <span className="text-girl flex items-center gap-1 font-extrabold">
+                <Sparkles className="w-3 h-3" />
+                استراحت
+              </span>
+            ) : state === 'PAUSED' ? (
+              <span className="text-third font-extrabold">توقف موقت</span>
+            ) : isDone ? (
+              <span className="text-primary font-extrabold">تکمیل شد</span>
+            ) : (
+              <span className="text-ink-normal/70 dark:text-gray-300">تمرکز</span>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

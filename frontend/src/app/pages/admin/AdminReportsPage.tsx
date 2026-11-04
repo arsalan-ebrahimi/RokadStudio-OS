@@ -7,6 +7,7 @@ import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { exportReportsToCsv } from '@/features/reports/lib/export-csv';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { getTehranTodayString, getJalaliWeekRange, getJalaliMonthRange } from '@/shared/lib/date';
+import { cn } from '@/shared/lib/utils';
 
 export const AdminReportsPage: React.FC = () => {
   const today = getTehranTodayString();
@@ -149,6 +150,47 @@ export const AdminReportsPage: React.FC = () => {
           </p>
         </Card>
       </div>
+
+      {!isLoading && rows.length > 0 && totalSeconds > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-sec dark:text-white">سهم تمرکز در این بازه</span>
+            <span className="text-ink-normal/50 dark:text-gray-400 font-mono">
+              {formatDurationToHoursMins(totalSeconds)} کل
+            </span>
+          </div>
+
+          <div className="w-full h-3 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex gap-0.5">
+            {rows.slice(0, 5).map((row, idx) => {
+              const pct = (row.totalSeconds / totalSeconds) * 100;
+              const colors = ['bg-primary', 'bg-girl', 'bg-third', 'bg-[#612B89]', 'bg-[#202A5A]'];
+              return (
+                <div
+                  key={idx}
+                  style={{ width: `${pct}%` }}
+                  className={cn('h-full transition-all duration-500', colors[idx % colors.length])}
+                  title={`${row.user?.name || row.project?.name || ''}: ${pct.toFixed(0)}%`}
+                />
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap text-[11px] font-bold">
+            {rows.slice(0, 4).map((row, idx) => {
+              const label = row.user && row.project ? `${row.user.name} - ${row.project.name}` : (row.user?.name || row.project?.name || '—');
+              const dotColors = ['bg-primary', 'bg-girl', 'bg-third', 'bg-[#612B89]'];
+              const pct = Math.round((row.totalSeconds / totalSeconds) * 100);
+              return (
+                <div key={idx} className="flex items-center gap-1.5 text-ink-normal/70 dark:text-gray-300">
+                  <span className={cn('w-2 h-2 rounded-full', dotColors[idx % dotColors.length])} />
+                  <span className="truncate max-w-[140px]">{label}</span>
+                  <span className="text-ink-normal/40 font-mono">({toPersianDigits(pct)}٪)</span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="space-y-3">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>

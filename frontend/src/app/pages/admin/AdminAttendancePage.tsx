@@ -45,6 +45,9 @@ export const AdminAttendancePage: React.FC = () => {
   });
 
   const records = data?.data || [];
+  const approvedCount = records.filter((r: Attendance) => r.approval === 'APPROVED').length;
+  const pendingCount = records.filter((r: Attendance) => r.approval === 'PENDING').length;
+  const rejectedCount = records.filter((r: Attendance) => r.approval === 'REJECTED').length;
 
   return (
     <div className="space-y-6">
@@ -66,6 +69,51 @@ export const AdminAttendancePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {!isLoading && records.length > 0 && (
+        <Card className="p-3.5 sm:p-4 space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-2">
+            <span className="text-sec dark:text-white">وضعیت روزانه ({toPersianDigits(records.length)} نفر)</span>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                تایید ({toPersianDigits(approvedCount)})
+              </span>
+              <span className="flex items-center gap-1.5 text-amber-500">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                انتظار ({toPersianDigits(pendingCount)})
+              </span>
+              {rejectedCount > 0 && (
+                <span className="flex items-center gap-1.5 text-rose-500">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  رد ({toPersianDigits(rejectedCount)})
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex">
+            {approvedCount > 0 && (
+              <div
+                style={{ width: `${(approvedCount / records.length) * 100}%` }}
+                className="h-full bg-emerald-500 transition-all duration-500"
+              />
+            )}
+            {pendingCount > 0 && (
+              <div
+                style={{ width: `${(pendingCount / records.length) * 100}%` }}
+                className="h-full bg-amber-400 transition-all duration-500"
+              />
+            )}
+            {rejectedCount > 0 && (
+              <div
+                style={{ width: `${(rejectedCount / records.length) * 100}%` }}
+                className="h-full bg-rose-500 transition-all duration-500"
+              />
+            )}
+          </div>
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="space-y-3">
