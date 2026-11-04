@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Sun, Moon, Clock, Flame, FolderKanban } from 'lucide-react';
+import { LogOut, Sun, Moon, Clock, Flame, FolderKanban, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useTodayAttendance, useMidnightWatcher, AttendanceBadge, AttendanceModal } from '@/features/attendance';
 import { useMyProjects, ProjectSelect } from '@/features/projects';
 import { useTimer, useTimerStore, TimerDisplay, BreakOverlay } from '@/features/timer';
+import { ScreenPet, PetSelectorModal } from '@/features/pet';
 import { Card } from '@/shared/ui';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { formatToJalali, getTehranTodayString } from '@/shared/lib/date';
@@ -19,6 +20,8 @@ const UserDashboardPage: React.FC = () => {
     const saved = localStorage.getItem('rokad_selected_project');
     return saved ? Number(saved) : null;
   });
+
+  const [isPetModalOpen, setIsPetModalOpen] = useState(false);
 
   const { state, remaining, start, pause, reset, isLocked, savedProjectId } = useTimer(selectedProjectId);
 
@@ -92,6 +95,14 @@ const UserDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button
+            onClick={() => setIsPetModalOpen(true)}
+            className="p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-sec dark:hover:text-white shadow-hard-sm transition-all"
+            title="انتخاب همراه تمرکز"
+            aria-label="همراه تمرکز"
+          >
+            <Sparkles className="w-4 h-4 text-primary" />
+          </button>
           <button
             onClick={toggleTheme}
             className="p-2 sm:p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-gray-900 dark:hover:text-white shadow-hard-sm transition-all"
@@ -204,6 +215,10 @@ const UserDashboardPage: React.FC = () => {
       />
 
       {state === 'BREAK' && <BreakOverlay remaining={remaining} />}
+
+      {/* Interactive Screen Pet Companion */}
+      <ScreenPet timerState={state} onOpenSelector={() => setIsPetModalOpen(true)} />
+      <PetSelectorModal isOpen={isPetModalOpen} onClose={() => setIsPetModalOpen(false)} />
     </div>
   );
 };
