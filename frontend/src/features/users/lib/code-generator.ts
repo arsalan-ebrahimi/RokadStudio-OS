@@ -1,12 +1,12 @@
 import type { User } from '@/shared/types/models';
 
 /**
- * Suggests the next sequential 6-digit user code based on a 2-digit department prefix.
- * e.g. prefix '10' -> '101101', '101102', ...
+ * Suggests the next sequential 6-character user code based on a 2-character department prefix.
+ * e.g. prefix 'IT' -> 'IT1101', 'IT1102', ...
  */
-export function suggestNextUserCode(users: User[], prefix = '10'): string {
-  const numericPrefix = prefix.replace(/\D/g, '').slice(0, 2) || '10';
-  const regex = new RegExp(`^${numericPrefix}(\\d{4})$`);
+export function suggestNextUserCode(users: User[], prefix = 'IT'): string {
+  const cleanPrefix = (prefix.trim() || 'IT').toUpperCase().slice(0, 2);
+  const regex = new RegExp(`^${cleanPrefix}(\\d{4})$`, 'i');
 
   let maxNum = 1100;
   for (const u of users) {
@@ -21,5 +21,5 @@ export function suggestNextUserCode(users: User[], prefix = '10'): string {
   }
 
   const nextSuffix = String(maxNum + 1).padStart(4, '0');
-  return `${numericPrefix}${nextSuffix}`.slice(0, 6);
+  return `${cleanPrefix}${nextSuffix}`.slice(0, 6);
 }

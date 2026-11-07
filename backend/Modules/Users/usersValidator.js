@@ -29,8 +29,10 @@ export const createUserValidator = [
     .trim()
     .notEmpty()
     .withMessage("Code is required")
-    .matches(/^\d{6}$/)
-    .withMessage("Code must be exactly 6 digits"),
+    .isLength({ min: 6, max: 6 })
+    .withMessage("Code must be exactly 6 characters")
+    .matches(/^[A-Za-z0-9_-]+$/)
+    .withMessage("Code can only contain letters, numbers, underscores, and hyphens"),
   body("name")
     .trim()
     .notEmpty()
@@ -52,8 +54,10 @@ export const updateUserValidator = [
   body("code")
     .optional()
     .trim()
-    .matches(/^\d{6}$/)
-    .withMessage("Code must be exactly 6 digits"),
+    .isLength({ min: 6, max: 6 })
+    .withMessage("Code must be exactly 6 characters")
+    .matches(/^[A-Za-z0-9_-]+$/)
+    .withMessage("Code can only contain letters, numbers, underscores, and hyphens"),
   body("name")
     .optional()
     .trim()

@@ -3,12 +3,12 @@ import prisma from "../config/prisma.js";
 import { todayDate } from "../Utils/date.js";
 
 export const runSeed = async () => {
-  const superAdminCode = process.env.SEED_SUPERADMIN_CODE || "999999";
+  const superAdminCode = process.env.SEED_SUPERADMIN_CODE || "SP0001";
   const superAdminName = process.env.SEED_SUPERADMIN_NAME || "Studio Super Admin";
   const today = todayDate();
 
   console.log("\n=======================================================");
-  console.log("🌱 Database Seeder - Rokad Studio OS (6-Digit Numeric)");
+  console.log("🌱 Database Seeder - Rokad Studio OS (Exact 6 Characters)");
   console.log("=======================================================\n");
 
   // 1. Clean up ALL existing data in reverse relational order
@@ -20,7 +20,7 @@ export const runSeed = async () => {
   await prisma.user.deleteMany({});
   console.log("   ✓ All tables cleared successfully.");
 
-  // 2. Seed Super Admin (SUPER_ADMIN) - 6 digits: 999999
+  // 2. Seed Super Admin (SUPER_ADMIN) - 6 chars: SP0001
   console.log("\n👑 Seeding Super Admin account...");
   const superAdmin = await prisma.user.create({
     data: {
@@ -32,11 +32,11 @@ export const runSeed = async () => {
   });
   console.log(`   ✓ Super Admin: [${superAdmin.code}] - ${superAdmin.name}`);
 
-  // 3. Seed Operations Admin (ADMIN) - 6 digits: 888888
+  // 3. Seed Operations Admin (ADMIN) - 6 chars: AD0001
   console.log("\n🛡️  Seeding Operations Admin account...");
   const simpleAdmin = await prisma.user.create({
     data: {
-      code: "888888",
+      code: "AD0001",
       name: "Studio Operations Admin",
       role: "ADMIN",
       isActive: true,
@@ -44,28 +44,28 @@ export const runSeed = async () => {
   });
   console.log(`   ✓ Operations Admin: [${simpleAdmin.code}] - ${simpleAdmin.name}`);
 
-  // 4. Seed Personnel Users (USER) partitioned by Department (All 6 digits)
-  // 10xxxx: Engineering (IT)
-  // 20xxxx: Creative / Artists (AR)
-  // 30xxxx: Operations & Generalists (AF)
+  // 4. Seed Personnel Users (USER) partitioned by Department (All exactly 6 characters)
+  // ITxxxx: Engineering & Development (IT)
+  // ARxxxx: Creative & Artists (AR)
+  // AFxxxx: Operations & Generalists (AF)
   const usersData = [
-    // Engineering (10xxxx)
-    { code: "101101", name: "Artin Amiri", department: "Engineering (IT)" },
-    { code: "101102", name: "MohammadMehdi Sadeghi", department: "Engineering (IT)" },
-    { code: "101103", name: "Arsalan Ebrahimi", department: "Engineering (IT)" },
-    { code: "101104", name: "Mahdiar Tavakoli", department: "Engineering (IT)" },
-    { code: "101105", name: "Setareh Sayyad", department: "Engineering (IT)" },
-    // Creative & Artists (20xxxx)
-    { code: "201101", name: "Mahdiar Hassanzadeh", department: "Creative / Artists (AR)" },
-    { code: "201102", name: "Parsa Rahmani", department: "Creative / Artists (AR)" },
-    { code: "201103", name: "Matin Ghanei", department: "Creative / Artists (AR)" },
-    // Operations & Generalists (30xxxx)
-    { code: "301101", name: "Soroush Hassani", department: "Operations / Generalists (AF)" },
-    { code: "301102", name: "Hossein Khoshraftar", department: "Operations / Generalists (AF)" },
-    { code: "301103", name: "Elisa Valizadeh", department: "Operations / Generalists (AF)" },
-    { code: "301104", name: "Melika Tork", department: "Operations / Generalists (AF)" },
-    { code: "301105", name: "MohammadReza Nabavi", department: "Operations / Generalists (AF)" },
-    { code: "301106", name: "Bahar Bazrafshan", department: "Operations / Generalists (AF)" },
+    // Engineering (IT)
+    { code: "IT1101", name: "Artin Amiri", department: "Engineering (IT)" },
+    { code: "IT1102", name: "MohammadMehdi Sadeghi", department: "Engineering (IT)" },
+    { code: "IT1103", name: "Arsalan Ebrahimi", department: "Engineering (IT)" },
+    { code: "IT1104", name: "Mahdiar Tavakoli", department: "Engineering (IT)" },
+    { code: "IT1105", name: "Setareh Sayyad", department: "Engineering (IT)" },
+    // Creative & Artists (AR)
+    { code: "AR1101", name: "Mahdiar Hassanzadeh", department: "Creative / Artists (AR)" },
+    { code: "AR1102", name: "Parsa Rahmani", department: "Creative / Artists (AR)" },
+    { code: "AR1103", name: "Matin Ghanei", department: "Creative / Artists (AR)" },
+    // Operations & Generalists (AF)
+    { code: "AF1101", name: "Soroush Hassani", department: "Operations / Generalists (AF)" },
+    { code: "AF1102", name: "Hossein Khoshraftar", department: "Operations / Generalists (AF)" },
+    { code: "AF1103", name: "Elisa Valizadeh", department: "Operations / Generalists (AF)" },
+    { code: "AF1104", name: "Melika Tork", department: "Operations / Generalists (AF)" },
+    { code: "AF1105", name: "MohammadReza Nabavi", department: "Operations / Generalists (AF)" },
+    { code: "AF1106", name: "Bahar Bazrafshan", department: "Operations / Generalists (AF)" },
   ];
 
   console.log("\n👥 Seeding personnel users across departments...");
@@ -150,7 +150,7 @@ export const runSeed = async () => {
 
   // 6. Seed Sample Attendance for Today
   console.log("\n⏰ Seeding today's attendance sample records...");
-  // 101101: Present, PENDING (ready for admin approval)
+  // IT1101: Present, PENDING (ready for admin approval)
   const att1 = await prisma.attendance.create({
     data: {
       userId: seededUsers[0].id,
@@ -161,7 +161,7 @@ export const runSeed = async () => {
     },
   });
 
-  // 101102: Present, PENDING (ready for admin approval)
+  // IT1102: Present, PENDING (ready for admin approval)
   await prisma.attendance.create({
     data: {
       userId: seededUsers[1].id,
@@ -172,7 +172,7 @@ export const runSeed = async () => {
     },
   });
 
-  // 101103: Present, APPROVED (approved by Operations Admin)
+  // IT1103: Present, APPROVED (approved by Operations Admin)
   const att3 = await prisma.attendance.create({
     data: {
       userId: seededUsers[2].id,
@@ -185,7 +185,7 @@ export const runSeed = async () => {
     },
   });
 
-  // 201101: Present, APPROVED (approved by Operations Admin)
+  // AR1101: Present, APPROVED (approved by Operations Admin)
   const att4 = await prisma.attendance.create({
     data: {
       userId: seededUsers[5].id,
@@ -234,7 +234,7 @@ export const runSeed = async () => {
   console.log("\n=======================================================");
   console.log("🎉 All Seed Data Successfully Created & Verified!");
   console.log("=======================================================");
-  console.log("🔑 All Login Codes (6 Digits Numeric):");
+  console.log("🔑 All Login Codes (Exact 6 Characters):");
   console.log(`   👑 Super Admin:        [${superAdmin.code}] - ${superAdmin.name}`);
   console.log(`   🛡️  Operations Admin:   [${simpleAdmin.code}] - ${simpleAdmin.name}`);
   console.log("\n   👥 Personnel Login Codes:");

@@ -24,7 +24,7 @@ export const validateEnv = () => {
   if (!process.env.SESSION_MAX_SECONDS) process.env.SESSION_MAX_SECONDS = "1500";
   if (!process.env.MIDNIGHT_GRACE_MINUTES) process.env.MIDNIGHT_GRACE_MINUTES = "30";
   if (!process.env.ATTENDANCE_CATCHUP_DAYS) process.env.ATTENDANCE_CATCHUP_DAYS = "7";
-  if (!process.env.SEED_SUPERADMIN_CODE) process.env.SEED_SUPERADMIN_CODE = "999999";
+  if (!process.env.SEED_SUPERADMIN_CODE) process.env.SEED_SUPERADMIN_CODE = "SP0001";
   if (!process.env.SEED_SUPERADMIN_NAME) process.env.SEED_SUPERADMIN_NAME = "Studio Super Admin";
   if (!process.env.JWT_SECRET) process.env.JWT_SECRET = "default_dev_jwt_secret_must_be_long_enough_rokad";
 

@@ -21,7 +21,9 @@ export const loginValidator = [
     .trim()
     .notEmpty()
     .withMessage("Code is required")
-    .matches(/^\d{6}$/)
-    .withMessage("Login code must be exactly 6 digits"),
+    .isLength({ min: 6, max: 6 })
+    .withMessage("Code must be exactly 6 characters")
+    .matches(/^[A-Za-z0-9_-]+$/)
+    .withMessage("Code can only contain letters, numbers, underscores, and hyphens"),
   handleValidation,
 ];
