@@ -65,7 +65,7 @@ const runSmoke = async () => {
   assertEqual(saMe.data.data.role, "SUPER_ADMIN", "Role must be SUPER_ADMIN");
 
   // 4. Create User 1
-  const u1Code = `user1_${Date.now()}`;
+  const u1Code = String(Math.floor(100000 + Math.random() * 899999));
   console.log("4. Creating User 1 via POST /api/users");
   const cu1 = await request("/api/users", {
     method: "POST",
@@ -76,7 +76,7 @@ const runSmoke = async () => {
   const user1 = cu1.data.data;
 
   // 5. Create Admin 1
-  const a1Code = `admin1_${Date.now()}`;
+  const a1Code = String(Math.floor(100000 + Math.random() * 899999));
   console.log("5. Creating Admin 1 via POST /api/users");
   const ca1 = await request("/api/users", {
     method: "POST",

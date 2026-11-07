@@ -3,112 +3,88 @@ import prisma from "../config/prisma.js";
 import { todayDate } from "../Utils/date.js";
 
 export const runSeed = async () => {
-  const envSuperAdminCode = process.env.SEED_SUPERADMIN_CODE || "super_admin_2026";
-  const envSuperAdminName = process.env.SEED_SUPERADMIN_NAME || "Studio Super Admin";
+  const superAdminCode = process.env.SEED_SUPERADMIN_CODE || "999999";
+  const superAdminName = process.env.SEED_SUPERADMIN_NAME || "Studio Super Admin";
   const today = todayDate();
 
   console.log("\n=======================================================");
-  console.log("🌱 Starting Database Seed - Rokad Studio OS Platform");
+  console.log("🌱 Database Seeder - Rokad Studio OS (6-Digit Numeric)");
   console.log("=======================================================\n");
 
-  // 1. Seed Main Super Admin from environment
-  console.log("👑 Seeding Super Admin accounts...");
-  const superAdmin = await prisma.user.upsert({
-    where: { code: envSuperAdminCode },
-    update: {
-      name: envSuperAdminName,
-      role: "SUPER_ADMIN",
-      isActive: true,
-    },
-    create: {
-      code: envSuperAdminCode,
-      name: envSuperAdminName,
+  // 1. Clean up ALL existing data in reverse relational order
+  console.log("🧹 Wiping all existing database tables for a clean slate...");
+  await prisma.workSession.deleteMany({});
+  await prisma.attendance.deleteMany({});
+  await prisma.projectMember.deleteMany({});
+  await prisma.project.deleteMany({});
+  await prisma.user.deleteMany({});
+  console.log("   ✓ All tables cleared successfully.");
+
+  // 2. Seed Super Admin (SUPER_ADMIN) - 6 digits: 999999
+  console.log("\n👑 Seeding Super Admin account...");
+  const superAdmin = await prisma.user.create({
+    data: {
+      code: superAdminCode,
+      name: superAdminName,
       role: "SUPER_ADMIN",
       isActive: true,
     },
   });
+  console.log(`   ✓ Super Admin: [${superAdmin.code}] - ${superAdmin.name}`);
 
-  // 1.1 Also ensure short test code SP0001 exists as Super Admin for UI testing
-  let shortCodeSuperAdmin = superAdmin;
-  if (envSuperAdminCode !== "SP0001") {
-    shortCodeSuperAdmin = await prisma.user.upsert({
-      where: { code: "SP0001" },
-      update: {
-        name: "Studio Super Admin (SP0001)",
-        role: "SUPER_ADMIN",
-        isActive: true,
-      },
-      create: {
-        code: "SP0001",
-        name: "Studio Super Admin (SP0001)",
-        role: "SUPER_ADMIN",
-        isActive: true,
-      },
-    });
-  }
-
-  // 2. Seed Simple Admin (ADMIN)
-  console.log("🛡️  Seeding Operations Admin account...");
-  const simpleAdmin = await prisma.user.upsert({
-    where: { code: "AD0001" },
-    update: {
-      name: "Studio Operations Admin (AD0001)",
-      role: "ADMIN",
-      isActive: true,
-    },
-    create: {
-      code: "AD0001",
-      name: "Studio Operations Admin (AD0001)",
+  // 3. Seed Operations Admin (ADMIN) - 6 digits: 888888
+  console.log("\n🛡️  Seeding Operations Admin account...");
+  const simpleAdmin = await prisma.user.create({
+    data: {
+      code: "888888",
+      name: "Studio Operations Admin",
       role: "ADMIN",
       isActive: true,
     },
   });
+  console.log(`   ✓ Operations Admin: [${simpleAdmin.code}] - ${simpleAdmin.name}`);
 
-  // 3. Remove old regular users (non-admin) for a clean reset
-  console.log("🧹 Cleaning up old regular users...");
-  await prisma.user.deleteMany({
-    where: {
-      role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
-    },
-  });
-
-  // 4. Seed Regular Personnel Users (USER) partitioned by Department
-  // IT: Engineering & Development
-  // AR: Creative & Artists
-  // AF: Operations & Generalists
+  // 4. Seed Personnel Users (USER) partitioned by Department (All 6 digits)
+  // 10xxxx: Engineering (IT)
+  // 20xxxx: Creative / Artists (AR)
+  // 30xxxx: Operations & Generalists (AF)
   const usersData = [
-    // Engineering (IT)
-    { code: "IT1101", name: "Artin Amiri" },
-    { code: "IT1102", name: "MohammadMehdi Sadeghi" },
-    { code: "IT1103", name: "Arsalan Ebrahimi" },
-    { code: "IT1104", name: "Mahdiar Tavakoli" },
-    { code: "IT1105", name: "Setareh Sayyad" },
-    // Creative & Artists (AR)
-    { code: "AR1101", name: "Mahdiar Hassanzadeh" },
-    { code: "AR1102", name: "Parsa Rahmani" },
-    { code: "AR1103", name: "Matin Ghanei" },
-    // Generalists (AF)
-    { code: "AF1101", name: "Soroush Hassani" },
-    { code: "AF1102", name: "Hossein Khoshraftar" },
-    { code: "AF1103", name: "Elisa Valizadeh" },
-    { code: "AF1104", name: "Melika Tork" },
-    { code: "AF1105", name: "MohammadReza Nabavi" },
-    { code: "AF1106", name: "Bahar Bazrafshan" },
+    // Engineering (10xxxx)
+    { code: "101101", name: "Artin Amiri", department: "Engineering (IT)" },
+    { code: "101102", name: "MohammadMehdi Sadeghi", department: "Engineering (IT)" },
+    { code: "101103", name: "Arsalan Ebrahimi", department: "Engineering (IT)" },
+    { code: "101104", name: "Mahdiar Tavakoli", department: "Engineering (IT)" },
+    { code: "101105", name: "Setareh Sayyad", department: "Engineering (IT)" },
+    // Creative & Artists (20xxxx)
+    { code: "201101", name: "Mahdiar Hassanzadeh", department: "Creative / Artists (AR)" },
+    { code: "201102", name: "Parsa Rahmani", department: "Creative / Artists (AR)" },
+    { code: "201103", name: "Matin Ghanei", department: "Creative / Artists (AR)" },
+    // Operations & Generalists (30xxxx)
+    { code: "301101", name: "Soroush Hassani", department: "Operations / Generalists (AF)" },
+    { code: "301102", name: "Hossein Khoshraftar", department: "Operations / Generalists (AF)" },
+    { code: "301103", name: "Elisa Valizadeh", department: "Operations / Generalists (AF)" },
+    { code: "301104", name: "Melika Tork", department: "Operations / Generalists (AF)" },
+    { code: "301105", name: "MohammadReza Nabavi", department: "Operations / Generalists (AF)" },
+    { code: "301106", name: "Bahar Bazrafshan", department: "Operations / Generalists (AF)" },
   ];
 
-  console.log("👥 Seeding studio personnel users across departments...");
+  console.log("\n👥 Seeding personnel users across departments...");
   const seededUsers = [];
   for (const u of usersData) {
-    const user = await prisma.user.upsert({
-      where: { code: u.code },
-      update: { name: u.name, role: "USER", isActive: true },
-      create: { code: u.code, name: u.name, role: "USER", isActive: true },
+    const user = await prisma.user.create({
+      data: {
+        code: u.code,
+        name: u.name,
+        role: "USER",
+        isActive: true,
+      },
     });
-    seededUsers.push(user);
+    seededUsers.push({ ...user, department: u.department });
+    console.log(`   ✓ [${user.code}] ${user.name} (${u.department})`);
   }
 
-  // 5. Seed Projects
-  console.log("📁 Seeding active studio projects and assigning members...");
+  // 5. Seed Projects and Assign Members
+  console.log("\n📁 Seeding active studio projects...");
   const projectsData = [
     {
       name: "Rokad Studio OS Platform",
@@ -128,16 +104,16 @@ export const runSeed = async () => {
         seededUsers[5].id,
         seededUsers[6].id,
         seededUsers[7].id,
-        seededUsers[8].id,
+        seededUsers[4].id,
       ],
     },
     {
       name: "College Digital Marketing Campaign",
       description: "Bootcamp applicant acquisition, campaigns and performance tracking",
       members: [
+        seededUsers[8].id,
         seededUsers[9].id,
         seededUsers[10].id,
-        seededUsers[11].id,
       ],
     },
     {
@@ -154,43 +130,29 @@ export const runSeed = async () => {
 
   const seededProjects = [];
   for (const p of projectsData) {
-    let proj = await prisma.project.findFirst({ where: { name: p.name } });
-    if (!proj) {
-      proj = await prisma.project.create({
-        data: {
-          name: p.name,
-          description: p.description,
-          isActive: true,
-          createdById: superAdmin.id,
-        },
-      });
-    } else {
-      proj = await prisma.project.update({
-        where: { id: proj.id },
-        data: {
-          description: p.description,
-          isActive: true,
-        },
-      });
-    }
-    // sync members
+    const proj = await prisma.project.create({
+      data: {
+        name: p.name,
+        description: p.description,
+        isActive: true,
+        createdById: superAdmin.id,
+      },
+    });
+
     for (const userId of p.members) {
-      await prisma.projectMember.upsert({
-        where: { projectId_userId: { projectId: proj.id, userId } },
-        update: {},
-        create: { projectId: proj.id, userId },
+      await prisma.projectMember.create({
+        data: { projectId: proj.id, userId },
       });
     }
     seededProjects.push(proj);
+    console.log(`   ✓ Project: "${proj.name}" (${p.members.length} members assigned)`);
   }
 
-  // 6. Seed Sample Attendance for Today (for testing admin review & dashboard)
-  console.log("⏰ Seeding today's attendance sample records...");
-  // IT1101: Present, PENDING (ready for admin approval)
-  const att1 = await prisma.attendance.upsert({
-    where: { userId_date: { userId: seededUsers[0].id, date: today } },
-    update: { status: "PRESENT", approval: "PENDING", source: "USER" },
-    create: {
+  // 6. Seed Sample Attendance for Today
+  console.log("\n⏰ Seeding today's attendance sample records...");
+  // 101101: Present, PENDING (ready for admin approval)
+  const att1 = await prisma.attendance.create({
+    data: {
       userId: seededUsers[0].id,
       date: today,
       status: "PRESENT",
@@ -199,11 +161,9 @@ export const runSeed = async () => {
     },
   });
 
-  // IT1102: Present, PENDING (ready for admin approval)
-  await prisma.attendance.upsert({
-    where: { userId_date: { userId: seededUsers[1].id, date: today } },
-    update: { status: "PRESENT", approval: "PENDING", source: "USER" },
-    create: {
+  // 101102: Present, PENDING (ready for admin approval)
+  await prisma.attendance.create({
+    data: {
       userId: seededUsers[1].id,
       date: today,
       status: "PRESENT",
@@ -212,17 +172,9 @@ export const runSeed = async () => {
     },
   });
 
-  // IT1103: Present, APPROVED (approved by admin)
-  const att3 = await prisma.attendance.upsert({
-    where: { userId_date: { userId: seededUsers[2].id, date: today } },
-    update: {
-      status: "PRESENT",
-      approval: "APPROVED",
-      source: "ADMIN",
-      decidedById: simpleAdmin.id,
-      decidedAt: new Date(),
-    },
-    create: {
+  // 101103: Present, APPROVED (approved by Operations Admin)
+  const att3 = await prisma.attendance.create({
+    data: {
       userId: seededUsers[2].id,
       date: today,
       status: "PRESENT",
@@ -233,17 +185,9 @@ export const runSeed = async () => {
     },
   });
 
-  // AR1101: Present, APPROVED (approved by admin)
-  const att4 = await prisma.attendance.upsert({
-    where: { userId_date: { userId: seededUsers[5].id, date: today } },
-    update: {
-      status: "PRESENT",
-      approval: "APPROVED",
-      source: "ADMIN",
-      decidedById: simpleAdmin.id,
-      decidedAt: new Date(),
-    },
-    create: {
+  // 201101: Present, APPROVED (approved by Operations Admin)
+  const att4 = await prisma.attendance.create({
+    data: {
       userId: seededUsers[5].id,
       date: today,
       status: "PRESENT",
@@ -253,60 +197,56 @@ export const runSeed = async () => {
       decidedAt: new Date(),
     },
   });
+  console.log("   ✓ 4 sample attendances seeded (2 PENDING, 2 APPROVED).");
 
-  // 7. Seed Sample Work Sessions for Today (1500s each = 25 mins Pomodoro)
-  console.log("⏳ Seeding sample focus work sessions (25-min Pomodoro)...");
-  const existingSessions = await prisma.workSession.count({ where: { attendanceId: att1.id } });
-  if (existingSessions === 0) {
-    await prisma.workSession.createMany({
-      data: [
-        {
-          userId: seededUsers[0].id,
-          projectId: seededProjects[0].id,
-          attendanceId: att1.id,
-          durationSeconds: 1500,
-        },
-        {
-          userId: seededUsers[0].id,
-          projectId: seededProjects[1].id,
-          attendanceId: att1.id,
-          durationSeconds: 1500,
-        },
-        {
-          userId: seededUsers[2].id,
-          projectId: seededProjects[0].id,
-          attendanceId: att3.id,
-          durationSeconds: 1500,
-        },
-        {
-          userId: seededUsers[5].id,
-          projectId: seededProjects[1].id,
-          attendanceId: att4.id,
-          durationSeconds: 1500,
-        },
-      ],
-    });
-  }
+  // 7. Seed Sample 25-minute Pomodoro Work Sessions (1500s each)
+  console.log("\n⏳ Seeding sample focus work sessions (25-min Pomodoro)...");
+  await prisma.workSession.createMany({
+    data: [
+      {
+        userId: seededUsers[0].id,
+        projectId: seededProjects[0].id,
+        attendanceId: att1.id,
+        durationSeconds: 1500,
+      },
+      {
+        userId: seededUsers[0].id,
+        projectId: seededProjects[1].id,
+        attendanceId: att1.id,
+        durationSeconds: 1500,
+      },
+      {
+        userId: seededUsers[2].id,
+        projectId: seededProjects[0].id,
+        attendanceId: att3.id,
+        durationSeconds: 1500,
+      },
+      {
+        userId: seededUsers[5].id,
+        projectId: seededProjects[1].id,
+        attendanceId: att4.id,
+        durationSeconds: 1500,
+      },
+    ],
+  });
+  console.log("   ✓ 4 work sessions registered (1500s each).");
 
   console.log("\n=======================================================");
-  console.log("✅ Database Seed Completed Successfully!");
+  console.log("🎉 All Seed Data Successfully Created & Verified!");
   console.log("=======================================================");
-  console.log("🔑 Login Credentials for System Testing:");
-  console.log(`   👑 Super Admin:        Code: "${superAdmin.code}" (${superAdmin.name})`);
-  if (envSuperAdminCode !== "SP0001") {
-    console.log(`   👑 Super Admin (Test): Code: "${shortCodeSuperAdmin.code}" (${shortCodeSuperAdmin.name})`);
-  }
-  console.log(`   🛡️  Operations Admin:   Code: "${simpleAdmin.code}" (${simpleAdmin.name})`);
-  console.log("\n   👥 Regular Personnel (Code & Name):");
+  console.log("🔑 All Login Codes (6 Digits Numeric):");
+  console.log(`   👑 Super Admin:        [${superAdmin.code}] - ${superAdmin.name}`);
+  console.log(`   🛡️  Operations Admin:   [${simpleAdmin.code}] - ${simpleAdmin.name}`);
+  console.log("\n   👥 Personnel Login Codes:");
   seededUsers.forEach((u) => {
-    console.log(`      • [${u.code}] - ${u.name}`);
+    console.log(`      • [${u.code}] - ${u.name.padEnd(24)} (${u.department})`);
   });
-  console.log(`\n   📁 Projects: ${seededProjects.length} active projects created and assigned.`);
-  console.log("   ⏰ Attendance: Today's records seeded (APPROVED & PENDING states).");
-  console.log("   ⏳ Work Sessions: 4 sample 25-minute Pomodoro sessions registered.");
+  console.log(`\n   📁 Projects Created:   ${seededProjects.length}`);
+  console.log("   ⏰ Attendances:        4 records for today (2 PENDING, 2 APPROVED)");
+  console.log("   ⏳ Focus Sessions:     4 Pomodoro sessions (25 mins each)");
   console.log("=======================================================\n");
 
-  return { superAdmin, shortCodeSuperAdmin, simpleAdmin, seededUsers, seededProjects };
+  return { superAdmin, simpleAdmin, seededUsers, seededProjects };
 };
 
 const isPrismaDirectCall =

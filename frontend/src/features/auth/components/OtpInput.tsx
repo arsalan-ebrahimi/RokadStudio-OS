@@ -20,8 +20,8 @@ export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasEr
   };
 
   const handleChange = (index: number, val: string) => {
-    const char = toEnglishDigits(val).slice(-1);
-    if (!/^[a-zA-Z0-9_-]?$/.test(char)) return;
+    const char = toEnglishDigits(val).replace(/\D/g, '').slice(-1);
+    if (!/^\d$/.test(char)) return;
 
     const next = [...digits];
     next[index] = char;
@@ -37,7 +37,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasEr
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasted = toEnglishDigits(e.clipboardData.getData('text')).trim().slice(0, OTP_LENGTH);
+    const pasted = toEnglishDigits(e.clipboardData.getData('text')).replace(/\D/g, '').slice(0, OTP_LENGTH);
     const next = [...digits];
     for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
     triggerChange(next);
@@ -51,8 +51,8 @@ export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasEr
           key={idx}
           ref={(el) => { inputsRef.current[idx] = el; }}
           type="text"
-          inputMode="text"
-          autoCapitalize="characters"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={digit}
           disabled={isLoading}
           onChange={(e) => handleChange(idx, e.target.value)}

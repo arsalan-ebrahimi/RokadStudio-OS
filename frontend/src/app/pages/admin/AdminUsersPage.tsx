@@ -22,7 +22,7 @@ export const AdminUsersPage: React.FC = () => {
   const [unlockingUser, setUnlockingUser] = useState<{ id: number; name: string } | null>(null);
 
   const [formName, setFormName] = useState('');
-  const [formPrefix, setFormPrefix] = useState('IT');
+  const [formPrefix, setFormPrefix] = useState('10');
   const [formCode, setFormCode] = useState('');
   const [formRole, setFormRole] = useState<Role>('USER');
 
@@ -172,16 +172,21 @@ export const AdminUsersPage: React.FC = () => {
           <Input label="نام و نام خانوادگی" value={formName} onChange={(e) => setFormName(e.target.value)} />
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="پیشوند کد"
+              label="پیشوند دپارتمان (۲ رقم)"
               maxLength={2}
               value={formPrefix}
               onChange={(e) => {
-                const val = e.target.value.toUpperCase();
+                const val = e.target.value.replace(/\D/g, '').slice(0, 2);
                 setFormPrefix(val);
                 setFormCode(suggestNextUserCode(users, val));
               }}
             />
-            <Input label="کد پرسنلی پیشنهادی" value={formCode} onChange={(e) => setFormCode(e.target.value.toUpperCase())} />
+            <Input
+              label="کد پرسنلی (۶ رقم)"
+              maxLength={6}
+              value={formCode}
+              onChange={(e) => setFormCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            />
           </div>
           <Select
             label="نقش کاربر"

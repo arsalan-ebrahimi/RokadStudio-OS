@@ -19,8 +19,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
   const navigate = useNavigate();
 
   const handleComplete = async (submittedCode: string) => {
-    const finalCode = (submittedCode || code).trim().toUpperCase();
-    if (finalCode.length < 6) return;
+    const finalCode = (submittedCode || code).replace(/\D/g, '').trim();
+    if (finalCode.length !== 6) return;
 
     setError(null);
     setLoading(true);
