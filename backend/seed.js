@@ -10,10 +10,9 @@ import prisma from "./config/prisma.js";
 
 runSeed()
   .catch((err) => {
-    console.error("❌ خطا در اجرای اسکریپت Seed:", err);
+    console.error("❌ Database seed execution failed:", err);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
-

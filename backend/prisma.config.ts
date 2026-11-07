@@ -8,6 +8,6 @@ export default defineConfig({
     seed: "node --experimental-strip-types prisma/seed.js",
   },
   datasource: {
-    url: process.env.DATABASE_URL || "postgresql://rokad_user:rokad_password@localhost:54320/rokad_attendance_db",
+    url: process.env.DATABASE_URL || "postgresql://rokad_user:rokad_password@127.0.0.1:54320/rokad_attendance_db",
   },
 });
