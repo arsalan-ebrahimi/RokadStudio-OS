@@ -8,6 +8,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "build": "prisma generate",
     "start": "node --experimental-strip-types server.js",
     "dev": "nodemon --watch . --ext js,json server.js",
     "db:migrate": "npx prisma migrate dev",
