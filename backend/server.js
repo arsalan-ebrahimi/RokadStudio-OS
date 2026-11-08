@@ -12,7 +12,7 @@ import prisma from "./config/prisma.js";
 import redis from "./config/redis.js";
 import { startCronJobs, stopCronJobs, runBootCatchup } from "./Jobs/index.js";
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 7860;
 
 let server = null;
 

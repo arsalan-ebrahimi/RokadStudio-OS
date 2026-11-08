@@ -15,8 +15,8 @@ COPY . .
 RUN npx prisma generate
 
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=7860
 
-EXPOSE 5000
+EXPOSE 7860
 
 CMD ["node", "--experimental-strip-types", "server.js"]
