@@ -62,12 +62,24 @@ export const AdminUsersPage: React.FC = () => {
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteUser(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    onMutate: async (deletedId: number) => {
       setDeletingId(null);
-      toast.success('کاربر حذف شد');
+      queryClient.setQueriesData({ queryKey: ['admin-users'] }, (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.filter((u: User) => u.id !== deletedId),
+        };
+      });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onSuccess: () => {
+      toast.success('کاربر حذف شد');
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (err: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.error(err.message);
+    },
   });
 
   const handleCopyCode = () => {

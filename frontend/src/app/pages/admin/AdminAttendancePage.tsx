@@ -27,12 +27,24 @@ export const AdminAttendancePage: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: ({ id, decision }: { id: number; decision: 'APPROVED' | 'REJECTED' }) => decideAttendance(id, decision),
+    onMutate: async ({ id, decision }) => {
+      setActiveDecision(null);
+      queryClient.setQueriesData({ queryKey: ['admin-attendance'] }, (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((r: Attendance) => (r.id === id ? { ...r, approval: decision } : r)),
+        };
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
       toast.success('تصمیم با موفقیت ثبت شد');
-      setActiveDecision(null);
     },
-    onError: (err: Error) => toast.error(err.message || 'خطا در ثبت تصمیم'),
+    onError: (err: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      toast.error(err.message || 'خطا در ثبت تصمیم');
+    },
   });
 
   const records = data?.data || [];

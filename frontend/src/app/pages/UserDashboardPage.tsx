@@ -98,14 +98,30 @@ const UserDashboardPage: React.FC = () => {
 
   const deleteSessionMut = useMutation({
     mutationFn: (id: number) => deleteWorkSession(id),
+    onMutate: async (deletedId: number) => {
+      setDeletingSession(null);
+      // Optimistically remove session from local cache immediately
+      queryClient.setQueryData(['my-sessions-today'], (old: any) => {
+        if (!old?.sessions) return old;
+        const remaining = old.sessions.filter((s: any) => s.id !== deletedId);
+        const validRemaining = remaining.filter((s: any) => s.approval !== 'REJECTED');
+        return {
+          ...old,
+          totalSeconds: validRemaining.reduce((acc: number, s: any) => acc + (s.durationSeconds || 0), 0),
+          sessions: remaining,
+        };
+      });
+    },
     onSuccess: () => {
+      toast.success('سشن کاری با موفقیت حذف شد');
       queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
       queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
-      toast.success('سشن کاری با موفقیت حذف شد');
-      setDeletingSession(null);
     },
-    onError: (err: Error) => toast.error(err.message || 'خطا در حذف سشن کاری'),
+    onError: (err: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
+      toast.error(err.message || 'خطا در حذف سشن کاری');
+    },
   });
 
   // Desktop keyboard shortcut: Space to toggle start/pause

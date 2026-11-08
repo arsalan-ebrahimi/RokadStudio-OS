@@ -70,14 +70,24 @@ export const AdminProjectsPage: React.FC = () => {
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteProject(id),
+    onMutate: async (deletedId: number) => {
+      setDeletingId(null);
+      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.filter((p: Project) => p.id !== deletedId),
+        };
+      });
+    },
     onSuccess: () => {
+      toast.success('پروژه و سشن‌های مربوط به آن با موفقیت حذف شدند');
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
-      setDeletingId(null);
-      toast.success('پروژه و سشن‌های مربوط به آن با موفقیت حذف شدند');
     },
     onError: (err: unknown) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       toast.error(err instanceof Error ? err.message : 'خطا در حذف پروژه');
     },
   });

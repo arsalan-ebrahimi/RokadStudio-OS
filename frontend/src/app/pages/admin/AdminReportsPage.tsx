@@ -72,26 +72,62 @@ export const AdminReportsPage: React.FC = () => {
   const decideMut = useMutation({
     mutationFn: ({ id, decision }: { id: number; decision: 'APPROVED' | 'REJECTED' }) =>
       decideWorkSession(id, decision),
+    onMutate: async ({ id, decision }) => {
+      setActiveDecision(null);
+      queryClient.setQueriesData({ queryKey: ['admin-work-sessions'] }, (old: any) => {
+        if (!old?.data?.sessions) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            sessions: old.data.sessions.map((s: WorkSession) =>
+              s.id === id ? { ...s, approval: decision } : s
+            ),
+          },
+        };
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
       toast.success('وضعیت سشن با موفقیت تغییر کرد');
-      setActiveDecision(null);
     },
-    onError: (err: Error) => toast.error(err.message || 'خطا در ثبت وضعیت سشن'),
+    onError: (err: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
+      toast.error(err.message || 'خطا در ثبت وضعیت سشن');
+    },
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteWorkSession(id),
+    onMutate: async (deletedId: number) => {
+      setDeletingSession(null);
+      // Immediately evict session from all admin-work-sessions caches
+      queryClient.setQueriesData({ queryKey: ['admin-work-sessions'] }, (old: any) => {
+        if (!old?.data?.sessions) return old;
+        const remaining = old.data.sessions.filter((s: WorkSession) => s.id !== deletedId);
+        const validRemaining = remaining.filter((s: WorkSession) => s.approval !== 'REJECTED');
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            totalSeconds: validRemaining.reduce((acc: number, s: WorkSession) => acc + s.durationSeconds, 0),
+            sessions: remaining,
+          },
+        };
+      });
+    },
     onSuccess: () => {
+      toast.success('سشن کاری با موفقیت حذف شد');
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
-      toast.success('سشن کاری با موفقیت حذف شد');
-      setDeletingSession(null);
     },
-    onError: (err: Error) => toast.error(err.message || 'خطا در حذف سشن کاری'),
+    onError: (err: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
+      toast.error(err.message || 'خطا در حذف سشن کاری');
+    },
   });
 
   const totalSeconds = rows.reduce((acc, r) => acc + r.totalSeconds, 0);
