@@ -1,9 +1,9 @@
-FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /app
 
-# Install openssl required by Prisma Query Engine on Alpine Linux
-RUN apk add --no-cache openssl
+# Install openssl and certificates required by Prisma on Debian
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 
