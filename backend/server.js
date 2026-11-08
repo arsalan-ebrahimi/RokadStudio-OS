@@ -1,3 +1,10 @@
+process.on("uncaughtException", (err) => {
+  console.error("[FATAL] Uncaught Exception at runtime:", err);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("[FATAL] Unhandled Rejection at runtime:", err);
+});
+
 import "./config/env.js"; // fail-fast env validation at boot
 import app from "./app.js";
 import { connectRedis } from "./config/redis.js";

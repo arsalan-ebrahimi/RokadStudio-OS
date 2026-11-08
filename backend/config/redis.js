@@ -2,6 +2,15 @@ import { createClient } from "redis";
 
 const redis = createClient({
   url: process.env.REDIS_URL || "redis://localhost:6379",
+  socket: {
+    reconnectStrategy: (retries) => {
+      if (retries > 5) {
+        console.warn("[Redis] Maximum reconnection attempts reached. Continuing in offline mode.");
+        return false; // stop reconnecting
+      }
+      return Math.min(retries * 500, 2000);
+    },
+  },
 });
 
 redis.on("error", (err) => {
