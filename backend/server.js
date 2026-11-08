@@ -10,6 +10,7 @@ import app from "./app.js";
 import { connectRedis } from "./config/redis.js";
 import prisma from "./config/prisma.js";
 import redis from "./config/redis.js";
+import { ensureSchemaUpdated } from "./config/autoMigrate.js";
 import { startCronJobs, stopCronJobs, runBootCatchup } from "./Jobs/index.js";
 
 const port = process.env.PORT || 7860;
@@ -20,6 +21,11 @@ const startServer = async () => {
   try {
     server = app.listen(port, "0.0.0.0", () => {
       console.log(`Rokad Attendance Platform server running on port ${port} (0.0.0.0)`);
+    });
+
+    // Ensure database schema is up to date
+    ensureSchemaUpdated().catch((err) => {
+      console.warn("Schema check warning on startup:", err.message);
     });
 
     // Connect to Redis and initialize background jobs non-blockingly

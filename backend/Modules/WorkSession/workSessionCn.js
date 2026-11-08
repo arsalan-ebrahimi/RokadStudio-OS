@@ -34,14 +34,14 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
   };
 
   if (date) {
-    where.attendance = { date: toDateOnly(date) };
+    where.workDate = toDateOnly(date);
   } else if (dateFrom || dateTo) {
-    where.attendance = { date: {} };
-    if (dateFrom) where.attendance.date.gte = toDateOnly(dateFrom);
-    if (dateTo) where.attendance.date.lte = toDateOnly(dateTo);
+    where.workDate = {};
+    if (dateFrom) where.workDate.gte = toDateOnly(dateFrom);
+    if (dateTo) where.workDate.lte = toDateOnly(dateTo);
   } else {
     // Default to today
-    where.attendance = { date: todayDate() };
+    where.workDate = todayDate();
   }
 
   const [totalAgg, sessions] = await Promise.all([
@@ -96,11 +96,11 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
   if (approval) where.approval = approval;
 
   if (date) {
-    where.attendance = { date: toDateOnly(date) };
+    where.workDate = toDateOnly(date);
   } else if (dateFrom || dateTo) {
-    where.attendance = { date: {} };
-    if (dateFrom) where.attendance.date.gte = toDateOnly(dateFrom);
-    if (dateTo) where.attendance.date.lte = toDateOnly(dateTo);
+    where.workDate = {};
+    if (dateFrom) where.workDate.gte = toDateOnly(dateFrom);
+    if (dateTo) where.workDate.lte = toDateOnly(dateTo);
   }
 
   const [total, totalAgg, sessions] = await Promise.all([

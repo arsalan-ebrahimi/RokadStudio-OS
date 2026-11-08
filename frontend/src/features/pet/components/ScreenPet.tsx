@@ -10,40 +10,72 @@ interface ScreenPetProps {
 
 export const ScreenPet: React.FC<ScreenPetProps> = ({ timerState = 'IDLE', onOpenSelector }) => {
   const { petType, isEnabled } = usePetStore();
-  const [posX, setPosX] = useState(120); // pixels from start (right in RTL / left in LTR)
-  const [direction, setDirection] = useState<'left' | 'right'>('right');
+  const [posX, setPosX] = useState(120);
+  // Facing direction: start facing left because we move right (jumping backwards!)
+  const [facingDirection, setFacingDirection] = useState<'left' | 'right'>('left');
   const [isHappy, setIsHappy] = useState(false);
+  const [isBumping, setIsBumping] = useState(false);
+
+  const motionRef = useRef({
+    posX: 120,
+    movingDirection: 'right' as 'left' | 'right',
+  });
+  const bumpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const happyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isRunning = timerState === 'RUNNING';
   const isSleeping = timerState === 'BREAK';
 
-  // Walking loop when running or idle
+  // Backwards hopping loop: active when timer is running and not on break
   useEffect(() => {
-    if (!isEnabled || petType === 'none' || isSleeping) return;
+    if (!isEnabled || petType === 'none' || !isRunning || isSleeping) return;
 
     const interval = setInterval(() => {
       const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
+      const petWidth = 56;
       const minX = 24;
-      const maxX = Math.max(minX + 100, screenWidth - 80);
+      const maxX = Math.max(minX + 80, screenWidth - petWidth - 24);
 
-      setPosX((prev) => {
-        let next = direction === 'right' ? prev + 2.5 : prev - 2.5;
+      const currentMoving = motionRef.current.movingDirection;
+      const step = 2.5;
+      let nextX = currentMoving === 'right' ? motionRef.current.posX + step : motionRef.current.posX - step;
+      let newMoving = currentMoving;
+      let hitWall = false;
 
-        if (next >= maxX) {
-          next = maxX;
-          setDirection('left');
-        } else if (next <= minX) {
-          next = minX;
-          setDirection('right');
-        }
+      // When jumping backwards:
+      // moving 'right' -> back hits right wall (maxX)
+      // moving 'left' -> back hits left wall (minX)
+      if (nextX >= maxX) {
+        nextX = maxX;
+        newMoving = 'left';
+        hitWall = true;
+      } else if (nextX <= minX) {
+        nextX = minX;
+        newMoving = 'right';
+        hitWall = true;
+      }
 
-        return next;
-      });
-    }, 60);
+      motionRef.current.posX = nextX;
+      motionRef.current.movingDirection = newMoving;
+      setPosX(nextX);
+
+      // Backwards hopping: facing direction is opposite to moving direction!
+      // When moving right, face left (so rear is in front, jumping backwards).
+      // When moving left, face right (so rear is in front, jumping backwards).
+      const nextFacing = newMoving === 'right' ? 'left' : 'right';
+      setFacingDirection(nextFacing);
+
+      if (hitWall) {
+        setIsBumping(true);
+        if (bumpTimeoutRef.current) clearTimeout(bumpTimeoutRef.current);
+        bumpTimeoutRef.current = setTimeout(() => {
+          setIsBumping(false);
+        }, 350);
+      }
+    }, 50);
 
     return () => clearInterval(interval);
-  }, [direction, isEnabled, petType, isSleeping]);
+  }, [isEnabled, petType, isRunning, isSleeping]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -63,7 +95,7 @@ export const ScreenPet: React.FC<ScreenPetProps> = ({ timerState = 'IDLE', onOpe
 
   return (
     <div
-      className="fixed bottom-2 z-40 pointer-events-none transition-all duration-75 ease-linear"
+      className="fixed bottom-2 z-40 pointer-events-none transition-[left] duration-75 ease-linear"
       style={{
         left: `${posX}px`,
       }}
@@ -78,8 +110,9 @@ export const ScreenPet: React.FC<ScreenPetProps> = ({ timerState = 'IDLE', onOpe
           type={petType}
           timerState={timerState}
           isWalking={isRunning && !isSleeping}
-          direction={direction}
+          direction={facingDirection}
           isHappy={isHappy}
+          isBumping={isBumping}
         />
       </div>
     </div>

@@ -10,6 +10,7 @@ interface PetCharacterProps {
   direction?: 'left' | 'right';
   className?: string;
   isHappy?: boolean;
+  isBumping?: boolean;
 }
 
 export const PetCharacter: React.FC<PetCharacterProps> = ({
@@ -19,6 +20,7 @@ export const PetCharacter: React.FC<PetCharacterProps> = ({
   direction = 'right',
   className,
   isHappy = false,
+  isBumping = false,
 }) => {
   const isSleeping = timerState === 'BREAK';
 
@@ -29,12 +31,19 @@ export const PetCharacter: React.FC<PetCharacterProps> = ({
         direction === 'left' ? 'scale-x-[-1]' : 'scale-x-1',
         isWalking && 'animate-bounce',
         isHappy && '-translate-y-2',
+        isBumping && 'scale-90 rotate-6',
         className
       )}
       style={{
         animationDuration: isWalking ? '0.35s' : undefined,
       }}
     >
+      {/* Bump indicator when pet hits the wall with its back */}
+      {isBumping && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-xs font-black animate-ping select-none pointer-events-none">
+          💥
+        </div>
+      )}
       {/* Sleeping Zzz indicator */}
       {isSleeping && (
         <div className="absolute -top-4 -right-1 text-xs font-black font-mono text-primary animate-pulse flex gap-0.5">

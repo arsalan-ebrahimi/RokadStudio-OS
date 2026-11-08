@@ -7,6 +7,7 @@ import { catchError, HandleERROR } from "vanta-api";
 import prisma from "./config/prisma.js";
 import redis, { connectRedis } from "./config/redis.js";
 import { mapPrismaError } from "./Utils/prismaErrors.js";
+import { ensureSchemaUpdated } from "./config/autoMigrate.js";
 
 import authRouter from "./Modules/Auth/auth.js";
 import usersRouter from "./Modules/Users/users.js";
@@ -109,6 +110,14 @@ app.get("/api-docs.json", (req, res) => {
   return res.json(swaggerDocument);
 });
 app.get("/docs", (req, res) => res.redirect("/api-docs"));
+
+// Automatically ensure schema is in sync on cold start
+app.use(async (req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    await ensureSchemaUpdated();
+  }
+  next();
+});
 
 // Mount modules under /api
 app.use("/api/auth", authRouter);

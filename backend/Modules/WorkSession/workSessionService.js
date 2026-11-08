@@ -230,13 +230,12 @@ export const getWorkSessionsSummaryAgg = async ({
   }
 
   if (date || dateFrom || dateTo) {
-    where.attendance = {};
     if (date) {
-      where.attendance.date = toDateOnly(date);
+      where.workDate = toDateOnly(date);
     } else {
-      where.attendance.date = {};
-      if (dateFrom) where.attendance.date.gte = toDateOnly(dateFrom);
-      if (dateTo) where.attendance.date.lte = toDateOnly(dateTo);
+      where.workDate = {};
+      if (dateFrom) where.workDate.gte = toDateOnly(dateFrom);
+      if (dateTo) where.workDate.lte = toDateOnly(dateTo);
     }
   }
 
