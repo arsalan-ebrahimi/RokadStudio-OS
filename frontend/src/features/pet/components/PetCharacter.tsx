@@ -7,6 +7,7 @@ interface PetCharacterProps {
   type: PetType;
   timerState?: TimerState;
   isWalking?: boolean;
+  isJumping?: boolean;
   direction?: 'left' | 'right';
   className?: string;
   isHappy?: boolean;
@@ -17,6 +18,7 @@ export const PetCharacter: React.FC<PetCharacterProps> = ({
   type,
   timerState = 'IDLE',
   isWalking = false,
+  isJumping = false,
   direction = 'right',
   className,
   isHappy = false,
@@ -29,13 +31,13 @@ export const PetCharacter: React.FC<PetCharacterProps> = ({
       className={cn(
         'relative select-none transition-transform duration-200',
         direction === 'left' ? 'scale-x-[-1]' : 'scale-x-1',
-        isWalking && 'animate-bounce',
+        isJumping && 'animate-bounce',
         isHappy && '-translate-y-2',
         isBumping && 'scale-90 rotate-6',
         className
       )}
       style={{
-        animationDuration: isWalking ? '0.35s' : undefined,
+        animationDuration: isJumping ? (timerState === 'PAUSED' ? '0.45s' : '0.35s') : undefined,
       }}
     >
       {/* Bump indicator when pet hits the wall with its back */}

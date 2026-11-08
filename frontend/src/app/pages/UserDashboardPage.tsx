@@ -28,7 +28,7 @@ import {
 } from '@/features/timer';
 import { ScreenPet, PetSelectorModal } from '@/features/pet';
 import { Card, Button, Modal, toast } from '@/shared/ui';
-import { toPersianDigits, formatDurationToHoursMins, calculateCompletedRounds } from '@/shared/lib/formatters';
+import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { formatToJalali, getTehranTodayString } from '@/shared/lib/date';
 import { useTheme } from '@/shared/lib/theme';
 
@@ -82,17 +82,14 @@ const UserDashboardPage: React.FC = () => {
 
   // Compute stats directly from today's sessions list (ignoring rejected sessions)
   const validSessions = mySessions.filter((s) => s.approval !== 'REJECTED');
-  const registeredTotalSeconds = validSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0);
+  const registeredSeconds = validSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0);
 
-  // Total work today combines registered work sessions + current active timer work
-  const currentWorkSeconds = timer.workSeconds || 0;
-  const effectiveTotalSeconds = (mySessionsRes !== undefined
-    ? registeredTotalSeconds
-    : (attendance?.totalSeconds || 0)) + currentWorkSeconds;
+  const totalSeconds = mySessionsRes !== undefined
+    ? (mySessionsRes.totalSeconds ?? registeredSeconds)
+    : (attendance?.totalSeconds || 0);
 
-  // Default is 0; exactly 1 round is added for each completed 25 minutes (1500 seconds)
-  const sessionsCount = calculateCompletedRounds(effectiveTotalSeconds);
-  const totalSeconds = effectiveTotalSeconds;
+  // Default is 0; exactly 1 round for each 25 minutes (1500 seconds)
+  const sessionsCount = Math.floor(totalSeconds / 1500);
 
   const currentProject = projects.find((p) => p.id === timer.projectId);
 

@@ -24,11 +24,16 @@ export const ScreenPet: React.FC<ScreenPetProps> = ({ timerState = 'IDLE', onOpe
   const happyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isRunning = timerState === 'RUNNING';
+  const isPaused = timerState === 'PAUSED';
+  const isIdle = timerState === 'IDLE';
   const isSleeping = timerState === 'BREAK';
 
-  // Backwards hopping loop: active when timer is running and not on break
+  // Movement loop:
+  // - IDLE: walks smoothly back and forth forward (no bouncing)
+  // - RUNNING: hops backwards across screen and bumps walls
+  // - PAUSED / BREAK: stationary (when PAUSED, jumps in place)
   useEffect(() => {
-    if (!isEnabled || petType === 'none' || !isRunning || isSleeping) return;
+    if (!isEnabled || petType === 'none' || isSleeping || isPaused) return;
 
     const interval = setInterval(() => {
       const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
@@ -37,14 +42,12 @@ export const ScreenPet: React.FC<ScreenPetProps> = ({ timerState = 'IDLE', onOpe
       const maxX = Math.max(minX + 80, screenWidth - petWidth - 24);
 
       const currentMoving = motionRef.current.movingDirection;
-      const step = 2.5;
+      // Normal walk step for IDLE (1.4px), energetic hop step for RUNNING (2.5px)
+      const step = isRunning ? 2.5 : 1.4;
       let nextX = currentMoving === 'right' ? motionRef.current.posX + step : motionRef.current.posX - step;
       let newMoving = currentMoving;
       let hitWall = false;
 
-      // When jumping backwards:
-      // moving 'right' -> back hits right wall (maxX)
-      // moving 'left' -> back hits left wall (minX)
       if (nextX >= maxX) {
         nextX = maxX;
         newMoving = 'left';
@@ -59,23 +62,26 @@ export const ScreenPet: React.FC<ScreenPetProps> = ({ timerState = 'IDLE', onOpe
       motionRef.current.movingDirection = newMoving;
       setPosX(nextX);
 
-      // Backwards hopping: facing direction is opposite to moving direction!
-      // When moving right, face left (so rear is in front, jumping backwards).
-      // When moving left, face right (so rear is in front, jumping backwards).
-      const nextFacing = newMoving === 'right' ? 'left' : 'right';
-      setFacingDirection(nextFacing);
+      if (isRunning) {
+        // Backwards hopping: facing direction is opposite to moving direction!
+        const nextFacing = newMoving === 'right' ? 'left' : 'right';
+        setFacingDirection(nextFacing);
 
-      if (hitWall) {
-        setIsBumping(true);
-        if (bumpTimeoutRef.current) clearTimeout(bumpTimeoutRef.current);
-        bumpTimeoutRef.current = setTimeout(() => {
-          setIsBumping(false);
-        }, 350);
+        if (hitWall) {
+          setIsBumping(true);
+          if (bumpTimeoutRef.current) clearTimeout(bumpTimeoutRef.current);
+          bumpTimeoutRef.current = setTimeout(() => {
+            setIsBumping(false);
+          }, 350);
+        }
+      } else {
+        // Normal forward walk when IDLE: facing direction matches moving direction!
+        setFacingDirection(newMoving);
       }
     }, 50);
 
     return () => clearInterval(interval);
-  }, [isEnabled, petType, isRunning, isSleeping]);
+  }, [isEnabled, petType, isRunning, isIdle, isPaused, isSleeping]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,7 +115,8 @@ export const ScreenPet: React.FC<ScreenPetProps> = ({ timerState = 'IDLE', onOpe
         <PetCharacter
           type={petType}
           timerState={timerState}
-          isWalking={isRunning && !isSleeping}
+          isWalking={isIdle || isRunning}
+          isJumping={isRunning || isPaused}
           direction={facingDirection}
           isHappy={isHappy}
           isBumping={isBumping}
