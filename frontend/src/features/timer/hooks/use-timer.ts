@@ -1,245 +1,486 @@
-import { create } from 'zustand';
-import { WORK_DURATION_SECONDS, BREAK_DURATION_SECONDS, TIMER_STORAGE_KEY } from '@/shared/config/constants';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  TimerEngineState,
+  createInitialTimerState,
+  getDerivedTimerState,
+  startTimer,
+  pauseTimer,
+  tickTimer,
+  registerContinue,
+  registerFinish,
+  changeProject,
+  restoreTimerState,
+  PomodoroMode,
+} from '../lib/timer-engine';
+import {
+  HEARTBEAT_MS,
+  TAB_LOCK_TIMEOUT_MS,
+  TICK_INTERVAL_MS,
+} from '../config/timer-constants';
 import { submitWorkSession } from '../api/timer-api';
 import { playCompletionChime } from '../lib/sound';
 import { formatSecondsToTime } from '@/shared/lib/formatters';
 import { toast } from '@/shared/ui';
 import { queryClient } from '@/shared/lib/query-client';
+import { useAuthStore } from '@/features/auth';
 
-export type TimerState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'BREAK' | 'DONE';
+export type TimerState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'BREAK';
 
-interface StoredData {
-  state: TimerState;
-  remaining: number;
-  projectId: number | null;
-  targetTimestamp: number | null;
+function getStorageKey(userId: number | string): string {
+  return `rokad_timer_state_${userId}`;
 }
 
-function loadInitialState(): StoredData {
-  try {
-    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
-    if (!raw) {
-      return { state: 'IDLE', remaining: WORK_DURATION_SECONDS, projectId: null, targetTimestamp: null };
-    }
-    const data: StoredData = JSON.parse(raw);
+function getLockKey(userId: number | string): string {
+  return `rokad_tab_lock_${userId}`;
+}
 
-    if (data.state === 'RUNNING' && data.targetTimestamp) {
-      const diff = Math.max(0, Math.round((data.targetTimestamp - Date.now()) / 1000));
-      if (diff > 0) {
-        return { ...data, remaining: diff };
+function safeUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+const localTabId = safeUUID();
+
+export function useTimer(selectedProjectId?: number | null) {
+  const { user } = useAuthStore();
+  const userId = user?.id || 'guest';
+  const tabIdRef = useRef<string>(localTabId);
+
+  const [initialData] = useState(() => {
+    try {
+      const raw = localStorage.getItem(getStorageKey(userId));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return restoreTimerState(parsed, selectedProjectId);
       }
-      return {
-        state: 'BREAK',
-        remaining: BREAK_DURATION_SECONDS,
-        projectId: data.projectId,
-        targetTimestamp: Date.now() + BREAK_DURATION_SECONDS * 1000,
-      };
+    } catch {
+      // Fallback
     }
-
-    if (data.state === 'BREAK' && data.targetTimestamp) {
-      const diff = Math.max(0, Math.round((data.targetTimestamp - Date.now()) / 1000));
-      if (diff > 0) {
-        return { ...data, remaining: diff };
-      }
-      return { state: 'DONE', remaining: 0, projectId: data.projectId, targetTimestamp: null };
-    }
-
     return {
-      state: data.state || 'IDLE',
-      remaining: typeof data.remaining === 'number' ? data.remaining : WORK_DURATION_SECONDS,
-      projectId: data.projectId || null,
-      targetTimestamp: data.targetTimestamp || null,
+      state: createInitialTimerState(selectedProjectId),
+      wasRecovered: false,
     };
-  } catch {
-    return { state: 'IDLE', remaining: WORK_DURATION_SECONDS, projectId: null, targetTimestamp: null };
-  }
-}
+  });
 
-function persistState(state: StoredData) {
-  try {
-    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Ignore storage errors
-  }
-}
+  const [engineState, setEngineState] = useState<TimerEngineState>(initialData.state);
+  const [now, setNow] = useState<number>(() => Date.now());
+  const [isOtherTabActive, setIsOtherTabActive] = useState(false);
+  const [showRecoveredNotice, setShowRecoveredNotice] = useState(initialData.wasRecovered);
+  const [showFocusBanner, setShowFocusBanner] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeClientRequestId, setActiveClientRequestId] = useState<string | null>(null);
 
-interface TimerStore extends StoredData {
-  start: (projectIdOverride?: number | null) => void;
-  pause: () => void;
-  reset: () => void;
-  forceReset: () => void;
-  setProjectId: (projectId: number | null) => void;
-  tick: () => void;
-}
+  // Dialog states
+  const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
+  const [pendingProjectChange, setPendingProjectChange] = useState<{
+    newProjectId: number;
+    newProjectName: string;
+  } | null>(null);
 
-const initialData = loadInitialState();
+  const engineStateRef = useRef(engineState);
+  useEffect(() => {
+    engineStateRef.current = engineState;
+  }, [engineState]);
 
-export const useTimerStore = create<TimerStore>((set, get) => ({
-  ...initialData,
+  // Persist state to localStorage safely
+  const persistState = useCallback(
+    (stateToPersist: TimerEngineState) => {
+      try {
+        localStorage.setItem(getStorageKey(userId), JSON.stringify(stateToPersist));
+      } catch {
+        // Ignore storage errors
+      }
+    },
+    [userId]
+  );
 
-  setProjectId: (projectId: number | null) => {
-    set({ projectId });
-    const { state, remaining, targetTimestamp } = get();
-    persistState({ state, remaining, projectId, targetTimestamp });
-  },
+  // Tab lock check and refresh
+  const refreshTabLock = useCallback(() => {
+    try {
+      const lockKey = getLockKey(userId);
+      const rawLock = localStorage.getItem(lockKey);
+      const currentTime = Date.now();
 
-  start: (projectIdOverride?: number | null) => {
-    const currentPid = projectIdOverride ?? get().projectId;
-    if (!currentPid) {
-      toast.error('ابتدا پروژه را انتخاب کنید');
+      if (rawLock) {
+        const lock = JSON.parse(rawLock);
+        if (lock.tabId !== tabIdRef.current && currentTime - lock.timestamp < TAB_LOCK_TIMEOUT_MS) {
+          setIsOtherTabActive(true);
+          return;
+        }
+      }
+      setIsOtherTabActive(false);
+
+      // If running in this tab, claim/refresh the lock
+      if (engineStateRef.current.status === 'RUNNING') {
+        localStorage.setItem(
+          lockKey,
+          JSON.stringify({ tabId: tabIdRef.current, timestamp: currentTime })
+        );
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, [userId]);
+
+  // Unsaved time guard (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const derivedState = getDerivedTimerState(engineStateRef.current);
+      if (derivedState.workSeconds > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // Storage event listener for multi-tab synchronization
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === getLockKey(userId)) {
+        refreshTabLock();
+      } else if (e.key === getStorageKey(userId) && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          const { state } = restoreTimerState(parsed, engineStateRef.current.projectId);
+          setEngineState(state);
+        } catch {
+          // Ignore
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [userId, refreshTabLock]);
+
+  // High-frequency UI tick (250ms) and heartbeat timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentNow = Date.now();
+      setNow(currentNow);
+
+      const current = engineStateRef.current;
+      const tickRes = tickTimer(current, currentNow);
+
+      if (tickRes.event === 'FOCUS_ENDED') {
+        playCompletionChime();
+        setShowFocusBanner(true);
+
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('زمان استراحت فرا رسید', {
+              body: '۲۵ دقیقه کار کردید. زمان استراحت ۵ دقیقه‌ای است.',
+            });
+          } catch {
+            // Ignore notification errors
+          }
+        }
+      }
+
+      let updated = tickRes.nextState;
+
+      // Heartbeat check every HEARTBEAT_MS while running
+      if (updated.status === 'RUNNING') {
+        const lastHb = updated.lastHeartbeat || 0;
+        if (currentNow - lastHb >= HEARTBEAT_MS) {
+          updated = { ...updated, lastHeartbeat: currentNow };
+          persistState(updated);
+          refreshTabLock();
+        }
+      }
+
+      setEngineState(updated);
+
+      // Title reflection
+      const derivedTitle = getDerivedTimerState(updated, currentNow);
+      if (derivedTitle.isBreakActive) {
+        document.title = `(استراحت ${formatSecondsToTime(derivedTitle.pomodoroRemainingSeconds)}) رکاد استودیو`;
+      } else if (updated.status === 'RUNNING' || updated.status === 'PAUSED') {
+        document.title = `(${formatSecondsToTime(derivedTitle.pomodoroRemainingSeconds)}) رکاد استودیو`;
+      } else {
+        document.title = 'رکاد استودیو';
+      }
+    }, TICK_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [persistState, refreshTabLock]);
+
+  // Handle selected project changes from outside
+  useEffect(() => {
+    if (selectedProjectId && !engineStateRef.current.projectId && engineStateRef.current.status === 'IDLE') {
+      setEngineState((prev) => {
+        const next = { ...prev, projectId: selectedProjectId };
+        persistState(next);
+        return next;
+      });
+    }
+  }, [selectedProjectId, persistState]);
+
+  // Start / Resume action
+  const start = useCallback(() => {
+    if (!engineStateRef.current.projectId) {
+      toast.error('برای شروع، ابتدا یک پروژه انتخاب کنید.');
       return;
     }
 
-    const { remaining } = get();
-    const duration = remaining > 0 ? remaining : WORK_DURATION_SECONDS;
-    const target = Date.now() + duration * 1000;
-
-    const newState: StoredData = {
-      state: 'RUNNING',
-      remaining: duration,
-      projectId: currentPid,
-      targetTimestamp: target,
-    };
-
-    set(newState);
-    persistState(newState);
-  },
-
-  pause: () => {
-    const { targetTimestamp, state, projectId, remaining } = get();
-    if (state !== 'RUNNING') return;
-
-    const currentRem = targetTimestamp
-      ? Math.max(0, Math.round((targetTimestamp - Date.now()) / 1000))
-      : remaining;
-
-    const newState: StoredData = {
-      state: 'PAUSED',
-      remaining: currentRem,
-      projectId,
-      targetTimestamp: null,
-    };
-
-    set(newState);
-    persistState(newState);
-  },
-
-  reset: () => {
-    const { state, projectId } = get();
-    if (state !== 'DONE') return;
-
-    const newState: StoredData = {
-      state: 'IDLE',
-      remaining: WORK_DURATION_SECONDS,
-      projectId,
-      targetTimestamp: null,
-    };
-
-    set(newState);
-    persistState(newState);
-  },
-
-  forceReset: () => {
-    const defaultState: StoredData = {
-      state: 'IDLE',
-      remaining: WORK_DURATION_SECONDS,
-      projectId: null,
-      targetTimestamp: null,
-    };
-    set(defaultState);
-    persistState(defaultState);
-    try {
-      localStorage.removeItem('rokad_selected_project');
-    } catch {}
-    if (typeof document !== 'undefined') {
-      document.title = 'رکاد استودیو | Rokad Studio OS';
+    if (isOtherTabActive) {
+      toast.error('تایمر در تب دیگری فعال است.');
+      return;
     }
-  },
 
-  tick: async () => {
-    const { state, targetTimestamp, projectId } = get();
+    // Request browser notification permission lazily on first START
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
 
-    if (state === 'RUNNING') {
-      if (!targetTimestamp) return;
-      const diff = Math.max(0, Math.round((targetTimestamp - Date.now()) / 1000));
+    setEngineState((prev) => {
+      const next = startTimer(prev);
+      persistState(next);
+      return next;
+    });
+    refreshTabLock();
+  }, [isOtherTabActive, persistState, refreshTabLock]);
 
-      document.title = `${formatSecondsToTime(diff)} | رکاد استودیو`;
-      set({ remaining: diff });
+  // Pause action
+  const pause = useCallback(() => {
+    setEngineState((prev) => {
+      const next = pauseTimer(prev);
+      persistState(next);
+      return next;
+    });
+  }, [persistState]);
 
-      if (diff <= 0) {
-        playCompletionChime();
-        if (projectId) {
-          try {
-            await submitWorkSession({ projectId, durationSeconds: WORK_DURATION_SECONDS });
-            queryClient.invalidateQueries({ queryKey: ['attendance'] });
-            toast.success('سشن ۲۵ دقیقه‌ای با موفقیت ثبت شد');
-          } catch {
-            toast.error('خطا در ثبت سشن در سرور');
+  // Clear project selection
+  const clearProject = useCallback(() => {
+    setEngineState((prev) => {
+      const next = { ...prev, projectId: null };
+      persistState(next);
+      return next;
+    });
+  }, [persistState]);
+
+  // Project selection trigger
+  const handleSelectProject = useCallback(
+    (newProjectId: number, projectName: string) => {
+      const current = engineStateRef.current;
+      const derivedState = getDerivedTimerState(current);
+      if (derivedState.projectSelectLocked) return;
+
+      // If timer hasn't recorded time or had no previous project, switch immediately without dialog!
+      if (derivedState.workSeconds < 1 || !current.projectId) {
+        setEngineState((prev) => {
+          const next = { ...prev, projectId: newProjectId };
+          persistState(next);
+          return next;
+        });
+      } else {
+        // Show project change confirmation dialog
+        setPendingProjectChange({
+          newProjectId,
+          newProjectName: projectName,
+        });
+      }
+    },
+    [persistState]
+  );
+
+  // Confirm project change
+  const confirmProjectChange = useCallback(
+    async (mode: 'continue' | 'finish' = 'continue') => {
+      if (!pendingProjectChange) return;
+      const current = engineStateRef.current;
+      const currentDerived = getDerivedTimerState(current);
+
+      if (!current.projectId) {
+        setPendingProjectChange(null);
+        return;
+      }
+
+      const clientReqId = activeClientRequestId || safeUUID();
+      setActiveClientRequestId(clientReqId);
+      setIsSubmitting(true);
+
+      try {
+        const startedAt = current.work.segmentStartedAt || new Date().toISOString();
+        await submitWorkSession({
+          projectId: current.projectId,
+          durationSeconds: currentDerived.workSeconds,
+          startedAt,
+          clientRequestId: clientReqId,
+        });
+
+        // Local timer state changes only on success
+        setEngineState((prev) => {
+          const next = changeProject(prev, pendingProjectChange.newProjectId, mode);
+          persistState(next);
+          return next;
+        });
+
+        setActiveClientRequestId(null);
+        setPendingProjectChange(null);
+        queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
+        toast.success('زمان پروژه ثبت و پروژه تغییر یافت');
+      } catch (err: unknown) {
+        let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
+        if (err instanceof Error && err.message) {
+          if (err.message.includes('not an assigned member')) {
+            errorMsg = 'شما عضو این پروژه نیستید.';
+          } else if (err.message.includes('attendance')) {
+            errorMsg = 'حضور شما برای امروز ثبت نشده است.';
+          } else if (err.message.includes('inactive')) {
+            errorMsg = 'این پروژه غیرفعال است.';
+          } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            errorMsg = 'عدم اتصال به سرور. لطفا اتصال اینترنت یا سرور را بررسی کنید.';
+          } else {
+            errorMsg = err.message;
           }
         }
-
-        const breakTarget = Date.now() + BREAK_DURATION_SECONDS * 1000;
-        const breakState: StoredData = {
-          state: 'BREAK',
-          remaining: BREAK_DURATION_SECONDS,
-          projectId,
-          targetTimestamp: breakTarget,
-        };
-        set(breakState);
-        persistState(breakState);
-      } else {
-        persistState({ state, remaining: diff, projectId, targetTimestamp });
+        toast.error(errorMsg);
+      } finally {
+        setIsSubmitting(false);
       }
-    } else if (state === 'BREAK') {
-      if (!targetTimestamp) return;
-      const diff = Math.max(0, Math.round((targetTimestamp - Date.now()) / 1000));
+    },
+    [pendingProjectChange, activeClientRequestId, persistState]
+  );
 
-      document.title = `${formatSecondsToTime(diff)} | استراحت رکاد`;
-      set({ remaining: diff });
+  // Cancel project change
+  const cancelProjectChange = useCallback(() => {
+    setPendingProjectChange(null);
+  }, []);
 
-      if (diff <= 0) {
-        playCompletionChime();
-        toast.info('زمان استراحت پایان یافت');
-        const doneState: StoredData = {
-          state: 'DONE',
-          remaining: 0,
-          projectId,
-          targetTimestamp: null,
-        };
-        set(doneState);
-        persistState(doneState);
-        document.title = 'رکاد استودیو | Rokad Studio OS';
-      } else {
-        persistState({ state, remaining: diff, projectId, targetTimestamp });
-      }
-    } else {
-      document.title = 'رکاد استودیو | Rokad Studio OS';
+  // Open register dialog
+  const openRegisterDialog = useCallback(() => {
+    const derivedState = getDerivedTimerState(engineStateRef.current);
+    if (derivedState.canRegister) {
+      setIsRegisterDialogOpen(true);
     }
-  },
-}));
+  }, []);
 
-// Run ticker continuously in background
-if (typeof window !== 'undefined') {
-  setInterval(() => {
-    useTimerStore.getState().tick();
-  }, 1000);
-}
+  // Close register dialog
+  const closeRegisterDialog = useCallback(() => {
+    setIsRegisterDialogOpen(false);
+  }, []);
 
-// React hook adapter for component compatibility
-export function useTimer(selectedProjectId?: number | null) {
-  const store = useTimerStore();
+  // Confirm registration
+  const confirmRegister = useCallback(
+    async (mode: 'continue' | 'finish') => {
+      const current = engineStateRef.current;
+      const currentDerived = getDerivedTimerState(current);
 
-  const handleStart = () => {
-    store.start(selectedProjectId);
-  };
+      if (!current.projectId || currentDerived.workSeconds < 1) {
+        setIsRegisterDialogOpen(false);
+        return;
+      }
+
+      const clientReqId = activeClientRequestId || safeUUID();
+      setActiveClientRequestId(clientReqId);
+      setIsSubmitting(true);
+
+      try {
+        const startedAt = current.work.segmentStartedAt || new Date().toISOString();
+        await submitWorkSession({
+          projectId: current.projectId,
+          durationSeconds: currentDerived.workSeconds,
+          startedAt,
+          clientRequestId: clientReqId,
+        });
+
+        // Local state changes ONLY after a successful response
+        setEngineState((prev) => {
+          const next = mode === 'continue' ? registerContinue(prev) : registerFinish(prev);
+          persistState(next);
+          return next;
+        });
+
+        setActiveClientRequestId(null);
+        setIsRegisterDialogOpen(false);
+        setShowFocusBanner(false);
+        queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+        toast.success('زمان کار با موفقیت ثبت شد');
+      } catch (err: unknown) {
+        let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
+        if (err instanceof Error && err.message) {
+          if (err.message.includes('not an assigned member')) {
+            errorMsg = 'شما عضو این پروژه نیستید.';
+          } else if (err.message.includes('attendance')) {
+            errorMsg = 'حضور شما برای امروز ثبت نشده است.';
+          } else if (err.message.includes('inactive')) {
+            errorMsg = 'این پروژه غیرفعال است.';
+          } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            errorMsg = 'عدم اتصال به سرور. لطفا اتصال اینترنت یا سرور را بررسی کنید.';
+          } else {
+            errorMsg = err.message;
+          }
+        }
+        toast.error(errorMsg);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [activeClientRequestId, persistState]
+  );
+
+  const derived = getDerivedTimerState(engineState, now);
+
+  // Compute TimerState compatible with ScreenPet
+  const mappedState: TimerState =
+    derived.isBreakActive
+      ? 'BREAK'
+      : engineState.status === 'RUNNING'
+      ? 'RUNNING'
+      : engineState.status === 'PAUSED'
+      ? 'PAUSED'
+      : 'IDLE';
 
   return {
-    state: store.state,
-    remaining: store.remaining,
-    start: handleStart,
-    pause: store.pause,
-    reset: store.reset,
-    savedProjectId: store.projectId,
-    isLocked: store.state === 'RUNNING' || store.state === 'PAUSED' || store.state === 'BREAK',
+    state: mappedState,
+    status: engineState.status,
+    projectId: engineState.projectId,
+    workMs: derived.workMs,
+    workSeconds: derived.workSeconds,
+    pomodoroRemainingMs: derived.pomodoroRemainingMs,
+    pomodoroRemainingSeconds: derived.pomodoroRemainingSeconds,
+    pomodoroMode: derived.pomodoroMode as PomodoroMode,
+    isBreakActive: derived.isBreakActive,
+    canStart: derived.canStart && Boolean(engineState.projectId) && !isOtherTabActive && !isSubmitting,
+    canRegister: derived.canRegister && !isOtherTabActive && !isSubmitting,
+    mainButtonLabel: derived.mainButtonLabel,
+    mainButtonDisabled: derived.mainButtonDisabled || !engineState.projectId || isOtherTabActive || isSubmitting,
+    mainButtonDisabledReason: !engineState.projectId
+      ? 'برای شروع، ابتدا یک پروژه انتخاب کنید.'
+      : isOtherTabActive
+      ? 'تایمر در تب دیگری فعال است.'
+      : derived.mainButtonDisabledReason,
+    registerButtonDisabled: derived.registerButtonDisabled || isOtherTabActive || isSubmitting,
+    registerButtonDisabledReason: isOtherTabActive ? 'تایمر در تب دیگری فعال است.' : derived.registerButtonDisabledReason,
+    isLocked: derived.projectSelectLocked || isSubmitting,
+    savedProjectId: engineState.projectId,
+    isOtherTabActive,
+    isSubmitting,
+    showRecoveredNotice,
+    dismissRecoveredNotice: () => setShowRecoveredNotice(false),
+    showFocusBanner,
+    dismissFocusBanner: () => setShowFocusBanner(false),
+    start,
+    pause,
+    clearProject,
+    handleSelectProject,
+    openRegisterDialog,
+    closeRegisterDialog,
+    isRegisterDialogOpen,
+    confirmRegister,
+    pendingProjectChange,
+    confirmProjectChange,
+    cancelProjectChange,
   };
 }

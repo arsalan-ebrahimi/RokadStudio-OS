@@ -8,14 +8,16 @@ import {
 } from "./workSessionService.js";
 
 export const postWorkSession = catchAsync(async (req, res, next) => {
-  const { projectId, durationSeconds } = req.body;
+  const { projectId, durationSeconds, startedAt, clientRequestId } = req.body;
   const session = await logWorkSession({
     userId: req.userId,
     projectId: Number(projectId),
     durationSeconds: Number(durationSeconds),
+    startedAt,
+    clientRequestId,
   });
 
-  return res.status(201).json({
+  return res.status(200).json({
     success: true,
     message: "Work session logged successfully",
     data: session,

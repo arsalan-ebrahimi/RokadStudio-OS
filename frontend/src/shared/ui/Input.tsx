@@ -4,14 +4,15 @@ import { cn } from '../lib/utils';
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  containerClassName?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
+  ({ className, containerClassName, label, error, id, ...props }, ref) => {
     const inputId = id || props.name;
 
     return (
-      <div className="space-y-1">
+      <div className={cn('w-full', label ? 'space-y-1' : '', containerClassName)}>
         {label && (
           <label htmlFor={inputId} className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">
             {label}

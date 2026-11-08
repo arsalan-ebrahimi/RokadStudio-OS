@@ -30,7 +30,6 @@ export const getTodayAttendance = catchAsync(async (req, res, next) => {
     });
   }
 
-  const resetSignal = await cacheGet(`user:timer_reset:${userId}`);
   const sessionAgg = await prisma.workSession.aggregate({
     where: { attendanceId: attendance.id },
     _count: { id: true },
@@ -45,11 +44,11 @@ export const getTodayAttendance = catchAsync(async (req, res, next) => {
     effectiveStatus: computeEffectiveStatus(attendance.status, attendance.approval),
     approval: attendance.approval,
     source: attendance.source,
+    reason: attendance.reason,
     decidedById: attendance.decidedById,
     decidedAt: attendance.decidedAt,
     sessionsCount: sessionAgg._count.id,
     totalSeconds: sessionAgg._sum.durationSeconds || 0,
-    timerResetAt: resetSignal?.resetAt || null,
     createdAt: attendance.createdAt,
     updatedAt: attendance.updatedAt,
   };
@@ -62,12 +61,12 @@ export const getTodayAttendance = catchAsync(async (req, res, next) => {
 });
 
 export const postTodayAttendance = catchAsync(async (req, res, next) => {
-  const { status } = req.body;
-  const record = await declareTodayAttendance(req.userId, status);
+  const { status, reason } = req.body;
+  const record = await declareTodayAttendance(req.userId, status, reason);
 
   return res.status(201).json({
     success: true,
-    message: "Attendance recorded successfully",
+    message: status === "PRESENT" ? "حضور با موفقیت ثبت شد" : "عدم حضور با موفقیت ثبت شد",
     data: {
       ...record,
       date: formatDate(record.date),
@@ -127,6 +126,7 @@ export const getMeAttendance = catchAsync(async (req, res, next) => {
       effectiveStatus: computeEffectiveStatus(r.status, r.approval),
       approval: r.approval,
       source: r.source,
+      reason: r.reason,
       decidedById: r.decidedById,
       decidedAt: r.decidedAt,
       sessionsCount: agg.sessionsCount,
@@ -217,6 +217,7 @@ export const getAdminAttendance = catchAsync(async (req, res, next) => {
       effectiveStatus: computeEffectiveStatus(r.status, r.approval),
       approval: r.approval,
       source: r.source,
+      reason: r.reason,
       decidedBy: r.decidedBy,
       decidedAt: r.decidedAt,
       sessionsCount: agg.sessionsCount,
@@ -245,47 +246,5 @@ export const patchAttendanceDecision = catchAsync(async (req, res, next) => {
       ...result,
       date: formatDate(result.date),
     },
-  });
-});
-
-export const unlockUserTimerByAttendance = catchAsync(async (req, res, next) => {
-  const attendanceId = Number(req.params.id);
-  const attendance = await prisma.attendance.findUnique({
-    where: { id: attendanceId },
-    select: { userId: true },
-  });
-
-  if (!attendance) {
-    return next(new HandleERROR("Attendance record not found", 404));
-  }
-
-  const resetAt = Date.now();
-  await cacheSet(`user:timer_reset:${attendance.userId}`, { resetAt }, 86400);
-
-  return res.status(200).json({
-    success: true,
-    message: "User project lock removed and timer reset successfully",
-    data: { userId: attendance.userId, resetAt },
-  });
-});
-
-export const unlockUserTimerByUserId = catchAsync(async (req, res, next) => {
-  const userId = Number(req.params.userId);
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true },
-  });
-
-  if (!user) {
-    return next(new HandleERROR("User not found", 404));
-  }
-
-  const resetAt = Date.now();
-  await cacheSet(`user:timer_reset:${userId}`, { resetAt }, 86400);
-
-  return res.status(200).json({
-    success: true,
-    message: "User project lock removed and timer reset successfully",
-    data: { userId, resetAt },
   });
 });

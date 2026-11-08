@@ -34,18 +34,21 @@ export interface Attendance {
   source: DecisionSource;
   decidedById?: number | null;
   decidedAt?: string | null;
+  reason?: string | null;
   sessionsCount?: number;
   totalSeconds?: number;
-  timerResetAt?: number | null;
   user?: Pick<User, 'id' | 'name' | 'role'>;
 }
 
 export interface WorkSession {
   id: number;
+  userId?: number;
   projectId: number;
   projectName?: string;
   durationSeconds: number;
-  attendanceDate?: string;
+  clientRequestId?: string;
+  workDate?: string;
+  startedAt?: string | null;
   createdAt: string;
   user?: Pick<User, 'id' | 'name' | 'role'>;
   project?: Pick<Project, 'id' | 'name'>;

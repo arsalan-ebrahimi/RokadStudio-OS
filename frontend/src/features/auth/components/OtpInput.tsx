@@ -5,41 +5,99 @@ import { cn } from '@/shared/lib/utils';
 
 interface OtpInputProps {
   onComplete: (code: string) => void;
+  onChange?: (code: string) => void;
   isLoading?: boolean;
   hasError?: boolean;
 }
 
-export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasError }) => {
+export const OtpInput: React.FC<OtpInputProps> = ({
+  onComplete,
+  onChange,
+  isLoading,
+  hasError,
+}) => {
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   const triggerChange = (newDigits: string[]) => {
     setDigits(newDigits);
     const full = newDigits.join('');
-    if (full.length === OTP_LENGTH) onComplete(full);
+    onChange?.(full);
+    if (full.length === OTP_LENGTH && !newDigits.some((d) => d === '')) {
+      onComplete(full);
+    }
   };
 
   const handleChange = (index: number, val: string) => {
-    const char = toEnglishDigits(val).slice(-1).toUpperCase();
-    if (!/^[A-Z0-9]$/.test(char)) return;
+    const rawClean = toEnglishDigits(val).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
+    if (!rawClean) {
+      // User cleared the input
+      const next = [...digits];
+      next[index] = '';
+      triggerChange(next);
+      return;
+    }
+
+    if (rawClean.length > 1) {
+      // Multiple characters typed or pasted
+      const next = [...digits];
+      for (let i = 0; i < rawClean.length && index + i < OTP_LENGTH; i++) {
+        next[index + i] = rawClean[i];
+      }
+      triggerChange(next);
+      const nextFocus = Math.min(index + rawClean.length, OTP_LENGTH - 1);
+      inputsRef.current[nextFocus]?.focus();
+      return;
+    }
+
+    const char = rawClean.slice(-1);
     const next = [...digits];
     next[index] = char;
     triggerChange(next);
-    if (char && index < OTP_LENGTH - 1) inputsRef.current[index + 1]?.focus();
+
+    if (char && index < OTP_LENGTH - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      inputsRef.current[index - 1]?.focus();
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (digits[index]) {
+        // Clear current
+        const next = [...digits];
+        next[index] = '';
+        triggerChange(next);
+      } else if (index > 0) {
+        // Clear previous and focus it
+        const next = [...digits];
+        next[index - 1] = '';
+        triggerChange(next);
+        inputsRef.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (index > 0) inputsRef.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (index < OTP_LENGTH - 1) inputsRef.current[index + 1]?.focus();
     }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasted = toEnglishDigits(e.clipboardData.getData('text')).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, OTP_LENGTH);
-    const next = [...digits];
-    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
+    const pasted = toEnglishDigits(e.clipboardData.getData('text'))
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, OTP_LENGTH);
+
+    if (!pasted) return;
+
+    const next = Array(OTP_LENGTH).fill('');
+    for (let i = 0; i < pasted.length; i++) {
+      next[i] = pasted[i];
+    }
     triggerChange(next);
     inputsRef.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
   };
@@ -57,7 +115,8 @@ export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasEr
           onChange={(e) => handleChange(idx, e.target.value)}
           onKeyDown={(e) => handleKeyDown(idx, e)}
           onPaste={handlePaste}
-          maxLength={1}
+          onFocus={(e) => e.target.select()}
+          maxLength={OTP_LENGTH}
           autoFocus={idx === 0}
           className={cn(
             'w-9 h-12 min-[370px]:w-11 min-[370px]:h-13 sm:w-13 sm:h-15 text-center text-lg sm:text-xl font-bold rounded-xl border bg-white dark:bg-[#1C2536] text-ink-normal dark:text-white shadow-hard-sm transition-all focus:outline-none uppercase',
@@ -70,4 +129,3 @@ export const OtpInput: React.FC<OtpInputProps> = ({ onComplete, isLoading, hasEr
     </div>
   );
 };
-

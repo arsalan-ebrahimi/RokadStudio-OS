@@ -25,6 +25,11 @@ const dateValidator = (val) => {
   return true;
 };
 
+export const MAX_SESSION_SECONDS = parseInt(
+  process.env.MAX_SESSION_SECONDS || "86400",
+  10
+);
+
 export const createWorkSessionValidator = [
   body("projectId")
     .notEmpty()
@@ -40,12 +45,37 @@ export const createWorkSessionValidator = [
       if (typeof val !== "number" || !Number.isInteger(val)) {
         throw new Error("durationSeconds must be an integer");
       }
-      const maxSeconds = parseInt(process.env.SESSION_MAX_SECONDS || "1500", 10);
-      if (val < 1 || val > maxSeconds) {
-        throw new Error(`durationSeconds must be between 1 and ${maxSeconds}`);
+      if (val < 1 || val > MAX_SESSION_SECONDS) {
+        throw new Error(`durationSeconds must be between 1 and ${MAX_SESSION_SECONDS}`);
       }
       return true;
     }),
+  body("startedAt")
+    .notEmpty()
+    .withMessage("startedAt is required")
+    .isISO8601()
+    .withMessage("startedAt must be a valid ISO timestamp")
+    .custom((val) => {
+      const startedTime = new Date(val).getTime();
+      if (isNaN(startedTime)) {
+        throw new Error("startedAt is not a valid date");
+      }
+      const now = Date.now();
+      const maxFuture = now + 2 * 60 * 1000;
+      const minPast = now - 2 * 24 * 60 * 60 * 1000;
+      if (startedTime > maxFuture) {
+        throw new Error("startedAt cannot be in the future");
+      }
+      if (startedTime < minPast) {
+        throw new Error("startedAt cannot be older than 2 days");
+      }
+      return true;
+    }),
+  body("clientRequestId")
+    .notEmpty()
+    .withMessage("clientRequestId is required")
+    .isUUID()
+    .withMessage("clientRequestId must be a valid UUID"),
   handleValidation,
 ];
 

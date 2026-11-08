@@ -82,6 +82,7 @@ model Attendance {
   source      DecisionSource
   decidedById Int?
   decidedAt   DateTime?
+  reason      String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
@@ -94,18 +95,23 @@ model Attendance {
 }
 
 model WorkSession {
-  id              Int      @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   userId          Int
   projectId       Int
   attendanceId    Int
   durationSeconds Int
-  createdAt       DateTime @default(now())
+  clientRequestId String?   @db.VarChar(64)
+  workDate        DateTime  @default(now()) @db.Date
+  startedAt       DateTime?
+  createdAt       DateTime  @default(now())
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   project    Project    @relation(fields: [projectId], references: [id], onDelete: Restrict)
   attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, clientRequestId])
   @@index([attendanceId])
   @@index([projectId])
   @@index([userId, createdAt])
+  @@index([workDate])
 }

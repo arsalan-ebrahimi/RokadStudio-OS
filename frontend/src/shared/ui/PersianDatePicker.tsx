@@ -18,6 +18,7 @@ interface PersianDatePickerProps {
   onChange: (isoDate: string) => void;
   label?: string;
   allowStep?: boolean;
+  containerClassName?: string;
 }
 
 export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
@@ -25,6 +26,7 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
   onChange,
   label,
   allowStep = true,
+  containerClassName,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,15 +63,15 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="relative inline-flex flex-col gap-1">
+    <div ref={containerRef} className={cn('relative inline-flex flex-col', label ? 'gap-1.5' : '', containerClassName)}>
       {label && <label className="text-xs font-bold text-ink-normal/70 dark:text-gray-300">{label}</label>}
 
-      <div className="flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700 shadow-hard-sm">
+      <div className="h-[38px] flex items-center gap-0.5 bg-white dark:bg-[#151C28] px-1 rounded-xl border border-gray-200 dark:border-gray-700 shadow-hard-sm shrink-0 select-none">
         {allowStep && (
           <button
             type="button"
             onClick={handleNextDay}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
+            className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 shrink-0 transition-colors"
             title="روز بعد"
           >
             <ChevronRight className="w-4 h-4" />
@@ -79,9 +81,9 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-2.5 py-1 text-xs font-bold text-sec dark:text-white"
+          className="h-7 flex items-center gap-2 px-2.5 text-xs font-bold text-sec dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors whitespace-nowrap"
         >
-          <Calendar className="w-3.5 h-3.5 text-primary" />
+          <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
           <span>{formatToJalali(value, false)}</span>
         </button>
 
@@ -89,7 +91,7 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
           <button
             type="button"
             onClick={handlePrevDay}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
+            className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 shrink-0 transition-colors"
             title="روز قبل"
           >
             <ChevronLeft className="w-4 h-4" />

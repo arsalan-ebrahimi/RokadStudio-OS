@@ -11,6 +11,12 @@ import { mapPrismaError } from "../../Utils/prismaErrors.js";
 
 export const getMineProjects = catchAsync(async (req, res, next) => {
   const userId = req.userId;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
+  });
+
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const cacheKey = `user:${userId}:projects`;
 
   const cached = await cacheGet(cacheKey);
@@ -22,13 +28,13 @@ export const getMineProjects = catchAsync(async (req, res, next) => {
     });
   }
 
+  const where = {
+    isActive: true,
+    ...(isSuperAdmin ? {} : { members: { some: { userId } } }),
+  };
+
   const projects = await prisma.project.findMany({
-    where: {
-      isActive: true,
-      members: {
-        some: { userId },
-      },
-    },
+    where,
     select: {
       id: true,
       name: true,

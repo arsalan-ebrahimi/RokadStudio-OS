@@ -10,8 +10,58 @@ export const computeEffectiveStatus = (status, approval) => {
   return status;
 };
 
-export const declareTodayAttendance = async (userId, declaredStatus, now = new Date()) => {
+export const declareTodayAttendance = async (userId, declaredStatus, reasonOrNow = null, maybeNow = new Date()) => {
+  let reason = null;
+  let now = maybeNow;
+
+  if (reasonOrNow instanceof Date) {
+    now = reasonOrNow;
+  } else if (typeof reasonOrNow === "string") {
+    reason = reasonOrNow;
+  }
+
   const date = todayDate(now);
+
+  const existing = await prisma.attendance.findUnique({
+    where: {
+      userId_date: {
+        userId,
+        date,
+      },
+    },
+  });
+
+  if (existing) {
+    // If user previously declared ABSENT and now wants to declare PRESENT ("امروز هم می‌آم!")
+    if (existing.status === "ABSENT" && declaredStatus === "PRESENT") {
+      const updated = await prisma.attendance.update({
+        where: { id: existing.id },
+        data: {
+          status: "PRESENT",
+          approval: "PENDING",
+          source: "USER",
+          reason: null,
+          decidedById: null,
+          decidedAt: null,
+        },
+      });
+
+      const sessionAgg = await prisma.workSession.aggregate({
+        where: { attendanceId: updated.id },
+        _count: { id: true },
+        _sum: { durationSeconds: true },
+      });
+
+      return {
+        ...updated,
+        effectiveStatus: computeEffectiveStatus(updated.status, updated.approval),
+        sessionsCount: sessionAgg._count.id,
+        totalSeconds: sessionAgg._sum.durationSeconds || 0,
+      };
+    }
+
+    throw new HandleERROR("Attendance already declared for today", 409);
+  }
 
   const approval = declaredStatus === "PRESENT" ? "PENDING" : "APPROVED";
   const source = "USER";
@@ -24,6 +74,7 @@ export const declareTodayAttendance = async (userId, declaredStatus, now = new D
         status: declaredStatus,
         approval,
         source,
+        reason: declaredStatus === "ABSENT" ? reason : null,
       },
     });
 
@@ -75,18 +126,8 @@ export const decideAttendanceRecord = async (attendanceId, decision, adminUser, 
     throw new HandleERROR("Decisions cannot be made on ABSENT attendance records", 409);
   }
 
-  // Guard: REJECTED is final
-  if (attendance.approval === "REJECTED") {
-    throw new HandleERROR("Rejected attendance records cannot be changed", 409);
-  }
-
-  // State machine checks:
-  // Allowed: PENDING -> APPROVED, PENDING -> REJECTED, APPROVED -> REJECTED
+  // Admin can decide or change status to APPROVED or REJECTED at any time
   if (decision === "APPROVED") {
-    if (attendance.approval !== "PENDING") {
-      throw new HandleERROR(`Cannot approve an attendance record that is currently ${attendance.approval}`, 409);
-    }
-
     const updated = await prisma.attendance.update({
       where: { id: attendanceId },
       data: {

@@ -4,6 +4,8 @@ import type { WorkSession } from '@/shared/types/models';
 export interface LogSessionPayload {
   projectId: number;
   durationSeconds: number;
+  startedAt: string;
+  clientRequestId: string;
 }
 
 export interface MySessionsResponse {

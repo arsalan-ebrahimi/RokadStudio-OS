@@ -259,4 +259,171 @@ describe("WorkSession Business Rules & Database Integrity Tests", () => {
 
     await prisma.attendance.delete({ where: { id: att.id } });
   });
+
+  test("Idempotency: duplicate clientRequestId returns existing record without creating a second row", async () => {
+    const testNow = new Date("2026-08-10T12:00:00.000Z");
+    const testDate = todayDate(testNow);
+    const clientReqId = "a1b2c3d4-e5f6-4a7b-8c9d-0123456789ab";
+
+    const att = await prisma.attendance.create({
+      data: {
+        userId: memberUser.id,
+        date: testDate,
+        status: "PRESENT",
+        approval: "PENDING",
+        source: "USER",
+      },
+    });
+
+    const first = await logWorkSession(
+      {
+        userId: memberUser.id,
+        projectId: activeProject.id,
+        durationSeconds: 1200,
+        startedAt: testNow.toISOString(),
+        clientRequestId: clientReqId,
+      },
+      testNow
+    );
+
+    assert.ok(first.id);
+    assert.equal(first.durationSeconds, 1200);
+    assert.equal(first.clientRequestId, clientReqId);
+
+    // Call again with the exact same clientRequestId
+    const second = await logWorkSession(
+      {
+        userId: memberUser.id,
+        projectId: activeProject.id,
+        durationSeconds: 1200,
+        startedAt: testNow.toISOString(),
+        clientRequestId: clientReqId,
+      },
+      testNow
+    );
+
+    assert.equal(second.id, first.id, "Must return the exact same session record");
+
+    const totalSessions = await prisma.workSession.count({
+      where: { userId: memberUser.id, clientRequestId: clientReqId },
+    });
+    assert.equal(totalSessions, 1, "Exactly one row must exist in the database");
+
+    await prisma.workSession.deleteMany({ where: { attendanceId: att.id } });
+    await prisma.attendance.delete({ where: { id: att.id } });
+  });
+
+  test("Rejects startedAt in the future beyond 2 minutes clock skew (400)", async () => {
+    const testNow = new Date();
+    const futureStartedAt = new Date(testNow.getTime() + 10 * 60 * 1000); // 10 minutes ahead
+
+    await assert.rejects(
+      async () => {
+        await logWorkSession(
+          {
+            userId: memberUser.id,
+            projectId: activeProject.id,
+            durationSeconds: 300,
+            startedAt: futureStartedAt.toISOString(),
+            clientRequestId: "b2c3d4e5-f6a7-4b8c-9d0e-123456789abc",
+          },
+          testNow
+        );
+      },
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        assert.match(err.message, /future/);
+        return true;
+      }
+    );
+  });
+
+  test("Rejects startedAt older than 2 days (400)", async () => {
+    const testNow = new Date();
+    const oldStartedAt = new Date(testNow.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days ago
+
+    await assert.rejects(
+      async () => {
+        await logWorkSession(
+          {
+            userId: memberUser.id,
+            projectId: activeProject.id,
+            durationSeconds: 300,
+            startedAt: oldStartedAt.toISOString(),
+            clientRequestId: "c3d4e5f6-a7b8-4c9d-0e1f-23456789abcd",
+          },
+          testNow
+        );
+      },
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        assert.match(err.message, /older than 2 days/);
+        return true;
+      }
+    );
+  });
+
+  test("Rejects invalid durationSeconds (non-integer, <= 0, or > 86400) (400)", async () => {
+    const testNow = new Date();
+
+    // Zero
+    await assert.rejects(
+      async () => {
+        await logWorkSession(
+          {
+            userId: memberUser.id,
+            projectId: activeProject.id,
+            durationSeconds: 0,
+            startedAt: testNow.toISOString(),
+            clientRequestId: "d4e5f6a7-b8c9-4d0e-1f2a-3456789abcde",
+          },
+          testNow
+        );
+      },
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        return true;
+      }
+    );
+
+    // Float
+    await assert.rejects(
+      async () => {
+        await logWorkSession(
+          {
+            userId: memberUser.id,
+            projectId: activeProject.id,
+            durationSeconds: 15.5,
+            startedAt: testNow.toISOString(),
+            clientRequestId: "e5f6a7b8-c9d0-4e1f-2a3b-456789abcdef",
+          },
+          testNow
+        );
+      },
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        return true;
+      }
+    );
+
+    // Greater than MAX (86400)
+    await assert.rejects(
+      async () => {
+        await logWorkSession(
+          {
+            userId: memberUser.id,
+            projectId: activeProject.id,
+            durationSeconds: 86401,
+            startedAt: testNow.toISOString(),
+            clientRequestId: "f6a7b8c9-d0e1-4f2a-3b4c-56789abcdef0",
+          },
+          testNow
+        );
+      },
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        return true;
+      }
+    );
+  });
 });

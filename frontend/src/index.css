@@ -87,6 +87,14 @@
   --text-normal: #292827;
 }
 
+html {
+  background-color: #F8F9FA;
+}
+
+html.dark {
+  background-color: #0B0F17;
+}
+
 body {
   font-family: var(--font-family);
   direction: rtl;

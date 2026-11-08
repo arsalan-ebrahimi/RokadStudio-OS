@@ -8,10 +8,59 @@ import {
 } from "../../Utils/date.js";
 
 export const logWorkSession = async (
-  { userId, projectId, durationSeconds },
+  { userId, projectId, durationSeconds, startedAt, clientRequestId },
   now = new Date()
 ) => {
-  // 1. Verify project exists, is active, and user is assigned
+  // Idempotency: return existing session if clientRequestId already processed
+  if (clientRequestId) {
+    const existing = await prisma.workSession.findUnique({
+      where: {
+        userId_clientRequestId: {
+          userId,
+          clientRequestId,
+        },
+      },
+      include: {
+        project: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+    if (existing) {
+      return existing;
+    }
+  }
+
+  // 1. Duration validation
+  const maxSeconds = parseInt(process.env.MAX_SESSION_SECONDS || "86400", 10);
+  if (
+    typeof durationSeconds !== "number" ||
+    !Number.isInteger(durationSeconds) ||
+    durationSeconds < 1 ||
+    durationSeconds > maxSeconds
+  ) {
+    throw new HandleERROR(
+      `durationSeconds must be an integer between 1 and ${maxSeconds}`,
+      400
+    );
+  }
+
+  // 2. startedAt validation and derivation
+  const startDate = startedAt ? new Date(startedAt) : now;
+  if (isNaN(startDate.getTime())) {
+    throw new HandleERROR("Invalid startedAt timestamp", 400);
+  }
+  const nowTime = now.getTime();
+  const maxFuture = nowTime + 2 * 60 * 1000; // 2 minutes clock skew allowed
+  const minPast = nowTime - 2 * 24 * 60 * 60 * 1000; // not older than 2 days
+  if (startDate.getTime() > maxFuture) {
+    throw new HandleERROR("startedAt cannot be in the future", 400);
+  }
+  if (startDate.getTime() < minPast) {
+    throw new HandleERROR("startedAt cannot be older than 2 days", 400);
+  }
+
+  // 3. Verify project exists, is active, and user is assigned
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { id: true, name: true, isActive: true },
@@ -21,37 +70,46 @@ export const logWorkSession = async (
     throw new HandleERROR("Project not found or inactive", 400);
   }
 
-  const membership = await prisma.projectMember.findUnique({
-    where: {
-      projectId_userId: {
-        projectId,
-        userId,
-      },
-    },
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
   });
 
-  if (!membership) {
-    throw new HandleERROR("You are not an assigned member of this project", 403);
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
+  if (!isSuperAdmin) {
+    const membership = await prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new HandleERROR("You are not an assigned member of this project", 403);
+    }
   }
 
-  // 2. Resolve Attendance: today or midnight grace fallback
-  const today = todayDate(now);
+  // 4. Resolve Attendance for workDate: derived using same day boundary helper as attendance
+  const workDate = todayDate(startDate);
   let targetAttendance = await prisma.attendance.findUnique({
     where: {
       userId_date: {
         userId,
-        date: today,
+        date: workDate,
       },
     },
   });
 
   if (!targetAttendance) {
     // Check Midnight Grace
-    const minutes = minutesSinceMidnight(now);
+    const minutes = minutesSinceMidnight(startDate);
     const graceMinutes = parseInt(process.env.MIDNIGHT_GRACE_MINUTES || "30", 10);
 
     if (minutes <= graceMinutes) {
-      const yesterday = addDays(today, -1);
+      const yesterday = addDays(workDate, -1);
       targetAttendance = await prisma.attendance.findUnique({
         where: {
           userId_date: {
@@ -65,7 +123,7 @@ export const logWorkSession = async (
 
   if (!targetAttendance) {
     throw new HandleERROR(
-      "No active attendance record found for today. Please mark attendance first.",
+      "No active attendance record found for this date. Please mark attendance first.",
       400
     );
   }
@@ -84,48 +142,71 @@ export const logWorkSession = async (
     );
   }
 
-  // 3. Race protection: lock attendance row with SELECT ... FOR UPDATE inside transaction
-  const session = await prisma.$transaction(async (tx) => {
-    const lockedRows = await tx.$queryRaw`
-      SELECT id, status, approval FROM "Attendance"
-      WHERE id = ${targetAttendance.id}
-      FOR UPDATE
-    `;
+  // 5. Race protection: lock attendance row with SELECT ... FOR UPDATE inside transaction
+  try {
+    const session = await prisma.$transaction(async (tx) => {
+      const lockedRows = await tx.$queryRaw`
+        SELECT id, status, approval FROM "Attendance"
+        WHERE id = ${targetAttendance.id}
+        FOR UPDATE
+      `;
 
-    if (!lockedRows || lockedRows.length === 0) {
-      throw new HandleERROR("Attendance record not found", 404);
-    }
+      if (!lockedRows || lockedRows.length === 0) {
+        throw new HandleERROR("Attendance record not found", 404);
+      }
 
-    const lockedAttendance = lockedRows[0];
-    if (
-      lockedAttendance.status !== "PRESENT" ||
-      lockedAttendance.approval === "REJECTED"
-    ) {
-      throw new HandleERROR(
-        "Cannot log work session: attendance is not PRESENT or was REJECTED",
-        400
-      );
-    }
+      const lockedAttendance = lockedRows[0];
+      if (
+        lockedAttendance.status !== "PRESENT" ||
+        lockedAttendance.approval === "REJECTED"
+      ) {
+        throw new HandleERROR(
+          "Cannot log work session: attendance is not PRESENT or was REJECTED",
+          400
+        );
+      }
 
-    const created = await tx.workSession.create({
-      data: {
-        userId,
-        projectId,
-        attendanceId: lockedAttendance.id,
-        durationSeconds,
-        createdAt: now,
-      },
-      include: {
-        project: {
-          select: { id: true, name: true },
+      const created = await tx.workSession.create({
+        data: {
+          userId,
+          projectId,
+          attendanceId: lockedAttendance.id,
+          durationSeconds,
+          clientRequestId: clientRequestId || null,
+          workDate: targetAttendance.date,
+          startedAt: startDate,
+          createdAt: now,
         },
-      },
+        include: {
+          project: {
+            select: { id: true, name: true },
+          },
+        },
+      });
+
+      return created;
     });
 
-    return created;
-  });
-
-  return session;
+    return session;
+  } catch (err) {
+    if (err?.code === "P2002" && clientRequestId) {
+      const existing = await prisma.workSession.findUnique({
+        where: {
+          userId_clientRequestId: {
+            userId,
+            clientRequestId,
+          },
+        },
+        include: {
+          project: {
+            select: { id: true, name: true },
+          },
+        },
+      });
+      if (existing) return existing;
+    }
+    throw err;
+  }
 };
 
 export const getWorkSessionsSummaryAgg = async ({

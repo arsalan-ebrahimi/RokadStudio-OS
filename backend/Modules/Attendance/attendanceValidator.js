@@ -31,6 +31,13 @@ export const postAttendanceValidator = [
     .withMessage("Status is required")
     .isIn(["PRESENT", "ABSENT"])
     .withMessage("Status must be either PRESENT or ABSENT"),
+  body("reason")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("Reason must be a string")
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage("Reason cannot exceed 500 characters"),
   handleValidation,
 ];
 
@@ -65,21 +72,5 @@ export const attendanceDecisionValidator = [
     .withMessage("Decision is required")
     .isIn(["APPROVED", "REJECTED"])
     .withMessage("Decision must be APPROVED or REJECTED"),
-  handleValidation,
-];
-
-export const attendanceIdParamValidator = [
-  param("id")
-    .isInt({ min: 1 })
-    .withMessage("Attendance ID must be a positive integer")
-    .toInt(),
-  handleValidation,
-];
-
-export const userIdParamValidator = [
-  param("userId")
-    .isInt({ min: 1 })
-    .withMessage("User ID must be a positive integer")
-    .toInt(),
   handleValidation,
 ];

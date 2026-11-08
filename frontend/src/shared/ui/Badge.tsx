@@ -18,7 +18,7 @@ export const Badge: React.FC<BadgeProps> = ({ className, variant = 'ecosystem', 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-xs border',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-xs border whitespace-nowrap shrink-0 leading-none select-none',
         variants[variant],
         className
       )}

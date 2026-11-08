@@ -6,10 +6,15 @@ import { recordLoginFailure, clearLoginFailures } from "../../Middlewares/rateLi
 
 export const login = catchAsync(async (req, res, next) => {
   const { code } = req.body;
-  const trimmedCode = code.trim();
+  const trimmedCode = (code || "").trim().toUpperCase();
 
-  const user = await prisma.user.findUnique({
-    where: { code: trimmedCode },
+  const user = await prisma.user.findFirst({
+    where: {
+      code: {
+        equals: trimmedCode,
+        mode: "insensitive",
+      },
+    },
   });
 
   // Unknown code and inactive user return the same generic 401

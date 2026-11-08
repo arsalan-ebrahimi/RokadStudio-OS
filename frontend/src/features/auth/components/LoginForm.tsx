@@ -38,6 +38,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError('تعداد تلاش بیش از حد مجاز. ۱۵ دقیقه بعد تلاش کنید.');
+      } else if (err instanceof ApiError && (err.status === 0 || err.status >= 500)) {
+        setError('خطا در برقراری ارتباط با سرور. لطفاً از روشن بودن سرور بک‌اند اطمینان حاصل فرمایید.');
       } else {
         setError('کد نامعتبر است یا حساب غیرفعال شده است');
       }
@@ -56,6 +58,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
 
         <div className="space-y-4">
           <OtpInput
+            onChange={(val) => {
+              setCode(val);
+              if (error) setError(null);
+            }}
             onComplete={(val) => {
               setCode(val);
               handleComplete(val);

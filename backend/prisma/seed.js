@@ -90,6 +90,8 @@ export const runSeed = async () => {
       name: "Rokad Studio OS Platform",
       description: "Central attendance, focus timer and team workspace portal",
       members: [
+        superAdmin.id,
+        admin.id,
         seededUsers[0].id,
         seededUsers[1].id,
         seededUsers[2].id,

@@ -58,74 +58,76 @@ export const AdminReportsPage: React.FC = () => {
         </Button>
       </div>
 
-      <Card className="p-3 sm:p-4">
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
-          {/* Preset Buttons */}
-          <div className="flex items-center justify-between sm:justify-start gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto">
-            <button
-              onClick={applyToday}
-              className={`flex-1 sm:flex-initial px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
-                dateFrom === today && dateTo === today
-                  ? 'bg-primary text-white shadow-hard-sm'
-                  : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-            >
-              امروز
-            </button>
-            <button
-              onClick={applyThisWeek}
-              className="flex-1 sm:flex-initial px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all whitespace-nowrap"
-            >
-              این هفته
-            </button>
-            <button
-              onClick={applyThisMonth}
-              className="flex-1 sm:flex-initial px-3 py-1 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all whitespace-nowrap"
-            >
-              این ماه
-            </button>
-          </div>
-
-          <div className="h-6 w-px bg-gray-200 dark:border-gray-700 hidden sm:block" />
-
-          {/* Date Pickers */}
-          <div className="flex items-center justify-between sm:justify-start gap-1.5 flex-wrap">
-            <div className="flex-1 sm:flex-initial">
-              <PersianDatePicker value={dateFrom} onChange={setDateFrom} allowStep={false} />
+      <Card className="p-3.5 sm:p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Presets and Date Pickers */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 flex-wrap">
+            {/* Preset Buttons */}
+            <div className="h-[38px] flex items-center gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700 w-full sm:w-auto shrink-0">
+              <button
+                onClick={applyToday}
+                className={`h-full flex items-center justify-center flex-1 sm:flex-initial px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
+                  dateFrom === today && dateTo === today
+                    ? 'bg-primary text-white shadow-hard-sm'
+                    : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                امروز
+              </button>
+              <button
+                onClick={applyThisWeek}
+                className="h-full flex items-center justify-center flex-1 sm:flex-initial px-3 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all whitespace-nowrap"
+              >
+                این هفته
+              </button>
+              <button
+                onClick={applyThisMonth}
+                className="h-full flex items-center justify-center flex-1 sm:flex-initial px-3 text-xs font-bold rounded-lg text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all whitespace-nowrap"
+              >
+                این ماه
+              </button>
             </div>
-            <span className="text-xs text-ink-normal/50 dark:text-gray-400 font-bold shrink-0">تا</span>
-            <div className="flex-1 sm:flex-initial">
-              <PersianDatePicker value={dateTo} onChange={setDateTo} allowStep={false} />
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block self-center" />
+
+            {/* Date Pickers */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <PersianDatePicker value={dateFrom} onChange={setDateFrom} allowStep={false} containerClassName="flex-1 sm:flex-initial" />
+              <span className="text-xs text-ink-normal/50 dark:text-gray-400 font-bold shrink-0">تا</span>
+              <PersianDatePicker value={dateTo} onChange={setDateTo} allowStep={false} containerClassName="flex-1 sm:flex-initial" />
             </div>
           </div>
 
-          <div className="h-6 w-px bg-gray-200 dark:border-gray-700 hidden lg:block" />
+          <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block self-center" />
 
-          <div className="w-full sm:w-44">
-            <Select
-              selectSize="sm"
-              value={projectId ?? ''}
-              onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : undefined)}
-            >
-              <option value="">همه پروژه‌ها</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </div>
+          {/* Project & GroupBy Filters */}
+          <div className="flex items-center gap-2.5 flex-col sm:flex-row w-full lg:w-auto">
+            <div className="w-full sm:w-44">
+              <Select
+                selectSize="sm"
+                value={projectId ?? ''}
+                onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : undefined)}
+              >
+                <option value="">همه پروژه‌ها</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
 
-          <div className="w-full sm:w-40">
-            <Select
-              selectSize="sm"
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
-            >
-              <option value="user_project">کاربر و پروژه</option>
-              <option value="user">تفکیک کاربر</option>
-              <option value="project">تفکیک پروژه</option>
-            </Select>
+            <div className="w-full sm:w-40">
+              <Select
+                selectSize="sm"
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
+              >
+                <option value="user_project">کاربر و پروژه</option>
+                <option value="user">تفکیک کاربر</option>
+                <option value="project">تفکیک پروژه</option>
+              </Select>
+            </div>
           </div>
         </div>
       </Card>

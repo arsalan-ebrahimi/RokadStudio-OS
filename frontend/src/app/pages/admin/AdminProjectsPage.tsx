@@ -125,11 +125,11 @@ export const AdminProjectsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto max-w-full">
+        <div className="h-[38px] flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto max-w-full shrink-0">
           <button
             onClick={() => setStatusFilter('ALL')}
             className={cn(
-              'px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
+              'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'ALL'
                 ? 'bg-primary text-white shadow-hard-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -140,7 +140,7 @@ export const AdminProjectsPage: React.FC = () => {
           <button
             onClick={() => setStatusFilter('ACTIVE')}
             className={cn(
-              'px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
+              'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'ACTIVE'
                 ? 'bg-primary text-white shadow-hard-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -151,7 +151,7 @@ export const AdminProjectsPage: React.FC = () => {
           <button
             onClick={() => setStatusFilter('COMPLETED')}
             className={cn(
-              'px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
+              'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'COMPLETED'
                 ? 'bg-primary text-white shadow-hard-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -162,7 +162,7 @@ export const AdminProjectsPage: React.FC = () => {
         </div>
 
         {isSuperAdmin && (
-          <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto">
+          <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto shrink-0">
             <Plus className="w-4 h-4 me-1" />
             پروژه جدید
           </Button>
@@ -178,9 +178,11 @@ export const AdminProjectsPage: React.FC = () => {
           {filteredProjects.map((p: Project) => (
             <Card key={p.id} className="p-4 sm:p-5 flex flex-col justify-between space-y-4">
               <div>
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm sm:text-base font-bold text-sec dark:text-white leading-snug">{p.name}</h3>
-                  <Badge variant={p.isActive ? 'ecosystem' : 'neutral'}>
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <h3 className="text-sm sm:text-base font-bold text-sec dark:text-white leading-snug break-words">
+                    {p.name}
+                  </h3>
+                  <Badge variant={p.isActive ? 'ecosystem' : 'neutral'} className="shrink-0">
                     {p.isActive ? 'در حال اجرا' : 'تمام شده'}
                   </Badge>
                 </div>

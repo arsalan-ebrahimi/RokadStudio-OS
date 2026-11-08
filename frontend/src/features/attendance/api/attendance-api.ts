@@ -6,10 +6,13 @@ export async function fetchTodayAttendance(): Promise<Attendance | null> {
   return res.data;
 }
 
-export async function submitTodayAttendance(status: 'PRESENT' | 'ABSENT' = 'PRESENT'): Promise<Attendance> {
+export async function submitTodayAttendance(
+  payload: { status: 'PRESENT' | 'ABSENT'; reason?: string } | 'PRESENT' | 'ABSENT' = 'PRESENT'
+): Promise<Attendance> {
+  const body = typeof payload === 'string' ? { status: payload } : payload;
   const res = await apiClient<Attendance>('/api/attendance/today', {
     method: 'POST',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(body),
   });
   return res.data;
 }

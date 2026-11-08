@@ -118,7 +118,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     };
 
     return (
-      <div className={cn('space-y-1.5 w-full relative', containerClassName)} ref={containerRef}>
+      <div className={cn('w-full relative', label ? 'space-y-1.5' : '', containerClassName)} ref={containerRef}>
         {label && (
           <label htmlFor={selectId} className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">
             {label}
@@ -162,7 +162,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               'focus:outline-none focus:border-primary',
               'shadow-hard-sm disabled:opacity-50 disabled:cursor-not-allowed',
               isOpen && 'border-primary shadow-hard dark:border-primary',
-              selectSize === 'sm' ? 'py-1.5 px-3 text-xs min-h-[34px]' : 'py-2.5 px-3.5 text-xs sm:text-sm min-h-[42px]',
+              selectSize === 'sm' ? 'h-[38px] px-3 text-xs' : 'min-h-[42px] py-2.5 px-3.5 text-xs sm:text-sm',
               error && 'border-[#C60036] focus:border-[#C60036]',
               className
             )}

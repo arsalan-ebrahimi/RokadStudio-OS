@@ -1,36 +1,58 @@
 import React, { useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Sparkles } from 'lucide-react';
+import { Play, Pause, CheckCircle, Coffee, Flame, AlertCircle, X, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Button } from '@/shared/ui';
-import { formatSecondsToTime, toPersianDigits } from '@/shared/lib/formatters';
-import { WORK_DURATION_SECONDS, BREAK_DURATION_SECONDS } from '@/shared/config/constants';
-import type { TimerState } from '../hooks/use-timer';
+import { formatSecondsToTime, formatSecondsToHms, toPersianDigits } from '@/shared/lib/formatters';
+import { FOCUS_MS, BREAK_MS } from '../config/timer-constants';
+import { PomodoroMode, TimerStatus } from '../lib/timer-engine';
 import { cn } from '@/shared/lib/utils';
 
 interface TimerDisplayProps {
-  remaining: number;
-  state: TimerState;
-  onStart: () => void;
-  onPause: () => void;
-  onReset: () => void;
-  canStart: boolean;
+  status: TimerStatus;
+  workSeconds: number;
+  pomodoroRemainingSeconds: number;
+  pomodoroMode: PomodoroMode;
+  mainButtonLabel: 'شروع' | 'توقف' | 'ادامه';
+  mainButtonDisabled: boolean;
+  mainButtonDisabledReason: string | null;
+  registerButtonDisabled: boolean;
+  registerButtonDisabledReason: string | null;
+  onMainClick: () => void;
+  onRegisterClick: () => void;
+  showFocusBanner: boolean;
+  onDismissFocusBanner: () => void;
+  showRecoveredNotice: boolean;
+  onDismissRecoveredNotice: () => void;
+  isOtherTabActive: boolean;
+  isSubmitting: boolean;
 }
 
 export const TimerDisplay: React.FC<TimerDisplayProps> = ({
-  remaining,
-  state,
-  onStart,
-  onPause,
-  onReset,
-  canStart,
+  status,
+  workSeconds,
+  pomodoroRemainingSeconds,
+  pomodoroMode,
+  mainButtonLabel,
+  mainButtonDisabled,
+  mainButtonDisabledReason,
+  registerButtonDisabled,
+  registerButtonDisabledReason,
+  onMainClick,
+  onRegisterClick,
+  showFocusBanner,
+  onDismissFocusBanner,
+  showRecoveredNotice,
+  onDismissRecoveredNotice,
+  isOtherTabActive,
+  isSubmitting,
 }) => {
-  const isRunning = state === 'RUNNING';
-  const isDone = state === 'DONE';
-  const prevStateRef = useRef<TimerState>(state);
+  const isRunning = status === 'RUNNING';
+  const isBreak = pomodoroMode === 'BREAK';
+  const prevModeRef = useRef<PomodoroMode>(pomodoroMode);
 
-  // Trigger celebration confetti when session completes or transitions to break/done
+  // Confetti when transition to break occurs
   useEffect(() => {
-    if (prevStateRef.current === 'RUNNING' && (state === 'BREAK' || state === 'DONE')) {
+    if (prevModeRef.current === 'FOCUS' && pomodoroMode === 'BREAK') {
       confetti({
         particleCount: 70,
         spread: 60,
@@ -40,126 +62,233 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
         ticks: 200,
       });
     }
-    prevStateRef.current = state;
-  }, [state]);
+    prevModeRef.current = pomodoroMode;
+  }, [pomodoroMode]);
 
-  const totalDuration = state === 'BREAK' ? BREAK_DURATION_SECONDS : WORK_DURATION_SECONDS;
-  const progress = Math.max(0, Math.min(1, remaining / totalDuration));
-  const radius = 120;
+  // Pomodoro SVG Progress calculation
+  const totalPomodoroSeconds = isBreak ? BREAK_MS / 1000 : FOCUS_MS / 1000;
+  const progress = Math.max(0, Math.min(1, pomodoroRemainingSeconds / totalPomodoroSeconds));
+  const radius = 95;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - progress);
 
-  const strokeColor =
-    state === 'BREAK'
-      ? '#E0195B'
-      : state === 'PAUSED'
-      ? '#F8A41D'
-      : isRunning
-      ? '#59BBAF'
-      : '#CBD5E1';
+  const strokeColor = isBreak
+    ? '#E0195B'
+    : status === 'PAUSED'
+    ? '#F8A41D'
+    : isRunning
+    ? '#59BBAF'
+    : '#CBD5E1';
+
+  // Determine active helper text under buttons
+  const activeHelperText =
+    isOtherTabActive
+      ? 'تایمر در تب دیگری فعال است.'
+      : mainButtonDisabled && mainButtonDisabledReason
+      ? mainButtonDisabledReason
+      : registerButtonDisabled && registerButtonDisabledReason && status === 'IDLE' && workSeconds < 1
+      ? 'برای شروع، ابتدا دکمه شروع را بزنید.'
+      : null;
 
   return (
-    <div className="flex flex-col items-center justify-center p-2 sm:p-6 lg:p-8 space-y-6">
-      <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 flex items-center justify-center select-none">
-        {/* Ambient Glow */}
-        {isRunning && (
+    <div className="flex flex-col items-center justify-center p-2 sm:p-4 space-y-6">
+      {/* Aria-live region for accessibility announcements on status changes */}
+      <div className="sr-only" aria-live="polite">
+        {isBreak
+          ? 'زمان استراحت آغاز شد'
+          : isRunning
+          ? 'تایمر شروع به کار کرد'
+          : status === 'PAUSED'
+          ? 'تایمر متوقف شد'
+          : 'تایمر در حالت آماده‌باش است'}
+      </div>
+
+      {/* Recovered Previous Session Notice */}
+      {showRecoveredNotice && (
+        <div className="w-full flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>جلسه‌ی قبلی بازیابی شد.</span>
+          </div>
+          <button
+            onClick={onDismissRecoveredNotice}
+            className="p-1 hover:bg-amber-200/60 dark:hover:bg-amber-800/60 rounded-lg transition-colors"
+            aria-label="بستن پیام"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Multi-Tab Lock Warning */}
+      {isOtherTabActive && (
+        <div className="w-full flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 text-xs font-bold animate-in fade-in">
+          <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+          <span>تایمر در تب دیگری فعال است.</span>
+        </div>
+      )}
+
+      {/* Focus Complete Notification Banner */}
+      {showFocusBanner && (
+        <div className="w-full flex items-center justify-between gap-3 p-3.5 rounded-xl bg-girl/10 dark:bg-girl/20 border-2 border-girl text-sec dark:text-white text-xs font-bold shadow-female animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-4 h-4 text-girl shrink-0" />
+            <span className="truncate">۲۵ دقیقه کار کردید. زمان استراحت ۵ دقیقه‌ای است.</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={onRegisterClick}
+              disabled={registerButtonDisabled || isSubmitting}
+              className="text-xs h-7 px-2.5 py-0"
+            >
+              ثبت
+            </Button>
+            <button
+              onClick={onDismissFocusBanner}
+              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 transition-colors"
+              aria-label="بستن بنر"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 1. Large Work Stopwatch (HH:MM:SS) */}
+      <div className="flex flex-col items-center justify-center space-y-1 select-none">
+        <span className="text-xs font-bold text-ink-normal/60 dark:text-gray-400 flex items-center gap-1.5">
+          <Flame className="w-3.5 h-3.5 text-primary" />
+          <span>زمان کار پروژه (Stopwatch)</span>
+        </span>
+        <div
+          className="text-4xl sm:text-5xl lg:text-6xl font-black tabular-nums tracking-wider text-sec dark:text-white"
+          dir="ltr"
+        >
+          {toPersianDigits(formatSecondsToHms(workSeconds))}
+        </div>
+      </div>
+
+      {/* 2. Pomodoro Countdown Ring (MM:SS) */}
+      <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center select-none my-1">
+        {isRunning && !isBreak && (
           <div className="absolute inset-4 rounded-full bg-primary/10 dark:bg-primary/15 blur-2xl animate-pulse pointer-events-none" />
         )}
-        {state === 'BREAK' && (
+        {isBreak && (
           <div className="absolute inset-4 rounded-full bg-girl/15 dark:bg-girl/20 blur-2xl animate-pulse pointer-events-none" />
         )}
 
         {/* SVG Progress Ring */}
-        <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 280 280">
-          {/* Background track */}
+        <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 240 240">
           <circle
-            cx="140"
-            cy="140"
+            cx="120"
+            cy="120"
+            r={radius}
+            fill="none"
+            strokeWidth="9"
+            className="stroke-gray-100 dark:stroke-[#1A2333] transition-colors"
+          />
+          <circle
+            cx="120"
+            cy="120"
             r={radius}
             fill="none"
             strokeWidth="10"
-            className="stroke-gray-100 dark:stroke-[#1A2333] transition-colors"
-          />
-          {/* Active progress stroke */}
-          <circle
-            cx="140"
-            cy="140"
-            r={radius}
-            fill="none"
-            strokeWidth="11"
             strokeLinecap="round"
             stroke={strokeColor}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            className="transition-all duration-700 ease-out"
+            className="transition-all duration-300 ease-out"
           />
         </svg>
 
         {/* Inner Card Content */}
         <div
           className={cn(
-            'absolute inset-5 rounded-full flex flex-col items-center justify-center shadow-hard-lg transition-all',
+            'absolute inset-4 rounded-full flex flex-col items-center justify-center shadow-hard transition-all',
             'bg-white dark:bg-[#151C28] border-2 border-[#121824] dark:border-gray-700',
-            isRunning && 'border-primary dark:border-primary shadow-ecosystem',
-            state === 'PAUSED' && 'border-third dark:border-third shadow-college',
-            state === 'BREAK' && 'border-girl dark:border-girl shadow-female'
+            isRunning && !isBreak && 'border-primary dark:border-primary shadow-ecosystem',
+            status === 'PAUSED' && !isBreak && 'border-third dark:border-third shadow-college',
+            isBreak && 'border-girl dark:border-girl shadow-female'
           )}
         >
-          <span
-            className="text-4xl min-[400px]:text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight tabular-nums text-sec dark:text-white"
-            dir="ltr"
+          {/* Explicit Label: Not relying on color alone */}
+          <div
+            className={cn(
+              'px-3 py-0.5 rounded-full text-xs font-black flex items-center gap-1 mb-1',
+              isBreak
+                ? 'bg-girl/15 text-girl border border-girl/30'
+                : 'bg-primary/15 text-primary border border-primary/30'
+            )}
           >
-            {toPersianDigits(formatSecondsToTime(remaining))}
-          </span>
-
-          <div className="mt-2 sm:mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 dark:bg-[#1C2536] border border-gray-200 dark:border-gray-700 text-xs font-bold">
-            {state === 'BREAK' ? (
-              <span className="text-girl flex items-center gap-1 font-extrabold">
-                <Sparkles className="w-3 h-3" />
-                استراحت
-              </span>
-            ) : state === 'PAUSED' ? (
-              <span className="text-third font-extrabold">توقف موقت</span>
-            ) : isDone ? (
-              <span className="text-primary font-extrabold">تکمیل شد</span>
+            {isBreak ? (
+              <>
+                <Coffee className="w-3.5 h-3.5 shrink-0" />
+                <span>استراحت</span>
+              </>
             ) : (
-              <span className="text-ink-normal/70 dark:text-gray-300">تمرکز</span>
+              <>
+                <Flame className="w-3.5 h-3.5 shrink-0" />
+                <span>تمرکز</span>
+              </>
             )}
           </div>
+
+          <span
+            className="text-3xl min-[400px]:text-4xl sm:text-5xl font-black tracking-tight tabular-nums text-sec dark:text-white"
+            dir="ltr"
+          >
+            {toPersianDigits(formatSecondsToTime(pomodoroRemainingSeconds))}
+          </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        {isRunning ? (
-          <Button variant="secondary" size="lg" onClick={onPause} className="w-32 sm:w-36">
-            <Pause className="w-4 h-4 me-1.5" />
-            توقف
-          </Button>
-        ) : (
+      {/* 3. The Two Buttons (Main Button + «ثبت») */}
+      <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+        <div className="flex items-center gap-3 w-full">
+          {/* Main Button: شروع / توقف / ادامه */}
           <Button
-            variant="primary"
+            variant={isRunning ? 'secondary' : 'primary'}
             size="lg"
-            onClick={onStart}
-            disabled={!canStart || state === 'BREAK' || isDone}
-            className="w-32 sm:w-36"
+            onClick={onMainClick}
+            disabled={mainButtonDisabled}
+            className="flex-1 text-sm font-black h-12 shadow-hard"
           >
-            <Play className="w-4 h-4 me-1.5" />
-            شروع
+            {isRunning ? (
+              <>
+                <Pause className="w-4 h-4 me-1.5" />
+                توقف
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 me-1.5" />
+                {mainButtonLabel}
+              </>
+            )}
           </Button>
-        )}
 
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={onReset}
-          disabled={!isDone}
-          className="w-28 sm:w-32"
-        >
-          <RotateCcw className="w-4 h-4 me-1.5" />
-          ریست
-        </Button>
+          {/* Register Button: ثبت */}
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onRegisterClick}
+            disabled={registerButtonDisabled}
+            isLoading={isSubmitting}
+            className="w-28 text-sm font-black h-12 shadow-hard border-2"
+          >
+            <CheckCircle className="w-4 h-4 me-1.5 text-primary" />
+            ثبت
+          </Button>
+        </div>
+
+        {/* Helper text explaining why controls are disabled */}
+        {activeHelperText && (
+          <p className="text-xs text-ink-normal/60 dark:text-gray-400 text-center font-bold px-2 leading-relaxed animate-in fade-in">
+            {activeHelperText}
+          </p>
+        )}
       </div>
     </div>
   );
 };
-

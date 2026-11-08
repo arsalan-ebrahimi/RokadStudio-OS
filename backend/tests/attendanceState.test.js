@@ -54,6 +54,21 @@ describe("Attendance State Machine Tests", () => {
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
   });
 
+  test("User can declare ABSENT with reason, and then change mind to PRESENT", async () => {
+    const absentRec = await declareTodayAttendance(regularUser.id, "ABSENT", "مرخصی روزانه");
+    assert.equal(absentRec.status, "ABSENT");
+    assert.equal(absentRec.reason, "مرخصی روزانه");
+
+    // Change mind to PRESENT
+    const presentRec = await declareTodayAttendance(regularUser.id, "PRESENT");
+    assert.equal(presentRec.status, "PRESENT");
+    assert.equal(presentRec.approval, "PENDING");
+    assert.equal(presentRec.reason, null);
+
+    // Clean up
+    await prisma.attendance.deleteMany({ where: { userId: regularUser.id } });
+  });
+
   test("Double declaration on the same day fails with 409", async () => {
     const rec1 = await declareTodayAttendance(regularUser.id, "PRESENT");
     assert.equal(rec1.status, "PRESENT");
@@ -154,16 +169,14 @@ describe("Attendance State Machine Tests", () => {
     });
     assert.equal(sessionAfter, null, "WorkSession must be deleted when attendance is rejected");
 
-    // Guard: REJECTED is final (subsequent decision attempt -> 409)
-    await assert.rejects(
-      async () => {
-        await decideAttendanceRecord(att.id, "APPROVED", superAdminUser);
-      },
-      (err) => {
-        assert.equal(err.statusCode, 409);
-        assert.match(err.message, /Rejected attendance records cannot be changed/);
-        return true;
-      }
-    );
+    // Admin can change status even after REJECTED -> changes to APPROVED
+    const reApproved = await decideAttendanceRecord(att.id, "APPROVED", superAdminUser);
+    assert.equal(reApproved.approval, "APPROVED");
+    assert.equal(reApproved.effectiveStatus, "PRESENT");
+
+    // Admin can change status from APPROVED -> REJECTED
+    const reRejected = await decideAttendanceRecord(att.id, "REJECTED", superAdminUser);
+    assert.equal(reRejected.approval, "REJECTED");
+    assert.equal(reRejected.effectiveStatus, "ABSENT");
   });
 });

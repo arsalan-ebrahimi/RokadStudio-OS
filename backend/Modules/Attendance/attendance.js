@@ -5,16 +5,12 @@ import {
   getMeAttendance,
   getAdminAttendance,
   patchAttendanceDecision,
-  unlockUserTimerByAttendance,
-  unlockUserTimerByUserId,
 } from "./attendanceCn.js";
 import {
   postAttendanceValidator,
   getAttendanceMeValidator,
   getAttendanceAdminValidator,
   attendanceDecisionValidator,
-  attendanceIdParamValidator,
-  userIdParamValidator,
 } from "./attendanceValidator.js";
 import { isLogin } from "../../Middlewares/isLogin.js";
 import { allowedRoles } from "../../Middlewares/allowedRoles.js";
@@ -41,20 +37,6 @@ attendanceRouter.patch(
   allowedRoles("ADMIN", "SUPER_ADMIN"),
   attendanceDecisionValidator,
   patchAttendanceDecision
-);
-
-attendanceRouter.post(
-  "/admin/:id/unlock-timer",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
-  attendanceIdParamValidator,
-  unlockUserTimerByAttendance
-);
-
-attendanceRouter.post(
-  "/admin/user/:userId/unlock-timer",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
-  userIdParamValidator,
-  unlockUserTimerByUserId
 );
 
 export default attendanceRouter;

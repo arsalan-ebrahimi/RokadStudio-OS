@@ -16,6 +16,27 @@ export function formatSecondsToTime(totalSeconds: number): string {
   return `${m}:${s}`;
 }
 
+export function formatSecondsToHms(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  const h = String(hours).padStart(2, '0');
+  const m = String(mins).padStart(2, '0');
+  const s = String(secs).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+export function formatDurationToHumanPersian(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${toPersianDigits(hours)} ساعت`);
+  if (minutes > 0) parts.push(`${toPersianDigits(minutes)} دقیقه`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${toPersianDigits(seconds)} ثانیه`);
+  return parts.join(' و ');
+}
+
 export function formatDurationToHoursMins(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
