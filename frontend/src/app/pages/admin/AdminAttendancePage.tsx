@@ -7,7 +7,7 @@ import { AttendanceDecisionDialog } from '@/features/attendance/components/Atten
 import { AttendanceSessionsModal } from '@/features/timer/components/AttendanceSessionsModal';
 import { fetchAdminAttendance, decideAttendance } from '@/features/attendance/api/admin-attendance-api';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
-import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
+import { toPersianDigits, formatDurationToHoursMins, calculateCompletedRounds } from '@/shared/lib/formatters';
 import type { Attendance } from '@/shared/types/models';
 
 export const AdminAttendancePage: React.FC = () => {
@@ -164,7 +164,7 @@ export const AdminAttendancePage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0 hover:border-primary/60 hover:bg-gray-100 dark:hover:bg-[#1f293d] transition-all cursor-pointer"
                   title="مشاهده، تایید، رد یا حذف سشن‌های کاری"
                 >
-                  <span className="tabular-nums text-sec dark:text-white font-extrabold">{toPersianDigits(r.sessionsCount || 0)}</span> دور
+                  <span className="tabular-nums text-sec dark:text-white font-extrabold">{toPersianDigits(calculateCompletedRounds(r.totalSeconds || 0))}</span> دور
                   <span className="mx-1 opacity-40">•</span>
                   <span className="text-primary font-extrabold">{formatDurationToHoursMins(r.totalSeconds || 0)}</span>
                 </button>

@@ -55,3 +55,13 @@ export function formatDurationToHoursMins(totalSeconds: number): string {
   return '۰ دقیقه';
 }
 
+/**
+ * Calculates completed Pomodoro rounds based on total work seconds.
+ * Default is 0; +1 round for each 25 minutes (1500 seconds) completed.
+ */
+export function calculateCompletedRounds(totalSeconds: number): number {
+  if (!totalSeconds || totalSeconds < 0) return 0;
+  return Math.floor(totalSeconds / (25 * 60));
+}
+
+

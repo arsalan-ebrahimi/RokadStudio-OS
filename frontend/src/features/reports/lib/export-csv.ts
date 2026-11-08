@@ -1,4 +1,5 @@
 import type { WorkSessionSummaryRow } from '@/shared/types/models';
+import { calculateCompletedRounds } from '@/shared/lib/formatters';
 
 function escapeCsvField(field: string | number): string {
   let str = String(field);
@@ -14,7 +15,7 @@ export function exportReportsToCsv(rows: WorkSessionSummaryRow[], filename = 'ro
     const line = [
       escapeCsvField(r.user?.name || '-'),
       escapeCsvField(r.project?.name || '-'),
-      escapeCsvField(r.sessionsCount),
+      escapeCsvField(calculateCompletedRounds(r.totalSeconds)),
       escapeCsvField(Math.round(r.totalSeconds / 60)),
     ].join(',');
     csvLines.push(line);

@@ -14,7 +14,7 @@ import {
 import { SessionBadge } from '@/features/timer/components/SessionBadge';
 import { SessionDecisionDialog } from '@/features/timer/components/SessionDecisionDialog';
 import { DeleteSessionDialog } from '@/features/timer/components/DeleteSessionDialog';
-import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
+import { toPersianDigits, formatDurationToHoursMins, calculateCompletedRounds } from '@/shared/lib/formatters';
 import { getTehranTodayString, getJalaliWeekRange, getJalaliMonthRange, formatToJalali } from '@/shared/lib/date';
 import { cn } from '@/shared/lib/utils';
 import type { WorkSession } from '@/shared/types/models';
@@ -135,7 +135,7 @@ export const AdminReportsPage: React.FC = () => {
   });
 
   const totalSeconds = rows.reduce((acc, r) => acc + r.totalSeconds, 0);
-  const totalRounds = rows.reduce((acc, r) => acc + r.sessionsCount, 0);
+  const totalRounds = calculateCompletedRounds(totalSeconds || sessionsTotalSeconds);
   const activePersonnelCount = new Set(sessions.map((s: WorkSession) => s.user?.id).filter(Boolean)).size;
 
   const approvedSessionsCount = sessions.filter((s: WorkSession) => s.approval === 'APPROVED').length;
@@ -617,7 +617,7 @@ export const AdminReportsPage: React.FC = () => {
                         <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50 transition-colors">
                           <td className="p-3.5 sm:p-4 font-bold text-sec dark:text-white">{label}</td>
                           <td className="p-3.5 sm:p-4 font-bold tabular-nums font-sans text-sec dark:text-white">
-                            {toPersianDigits(row.sessionsCount)} دور
+                            {toPersianDigits(calculateCompletedRounds(row.totalSeconds))} دور
                           </td>
                           <td className="p-3.5 sm:p-4 font-black font-sans tabular-nums text-primary text-xs sm:text-sm">
                             {formatDurationToHoursMins(row.totalSeconds)}
