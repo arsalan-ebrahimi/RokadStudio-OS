@@ -1,7 +1,7 @@
 import { TOKEN_STORAGE_KEY } from '../config/constants';
 import { ApiError, type ApiResponse } from '../types/api';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
