@@ -145,29 +145,19 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
 
       {/* Focus Complete Notification Banner */}
       {showFocusBanner && (
-        <div className="w-full flex items-center justify-between gap-3 p-3.5 rounded-xl bg-girl/10 dark:bg-girl/20 border-2 border-girl text-sec dark:text-white text-xs font-bold shadow-female animate-in slide-in-from-top-2">
+        <div className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-girl/10 dark:bg-girl/20 border-2 border-girl text-sec dark:text-white text-xs font-bold shadow-female animate-in slide-in-from-top-2">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="w-4 h-4 text-girl shrink-0" />
             <span className="truncate">۲۵ دقیقه کار کردید. زمان استراحت ۵ دقیقه‌ای است.</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={onRegisterClick}
-              disabled={registerButtonDisabled || isSubmitting}
-              className="text-xs h-7 px-2.5 py-0"
-            >
-              ثبت
-            </Button>
-            <button
-              onClick={onDismissFocusBanner}
-              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 transition-colors"
-              aria-label="بستن بنر"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            onClick={onDismissFocusBanner}
+            className="p-1 hover:bg-girl/20 dark:hover:bg-girl/30 rounded-lg text-sec dark:text-white transition-colors shrink-0"
+            aria-label="بستن پیام"
+            title="بستن"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
