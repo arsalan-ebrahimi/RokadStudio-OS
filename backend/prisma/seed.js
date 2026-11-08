@@ -91,7 +91,7 @@ export const runSeed = async () => {
       description: "Central attendance, focus timer and team workspace portal",
       members: [
         superAdmin.id,
-        admin.id,
+        simpleAdmin.id,
         seededUsers[0].id,
         seededUsers[1].id,
         seededUsers[2].id,
