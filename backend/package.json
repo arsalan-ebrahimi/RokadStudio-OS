@@ -1,0 +1,39 @@
+{
+  "name": "rokad-attendance-platform",
+  "version": "1.0.0",
+  "description": "Rokad Attendance & Time Platform Backend",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node --experimental-strip-types server.js",
+    "dev": "nodemon --watch . --ext js,json server.js",
+    "db:migrate": "npx prisma migrate dev",
+    "db:deploy": "npx prisma migrate deploy",
+    "db:seed": "node --experimental-strip-types seed.js",
+    "seed": "node --experimental-strip-types seed.js",
+    "test": "node --experimental-strip-types --test tests/**/*.test.js",
+    "smoke": "node --experimental-strip-types scripts/smoke.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.0.1",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.3",
+    "redis": "^4.7.0",
+    "swagger-ui-express": "^5.0.1",
+    "vanta-api": "^1.5.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "prisma": "^7.10.0"
+  }
+}
