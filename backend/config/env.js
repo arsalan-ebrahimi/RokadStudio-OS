@@ -37,37 +37,45 @@ export const validateEnv = () => {
   if (!process.env.SEED_SUPERADMIN_NAME) process.env.SEED_SUPERADMIN_NAME = "Studio Super Admin";
   if (!process.env.JWT_SECRET) process.env.JWT_SECRET = "default_dev_jwt_secret_must_be_long_enough_rokad";
 
-  // Validate numeric configs
-  const sessionMax = parseInt(process.env.SESSION_MAX_SECONDS, 10);
+  // Validate numeric configs with graceful fallbacks
+  let sessionMax = parseInt(process.env.SESSION_MAX_SECONDS, 10);
   if (isNaN(sessionMax) || sessionMax <= 0) {
-    throw new Error("Environment validation error: SESSION_MAX_SECONDS must be a positive integer");
+    sessionMax = 1500;
   }
 
-  const midnightGrace = parseInt(process.env.MIDNIGHT_GRACE_MINUTES, 10);
+  let midnightGrace = parseInt(process.env.MIDNIGHT_GRACE_MINUTES, 10);
   if (isNaN(midnightGrace) || midnightGrace < 0) {
-    throw new Error("Environment validation error: MIDNIGHT_GRACE_MINUTES must be a non-negative integer");
+    midnightGrace = 30;
   }
 
-  const catchupDays = parseInt(process.env.ATTENDANCE_CATCHUP_DAYS, 10);
+  let catchupDays = parseInt(process.env.ATTENDANCE_CATCHUP_DAYS, 10);
   if (isNaN(catchupDays) || catchupDays <= 0) {
-    throw new Error("Environment validation error: ATTENDANCE_CATCHUP_DAYS must be a positive integer");
+    catchupDays = 7;
   }
 
-  // Validate timezone validity using Intl
+  // Validate timezone validity using Intl with graceful fallback
+  let appTimezone = process.env.APP_TIMEZONE || "Asia/Tehran";
   try {
-    new Intl.DateTimeFormat("en-US", { timeZone: process.env.APP_TIMEZONE });
+    new Intl.DateTimeFormat("en-US", { timeZone: appTimezone });
   } catch (err) {
-    throw new Error(`Environment validation error: Invalid APP_TIMEZONE: ${process.env.APP_TIMEZONE}`);
+    console.warn(`[BOOT WARNING] Invalid APP_TIMEZONE "${appTimezone}" received. Defaulting to "Asia/Tehran".`);
+    appTimezone = "Asia/Tehran";
+  }
+  process.env.APP_TIMEZONE = appTimezone;
+
+  let parsedPort = parseInt(process.env.PORT, 10);
+  if (isNaN(parsedPort) || parsedPort <= 0) {
+    parsedPort = 5000;
   }
 
   return {
-    PORT: parseInt(process.env.PORT, 10),
+    PORT: parsedPort,
     NODE_ENV: nodeEnv,
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
     JWT_SECRET: process.env.JWT_SECRET,
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
-    APP_TIMEZONE: process.env.APP_TIMEZONE,
+    APP_TIMEZONE: appTimezone,
     CORS_ORIGINS: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim()) : ["*"],
     TRUST_PROXY: process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1",
     SESSION_MAX_SECONDS: sessionMax,
