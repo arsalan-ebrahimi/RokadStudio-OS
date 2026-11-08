@@ -10,7 +10,6 @@ frontend/.env
 *.env.local
 
 # Build & generated outputs
-backend/generated/
 frontend/dist/
 dist/
 
