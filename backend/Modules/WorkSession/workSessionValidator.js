@@ -61,7 +61,7 @@ export const createWorkSessionValidator = [
         throw new Error("startedAt is not a valid date");
       }
       const now = Date.now();
-      const maxFuture = now + 2 * 60 * 1000;
+      const maxFuture = now + 15 * 60 * 1000;
       const minPast = now - 2 * 24 * 60 * 60 * 1000;
       if (startedTime > maxFuture) {
         throw new Error("startedAt cannot be in the future");

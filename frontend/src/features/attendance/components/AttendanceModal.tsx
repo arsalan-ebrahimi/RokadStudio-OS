@@ -125,6 +125,7 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
               maxLength={200}
               value={customNote}
               onChange={(e) => setCustomNote(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               placeholder="مثلاً: هماهنگ‌شده با مدیر یا جزئیات مرخصی..."
               className="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-primary resize-none"
             />

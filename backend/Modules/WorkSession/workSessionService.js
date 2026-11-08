@@ -51,7 +51,7 @@ export const logWorkSession = async (
     throw new HandleERROR("Invalid startedAt timestamp", 400);
   }
   const nowTime = now.getTime();
-  const maxFuture = nowTime + 2 * 60 * 1000; // 2 minutes clock skew allowed
+  const maxFuture = nowTime + 15 * 60 * 1000; // 15 minutes clock skew allowed
   const minPast = nowTime - 2 * 24 * 60 * 60 * 1000; // not older than 2 days
   if (startDate.getTime() > maxFuture) {
     throw new HandleERROR("startedAt cannot be in the future", 400);

@@ -14,7 +14,15 @@ export function useTodayAttendance() {
   const query = useQuery({
     queryKey: attendanceKeys.today(),
     queryFn: fetchTodayAttendance,
-    refetchInterval: 5000,
+    staleTime: 1000 * 60, // 60s
+    refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
+    // Only poll in background when user is actively PRESENT (every 30s)
+    // Never poll while undeclared (prevents interrupting user in modal) or when ABSENT
+    refetchInterval: (q) => {
+      const data = q.state.data;
+      return data?.status === 'PRESENT' ? 30_000 : false;
+    },
   });
 
   const mutation = useMutation({

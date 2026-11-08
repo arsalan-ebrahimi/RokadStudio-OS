@@ -32,7 +32,23 @@ export const declareTodayAttendance = async (userId, declaredStatus, reasonOrNow
   });
 
   if (existing) {
-    // If user previously declared ABSENT and now wants to declare PRESENT ("امروز هم می‌آم!")
+    // 1. Idempotent: If user already has the requested status for today, return gracefully
+    if (existing.status === declaredStatus) {
+      const sessionAgg = await prisma.workSession.aggregate({
+        where: { attendanceId: existing.id },
+        _count: { id: true },
+        _sum: { durationSeconds: true },
+      });
+
+      return {
+        ...existing,
+        effectiveStatus: computeEffectiveStatus(existing.status, existing.approval),
+        sessionsCount: sessionAgg._count.id,
+        totalSeconds: sessionAgg._sum.durationSeconds || 0,
+      };
+    }
+
+    // 2. If user previously declared ABSENT and now wants to declare PRESENT ("امروز هم می‌آم!")
     if (existing.status === "ABSENT" && declaredStatus === "PRESENT") {
       const updated = await prisma.attendance.update({
         where: { id: existing.id },
@@ -60,7 +76,49 @@ export const declareTodayAttendance = async (userId, declaredStatus, reasonOrNow
       };
     }
 
-    throw new HandleERROR("Attendance already declared for today", 409);
+    // 3. If user previously declared PRESENT and now declares ABSENT (and hasn't logged sessions yet)
+    if (existing.status === "PRESENT" && declaredStatus === "ABSENT") {
+      const sessionCount = await prisma.workSession.count({
+        where: { attendanceId: existing.id },
+      });
+
+      if (sessionCount > 0) {
+        throw new HandleERROR("نمی‌توانید پس از ثبت فعالیت کاری، وضعیت را به عدم حضور تغییر دهید", 400);
+      }
+
+      const updated = await prisma.attendance.update({
+        where: { id: existing.id },
+        data: {
+          status: "ABSENT",
+          approval: "APPROVED",
+          source: "USER",
+          reason: reason || "اعلام عدم حضور توسط کاربر",
+          decidedById: null,
+          decidedAt: null,
+        },
+      });
+
+      return {
+        ...updated,
+        effectiveStatus: "ABSENT",
+        sessionsCount: 0,
+        totalSeconds: 0,
+      };
+    }
+
+    // Fallback: return existing state
+    const sessionAgg = await prisma.workSession.aggregate({
+      where: { attendanceId: existing.id },
+      _count: { id: true },
+      _sum: { durationSeconds: true },
+    });
+
+    return {
+      ...existing,
+      effectiveStatus: computeEffectiveStatus(existing.status, existing.approval),
+      sessionsCount: sessionAgg._count.id,
+      totalSeconds: sessionAgg._sum.durationSeconds || 0,
+    };
   }
 
   const approval = declaredStatus === "PRESENT" ? "PENDING" : "APPROVED";
@@ -86,7 +144,30 @@ export const declareTodayAttendance = async (userId, declaredStatus, reasonOrNow
     };
   } catch (err) {
     if (err.code === "P2002") {
-      throw new HandleERROR("Attendance already declared for today", 409);
+      // Race protection: concurrent request created attendance, fetch and return it
+      const freshlyCreated = await prisma.attendance.findUnique({
+        where: {
+          userId_date: {
+            userId,
+            date,
+          },
+        },
+      });
+
+      if (freshlyCreated) {
+        const sessionAgg = await prisma.workSession.aggregate({
+          where: { attendanceId: freshlyCreated.id },
+          _count: { id: true },
+          _sum: { durationSeconds: true },
+        });
+
+        return {
+          ...freshlyCreated,
+          effectiveStatus: computeEffectiveStatus(freshlyCreated.status, freshlyCreated.approval),
+          sessionsCount: sessionAgg._count.id,
+          totalSeconds: sessionAgg._sum.durationSeconds || 0,
+        };
+      }
     }
     const mapped = mapPrismaError(err);
     if (mapped) throw mapped;

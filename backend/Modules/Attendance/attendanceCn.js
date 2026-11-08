@@ -64,7 +64,7 @@ export const postTodayAttendance = catchAsync(async (req, res, next) => {
   const { status, reason } = req.body;
   const record = await declareTodayAttendance(req.userId, status, reason);
 
-  return res.status(201).json({
+  return res.status(200).json({
     success: true,
     message: status === "PRESENT" ? "حضور با موفقیت ثبت شد" : "عدم حضور با موفقیت ثبت شد",
     data: {

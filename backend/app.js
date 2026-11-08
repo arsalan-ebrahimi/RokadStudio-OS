@@ -1,10 +1,11 @@
+import "./config/env.js";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import { catchError, HandleERROR } from "vanta-api";
 
 import prisma from "./config/prisma.js";
-import redis from "./config/redis.js";
+import redis, { connectRedis } from "./config/redis.js";
 import { mapPrismaError } from "./Utils/prismaErrors.js";
 
 import authRouter from "./Modules/Auth/auth.js";
@@ -17,6 +18,11 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerDocument, swaggerUiOptions } from "./docs/swagger.js";
 
 const app = express();
+
+// Initialize Redis asynchronously if not open
+connectRedis().catch((err) => {
+  console.warn("[Redis] Initial background connect note:", err.message);
+});
 
 // Security and CORS
 app.use(
@@ -118,20 +124,21 @@ app.use((req, res, next) => {
 
 // Central error handler
 app.use((err, req, res, next) => {
+  console.error(`[API ERROR] ${req.method} ${req.originalUrl}:`, err);
+
   const mapped = mapPrismaError(err);
   if (mapped) {
     return catchError(mapped, req, res, next);
   }
 
-  // Prevent leaking stack traces or internal SQL in production
-  if (process.env.NODE_ENV === "production" && (!err.statusCode || err.statusCode === 500)) {
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
+  const statusCode = err.statusCode || (typeof err.status === "number" ? err.status : 500);
+  const message = err.message || "Internal server error";
 
-  return catchError(err, req, res, next);
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV !== "production" ? { stack: err.stack } : {}),
+  });
 });
 
 export default app;

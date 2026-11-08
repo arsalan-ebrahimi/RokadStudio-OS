@@ -40,6 +40,13 @@ const UserDashboardPage: React.FC = () => {
 
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
   const [isConfirmComeOpen, setIsConfirmComeOpen] = useState(false);
+  const [hasInitiallyChecked, setHasInitiallyChecked] = useState(false);
+
+  useEffect(() => {
+    if (!attLoading) {
+      setHasInitiallyChecked(true);
+    }
+  }, [attLoading]);
 
   const timer = useTimer(null);
 
@@ -90,7 +97,7 @@ const UserDashboardPage: React.FC = () => {
     timer.handleSelectProject(projectId, p?.name || '');
   };
 
-  if (attLoading) {
+  if (attLoading && !hasInitiallyChecked) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#F8F9FA] dark:bg-[#0B0F17]">
         <div className="w-14 h-14 rounded-2xl bg-[#612B89] p-3 shadow-hard flex items-center justify-center mb-4 animate-pulse">
@@ -402,7 +409,7 @@ const UserDashboardPage: React.FC = () => {
 
       {/* Mandatory Modals */}
       <AttendanceModal
-        isOpen={!attLoading && !hasDeclaredToday}
+        isOpen={hasInitiallyChecked && !hasDeclaredToday}
         userName={user?.name || ''}
         onConfirmPresent={markPresent}
         onConfirmAbsent={(reason) => markAbsent(reason)}
