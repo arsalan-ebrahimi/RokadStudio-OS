@@ -419,7 +419,7 @@ const UserDashboardPage: React.FC = () => {
                   <Flame className="w-4 h-4" />
                   <span className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400">دورهای تکمیل</span>
                 </div>
-                <p className="text-xl font-black text-sec dark:text-white tabular-nums">
+                <p className="text-xl font-black text-sec dark:text-white tabular-nums font-sans">
                   {toPersianDigits(sessionsCount)} <span className="text-xs font-bold">دور</span>
                 </p>
               </div>
@@ -429,7 +429,7 @@ const UserDashboardPage: React.FC = () => {
                   <Clock className="w-4 h-4" />
                   <span className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400">مجموع زمان</span>
                 </div>
-                <p className="text-xl font-black text-primary tabular-nums">
+                <p className="text-xl font-black text-primary tabular-nums font-sans">
                   {formatDurationToHoursMins(totalSeconds)}
                 </p>
               </div>

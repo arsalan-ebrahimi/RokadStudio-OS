@@ -35,19 +35,28 @@ export const AdminProjectsPage: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-projects'],
     queryFn: () => fetchAllProjects(),
+    staleTime: 30_000,
   });
 
   const { data: activeUsers = [], isLoading: isActiveUsersLoading } = useQuery({
     queryKey: ['active-users'],
     queryFn: () => searchActiveUsers(),
     enabled: Boolean(membersProject && isSuperAdmin),
+    staleTime: 30_000,
   });
 
   const projects = data?.data || [];
 
   const createMut = useMutation({
     mutationFn: () => createProject({ name: formName.trim(), description: formDesc.trim() || undefined }),
-    onSuccess: () => {
+    onSuccess: (newProject: Project) => {
+      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+        if (!old?.data) return { data: [newProject] };
+        return {
+          ...old,
+          data: [newProject, ...old.data.filter((p: Project) => p.id !== newProject.id)],
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       setIsAddOpen(false);
       setFormName('');
@@ -60,7 +69,14 @@ export const AdminProjectsPage: React.FC = () => {
   const updateMut = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: { name?: string; description?: string; isActive?: boolean } }) =>
       updateProject(id, payload),
-    onSuccess: () => {
+    onSuccess: (updated: Project) => {
+      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((p: Project) => (p.id === updated.id ? { ...p, ...updated } : p)),
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       setEditingProject(null);
       toast.success('پروژه ویرایش شد');
@@ -94,7 +110,16 @@ export const AdminProjectsPage: React.FC = () => {
 
   const syncMembersMut = useMutation({
     mutationFn: ({ id, userIds }: { id: number; userIds: number[] }) => syncMembers(id, userIds),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((p: Project) =>
+            p.id === variables.id ? { ...p, memberCount: variables.userIds.length } : p
+          ),
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       setMembersProject(null);
       toast.success('اعضای پروژه بروزرسانی شدند');
@@ -150,13 +175,13 @@ export const AdminProjectsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="h-[38px] flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto max-w-full shrink-0">
+        <div className="h-[38px] flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar max-w-full shrink-0">
           <button
             onClick={() => setStatusFilter('ALL')}
             className={cn(
               'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'ALL'
-                ? 'bg-primary text-white shadow-hard-sm'
+                ? 'bg-primary text-white shadow-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
           >
@@ -167,7 +192,7 @@ export const AdminProjectsPage: React.FC = () => {
             className={cn(
               'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'ACTIVE'
-                ? 'bg-primary text-white shadow-hard-sm'
+                ? 'bg-primary text-white shadow-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
           >
@@ -178,7 +203,7 @@ export const AdminProjectsPage: React.FC = () => {
             className={cn(
               'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
               statusFilter === 'COMPLETED'
-                ? 'bg-primary text-white shadow-hard-sm'
+                ? 'bg-primary text-white shadow-sm'
                 : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
             )}
           >
@@ -419,7 +444,7 @@ export const AdminProjectsPage: React.FC = () => {
                         className={cn(
                           'flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer select-none',
                           isSelected
-                            ? 'border-primary bg-primary/10 dark:bg-primary/15 shadow-[2px_2px_0_#202A5A] dark:shadow-[2px_2px_0_#59BBAF]'
+                            ? 'border-primary bg-primary/10 dark:bg-primary/15 ring-1 ring-primary/40 shadow-sm'
                             : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] hover:border-gray-300 dark:hover:border-gray-600'
                         )}
                       >

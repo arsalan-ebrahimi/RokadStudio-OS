@@ -139,14 +139,15 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-1.5 shrink-0 pt-2 sm:pt-0 border-t border-gray-200 dark:border-gray-700 sm:border-0">
+                    <div className="flex items-center justify-end gap-2 sm:gap-2.5 shrink-0 pt-2 sm:pt-0 border-t border-gray-200 dark:border-gray-700 sm:border-0">
                       {s.approval !== 'APPROVED' && (
                         <Button
                           size="sm"
                           variant="primary"
                           onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
+                          className="h-8 px-2.5 text-xs font-bold"
                         >
-                          <Check className="w-3.5 h-3.5" />
+                          <Check className="w-3.5 h-3.5 me-1" />
                           {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
                         </Button>
                       )}
@@ -155,19 +156,21 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                           size="sm"
                           variant="danger"
                           onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
+                          className="h-8 px-2.5 text-xs font-bold"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-3.5 h-3.5 me-1" />
                           {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
                         </Button>
                       )}
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 p-1.5"
+                        className="text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 h-8 px-2.5 text-xs font-bold"
                         onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
                         aria-label="حذف سشن"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 me-1" />
+                        <span>حذف</span>
                       </Button>
                     </div>
                   </div>

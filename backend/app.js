@@ -111,12 +111,9 @@ app.get("/api-docs.json", (req, res) => {
 });
 app.get("/docs", (req, res) => res.redirect("/api-docs"));
 
-// Automatically ensure schema is in sync on cold start
-app.use(async (req, res, next) => {
-  if (req.path.startsWith("/api/")) {
-    await ensureSchemaUpdated();
-  }
-  next();
+// Ensure schema is updated asynchronously in background without blocking HTTP requests
+ensureSchemaUpdated().catch((err) => {
+  console.warn("[AutoMigrate] Background schema sync notice:", err.message);
 });
 
 // Mount modules under /api

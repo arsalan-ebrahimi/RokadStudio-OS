@@ -37,6 +37,7 @@ export const AdminReportsPage: React.FC = () => {
   const { data: projectsRes } = useQuery({
     queryKey: ['admin-projects-list'],
     queryFn: () => fetchAllProjects({ limit: 100, isActive: true }),
+    staleTime: 30_000,
   });
   const projects = projectsRes?.data || [];
 
@@ -44,12 +45,14 @@ export const AdminReportsPage: React.FC = () => {
   const { data: activeUsers = [] } = useQuery({
     queryKey: ['admin-users-active-list'],
     queryFn: () => searchActiveUsers(),
+    staleTime: 30_000,
   });
 
   // Summary aggregation query (always loaded for instant KPI overview and fast tab switching)
   const { data: rows = [], isLoading: isSummaryLoading } = useQuery({
     queryKey: ['reports-summary', dateFrom, dateTo, groupBy, projectId],
     queryFn: () => fetchWorkSessionsSummary({ dateFrom, dateTo, groupBy, projectId }),
+    staleTime: 30_000,
   });
 
   // Individual work sessions query
@@ -64,6 +67,7 @@ export const AdminReportsPage: React.FC = () => {
         approval: sessionStatusFilter === 'ALL' ? undefined : sessionStatusFilter,
         limit: 100,
       }),
+    staleTime: 30_000,
   });
 
   const sessions = sessionsRes?.data?.sessions || [];
@@ -237,12 +241,12 @@ export const AdminReportsPage: React.FC = () => {
           {/* Presets and Date Pickers */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 flex-wrap">
             {/* Preset Buttons */}
-            <div className="h-[38px] flex items-center gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700 w-full sm:w-auto shrink-0">
+            <div className="h-[38px] flex items-center gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar w-full sm:w-auto shrink-0">
               <button
                 onClick={applyToday}
                 className={`h-full flex items-center justify-center flex-1 sm:flex-initial px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                   dateFrom === today && dateTo === today
-                    ? 'bg-primary text-white shadow-hard-sm'
+                    ? 'bg-primary text-white shadow-sm'
                     : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
@@ -341,13 +345,13 @@ export const AdminReportsPage: React.FC = () => {
           {/* Status Breakdown Bar & Quick Filters */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#151C28] p-3 sm:p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
             {/* Quick Status Pill Filters */}
-            <div className="h-[38px] flex items-center gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto max-w-full shrink-0">
+            <div className="h-[38px] flex items-center gap-1 bg-gray-50 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar max-w-full shrink-0">
               <button
                 onClick={() => setSessionStatusFilter('ALL')}
                 className={cn(
                   'h-full flex items-center px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
                   sessionStatusFilter === 'ALL'
-                    ? 'bg-primary text-white shadow-hard-sm'
+                    ? 'bg-primary text-white shadow-sm'
                     : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 )}
               >
@@ -358,7 +362,7 @@ export const AdminReportsPage: React.FC = () => {
                 className={cn(
                   'h-full flex items-center gap-1.5 px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
                   sessionStatusFilter === 'PENDING'
-                    ? 'bg-amber-500 text-white shadow-hard-sm'
+                    ? 'bg-amber-500 text-white shadow-sm'
                     : 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
                 )}
               >
@@ -370,7 +374,7 @@ export const AdminReportsPage: React.FC = () => {
                 className={cn(
                   'h-full flex items-center px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
                   sessionStatusFilter === 'APPROVED'
-                    ? 'bg-emerald-600 text-white shadow-hard-sm'
+                    ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
                 )}
               >
@@ -381,7 +385,7 @@ export const AdminReportsPage: React.FC = () => {
                 className={cn(
                   'h-full flex items-center px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
                   sessionStatusFilter === 'REJECTED'
-                    ? 'bg-rose-600 text-white shadow-hard-sm'
+                    ? 'bg-rose-600 text-white shadow-sm'
                     : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
                 )}
               >
@@ -392,7 +396,9 @@ export const AdminReportsPage: React.FC = () => {
             {/* Total Duration Label */}
             <div className="flex items-center gap-2 text-xs font-bold text-ink-normal/70 dark:text-gray-300 self-end sm:self-center">
               <span>مجموع ساعات سشن‌های نمایش داده‌شده:</span>
-              <span className="text-primary font-black text-sm">{formatDurationToHoursMins(sessionsTotalSeconds)}</span>
+              <span className="text-primary font-black text-sm sm:text-base tabular-nums font-sans tracking-wide">
+                {formatDurationToHoursMins(sessionsTotalSeconds)}
+              </span>
             </div>
           </div>
 
@@ -445,7 +451,7 @@ export const AdminReportsPage: React.FC = () => {
                 return (
                   <Card
                     key={s.id}
-                    className="p-4 sm:p-5 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3.5 md:gap-4 transition-all hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-hard-sm"
+                    className="p-4 sm:p-5 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3.5 md:gap-4 transition-all hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md"
                   >
                     {/* Right: User Avatar + Name + Project Tag + Date & Status */}
                     <div className="md:col-span-6 flex items-center gap-3.5 min-w-0">
@@ -467,7 +473,7 @@ export const AdminReportsPage: React.FC = () => {
                           <span className="text-[10px] text-ink-normal/30 dark:text-gray-600 font-bold">•</span>
                           <span>{formatToJalali(sessionDate)}</span>
                           {s.startedAt && (
-                            <span className="font-mono text-[11px] opacity-75">
+                            <span className="font-sans text-[11px] tabular-nums font-bold opacity-80">
                               ({new Date(s.startedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })})
                             </span>
                           )}
@@ -476,24 +482,24 @@ export const AdminReportsPage: React.FC = () => {
                     </div>
 
                     {/* Left: Duration Chip + Actions (Approve / Reject / Delete) */}
-                    <div className="flex items-center justify-between md:justify-end gap-2.5 sm:gap-3 pt-3 md:pt-0 border-t border-gray-100 dark:border-gray-800 md:border-0 md:col-span-6 flex-wrap">
+                    <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 pt-3 md:pt-0 border-t border-gray-100 dark:border-gray-800 md:border-0 md:col-span-6 flex-wrap">
                       {/* Duration Chip */}
-                      <div className="inline-flex items-center gap-2 bg-gray-50 dark:bg-[#182030] px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shadow-sm shrink-0">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium text-ink-normal/50 dark:text-gray-400">مدت سشن:</span>
-                        <span className="text-primary font-black text-xs sm:text-sm">
+                      <div className="inline-flex items-center gap-2 bg-ecosystem-light/80 dark:bg-ecosystem-darker/40 px-3.5 py-2 rounded-xl border border-primary/30 text-xs font-bold text-ink-normal/90 dark:text-gray-200 shadow-sm shrink-0">
+                        <Clock className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-xs font-bold text-ink-normal/60 dark:text-gray-400">مدت:</span>
+                        <span className="text-primary font-black text-xs sm:text-sm tracking-wide tabular-nums font-sans">
                           {formatDurationToHoursMins(s.durationSeconds)}
                         </span>
                       </div>
 
-                      {/* Action Buttons: Exactly like Attendance + Delete */}
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Action Buttons: Spacious and distinct */}
+                      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
                         {s.approval !== 'APPROVED' && (
                           <Button
                             size="sm"
                             variant="primary"
                             onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
-                            className="h-9 px-3 text-xs font-bold shadow-sm"
+                            className="h-9 px-3.5 text-xs font-bold shadow-sm"
                           >
                             <Check className="w-3.5 h-3.5 me-1" />
                             {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
@@ -504,7 +510,7 @@ export const AdminReportsPage: React.FC = () => {
                             size="sm"
                             variant="danger"
                             onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
-                            className="h-9 px-3 text-xs font-bold shadow-sm"
+                            className="h-9 px-3.5 text-xs font-bold shadow-sm"
                           >
                             <X className="w-3.5 h-3.5 me-1" />
                             {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
@@ -513,7 +519,7 @@ export const AdminReportsPage: React.FC = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-9 px-2.5 text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900/60 shadow-sm font-bold"
+                          className="h-9 px-3 text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900/60 shadow-sm font-bold"
                           onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
                           aria-label="حذف سشن"
                           title="حذف سشن کاری"
@@ -539,7 +545,7 @@ export const AdminReportsPage: React.FC = () => {
             <Card className="p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-2">
                 <span className="text-sec dark:text-white">توزیع زمان کار بر اساس تفکیک انتخابی</span>
-                <span className="text-ink-normal/50 dark:text-gray-400 font-mono">
+                <span className="text-ink-normal/60 dark:text-gray-400 font-sans font-black tabular-nums">
                   {formatDurationToHoursMins(totalSeconds)} کل
                 </span>
               </div>
@@ -571,7 +577,7 @@ export const AdminReportsPage: React.FC = () => {
                     <div key={idx} className="flex items-center gap-1.5 text-ink-normal/70 dark:text-gray-300">
                       <span className={cn('w-2 h-2 rounded-full', dotColors[idx % dotColors.length])} />
                       <span className="truncate max-w-[140px]">{label}</span>
-                      <span className="text-ink-normal/40 font-mono">({toPersianDigits(pct)}٪)</span>
+                      <span className="text-ink-normal/50 dark:text-gray-400 font-sans font-bold tabular-nums">({toPersianDigits(pct)}٪)</span>
                     </div>
                   );
                 })}
@@ -610,10 +616,10 @@ export const AdminReportsPage: React.FC = () => {
                       return (
                         <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50 transition-colors">
                           <td className="p-3.5 sm:p-4 font-bold text-sec dark:text-white">{label}</td>
-                          <td className="p-3.5 sm:p-4 font-bold tabular-nums text-sec dark:text-white">
+                          <td className="p-3.5 sm:p-4 font-bold tabular-nums font-sans text-sec dark:text-white">
                             {toPersianDigits(row.sessionsCount)} دور
                           </td>
-                          <td className="p-3.5 sm:p-4 font-bold text-primary">
+                          <td className="p-3.5 sm:p-4 font-black font-sans tabular-nums text-primary text-xs sm:text-sm">
                             {formatDurationToHoursMins(row.totalSeconds)}
                           </td>
                           <td className="p-3.5 sm:p-4 text-left">

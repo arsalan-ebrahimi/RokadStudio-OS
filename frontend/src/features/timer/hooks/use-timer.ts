@@ -17,7 +17,7 @@ import {
   TAB_LOCK_TIMEOUT_MS,
   TICK_INTERVAL_MS,
 } from '../config/timer-constants';
-import { submitWorkSession } from '../api/timer-api';
+import { submitWorkSession, type MySessionsResponse } from '../api/timer-api';
 import { playCompletionChime } from '../lib/sound';
 import { formatSecondsToTime } from '@/shared/lib/formatters';
 import { toast } from '@/shared/ui';
@@ -348,12 +348,34 @@ export function useTimer(selectedProjectId?: number | null) {
 
       try {
         const startedAt = current.work.segmentStartedAt || new Date().toISOString();
-        await submitWorkSession({
+        const newSession = await submitWorkSession({
           projectId: current.projectId,
           durationSeconds: currentDerived.workSeconds,
           startedAt,
           clientRequestId: clientReqId,
         });
+
+        // Optimistically insert new session into cache so DOM updates immediately
+        if (newSession && typeof newSession === 'object') {
+          queryClient.setQueriesData<MySessionsResponse>({ queryKey: ['my-sessions-today'] }, (old) => {
+            if (!old) {
+              return {
+                totalSeconds: newSession.durationSeconds || 0,
+                sessions: [newSession],
+              };
+            }
+            const existing = old.sessions || [];
+            const filtered = existing.filter((s) => s.id !== newSession.id);
+            const updated = [newSession, ...filtered];
+            const total = updated
+              .filter((s) => s.approval !== 'REJECTED')
+              .reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+            return {
+              totalSeconds: total,
+              sessions: updated,
+            };
+          });
+        }
 
         // Local timer state changes only on success
         setEngineState((prev) => {
@@ -425,12 +447,34 @@ export function useTimer(selectedProjectId?: number | null) {
 
       try {
         const startedAt = current.work.segmentStartedAt || new Date().toISOString();
-        await submitWorkSession({
+        const newSession = await submitWorkSession({
           projectId: current.projectId,
           durationSeconds: currentDerived.workSeconds,
           startedAt,
           clientRequestId: clientReqId,
         });
+
+        // Optimistically insert new session into cache so DOM updates immediately
+        if (newSession && typeof newSession === 'object') {
+          queryClient.setQueriesData<MySessionsResponse>({ queryKey: ['my-sessions-today'] }, (old) => {
+            if (!old) {
+              return {
+                totalSeconds: newSession.durationSeconds || 0,
+                sessions: [newSession],
+              };
+            }
+            const existing = old.sessions || [];
+            const filtered = existing.filter((s) => s.id !== newSession.id);
+            const updated = [newSession, ...filtered];
+            const total = updated
+              .filter((s) => s.approval !== 'REJECTED')
+              .reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+            return {
+              totalSeconds: total,
+              sessions: updated,
+            };
+          });
+        }
 
         // Local state changes ONLY after a successful response
         setEngineState((prev) => {

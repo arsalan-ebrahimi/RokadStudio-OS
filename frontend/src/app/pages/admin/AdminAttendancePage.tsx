@@ -23,6 +23,7 @@ export const AdminAttendancePage: React.FC = () => {
       date: selectedDate,
       approval: statusFilter === 'ALL' ? undefined : (statusFilter as 'PENDING' | 'APPROVED' | 'REJECTED'),
     }),
+    staleTime: 30_000,
   });
 
   const mutation = useMutation({

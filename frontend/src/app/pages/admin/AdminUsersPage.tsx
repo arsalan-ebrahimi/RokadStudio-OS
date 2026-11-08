@@ -27,6 +27,7 @@ export const AdminUsersPage: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users', searchTerm],
     queryFn: () => fetchUsers({ search: searchTerm || undefined }),
+    staleTime: 30_000,
   });
 
   const users = data?.data || [];
@@ -41,6 +42,13 @@ export const AdminUsersPage: React.FC = () => {
   const createMut = useMutation({
     mutationFn: () => createUser({ name: formName.trim(), code: formCode.trim(), role: formRole }),
     onSuccess: (newUser: User) => {
+      queryClient.setQueriesData({ queryKey: ['admin-users'] }, (old: any) => {
+        if (!old?.data) return { data: [newUser] };
+        return {
+          ...old,
+          data: [newUser, ...old.data.filter((u: User) => u.id !== newUser.id)],
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setIsAddOpen(false);
       setCreatedCode(newUser.code || formCode);
@@ -52,7 +60,14 @@ export const AdminUsersPage: React.FC = () => {
   const updateMut = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: { name?: string; role?: Role; isActive?: boolean } }) =>
       updateUser(id, payload),
-    onSuccess: () => {
+    onSuccess: (updated: User) => {
+      queryClient.setQueriesData({ queryKey: ['admin-users'] }, (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((u: User) => (u.id === updated.id ? { ...u, ...updated } : u)),
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setEditingUser(null);
       toast.success('تغییرات ذخیره شد');
