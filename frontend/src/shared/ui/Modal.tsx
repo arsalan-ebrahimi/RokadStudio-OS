@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -21,36 +22,59 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   useEffect(() => {
     if (!isOpen) return;
+
+    // Dynamically tint iOS Safari status bar and Dynamic Island to pitch black
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    const originalThemeColor = metaThemeColor?.getAttribute('content') || '#202A5A';
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', '#000000');
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && dismissible && onClose) {
         onClose();
       }
     };
+
     document.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.body.style.overflow = originalOverflow;
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', originalThemeColor);
+      }
     };
   }, [isOpen, dismissible, onClose]);
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 overflow-y-auto overscroll-none"
     >
-      {/* Dedicated full-viewport fixed backdrop preventing any white gaps */}
+      {/* 
+        Full-bleed fixed backdrop covering past all screen boundaries, 
+        including iOS Dynamic Island, Notch, and Home Indicator bar
+      */}
       <div
-        className="fixed inset-0 -top-20 -bottom-20 -left-20 -right-20 bg-black/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 -top-[350px] -bottom-[350px] -left-[150px] -right-[150px] bg-black/80 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
         aria-hidden="true"
         onClick={dismissible ? onClose : undefined}
       />
 
-      {/* Centering scrollable container */}
-      <div className="relative min-h-[100dvh] min-h-screen flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+      {/* Centering scrollable container with safe-area padding */}
+      <div
+        className="relative min-h-[100dvh] min-h-screen flex items-center justify-center p-3 sm:p-4 pointer-events-none"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)',
+        }}
+      >
         <div
           className={cn(
             'relative w-full max-w-md my-auto pointer-events-auto bg-white dark:bg-[#151C28] rounded-2xl sm:rounded-3xl border-2 border-primary/40 shadow-hard-lg dark:shadow-dark-hard p-5 sm:p-6 transition-all animate-in zoom-in-95 duration-150',
@@ -74,5 +98,8 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
-};
 
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
+};
