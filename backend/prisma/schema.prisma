@@ -39,11 +39,12 @@ model User {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  projectMembers     ProjectMember[]
-  attendances        Attendance[]    @relation("UserAttendances")
-  decidedAttendances Attendance[]    @relation("AttendanceDecidedBy")
-  workSessions       WorkSession[]
-  createdProjects    Project[]       @relation("CreatedProjects")
+  projectMembers      ProjectMember[]
+  attendances         Attendance[]    @relation("UserAttendances")
+  decidedAttendances  Attendance[]    @relation("AttendanceDecidedBy")
+  workSessions        WorkSession[]
+  decidedWorkSessions WorkSession[]   @relation("WorkSessionDecidedBy")
+  createdProjects     Project[]       @relation("CreatedProjects")
 }
 
 model Project {
@@ -95,23 +96,30 @@ model Attendance {
 }
 
 model WorkSession {
-  id              Int       @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   userId          Int
   projectId       Int
   attendanceId    Int
   durationSeconds Int
-  clientRequestId String?   @db.VarChar(64)
-  workDate        DateTime  @default(now()) @db.Date
+  clientRequestId String?        @db.VarChar(64)
+  workDate        DateTime       @default(now()) @db.Date
+  approval        ApprovalStatus @default(PENDING)
+  source          DecisionSource @default(USER)
+  decidedById     Int?
+  decidedAt       DateTime?
   startedAt       DateTime?
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime       @default(now())
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project    Project    @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  attendance Attendance  @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  decidedBy  User?       @relation("WorkSessionDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
 
   @@unique([userId, clientRequestId])
   @@index([attendanceId])
   @@index([projectId])
   @@index([userId, createdAt])
   @@index([workDate])
+  @@index([approval])
+  @@index([workDate, approval])
 }

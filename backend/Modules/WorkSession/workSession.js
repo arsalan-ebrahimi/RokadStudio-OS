@@ -4,12 +4,16 @@ import {
   getMeWorkSessions,
   getAdminWorkSessions,
   getWorkSessionsSummary,
+  patchWorkSessionDecision,
+  deleteWorkSessionController,
 } from "./workSessionCn.js";
 import {
   createWorkSessionValidator,
   getMeWorkSessionsValidator,
   getAdminWorkSessionsValidator,
   getWorkSessionsSummaryValidator,
+  decideWorkSessionValidator,
+  deleteWorkSessionValidator,
 } from "./workSessionValidator.js";
 import { isLogin } from "../../Middlewares/isLogin.js";
 import { allowedRoles } from "../../Middlewares/allowedRoles.js";
@@ -44,6 +48,21 @@ workSessionRouter.get(
   allowedRoles("ADMIN", "SUPER_ADMIN"),
   getAdminWorkSessionsValidator,
   getAdminWorkSessions
+);
+
+// Decision endpoint: approve or reject session (admins)
+workSessionRouter.patch(
+  "/:id/decision",
+  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  decideWorkSessionValidator,
+  patchWorkSessionDecision
+);
+
+// Delete session endpoint
+workSessionRouter.delete(
+  "/:id",
+  deleteWorkSessionValidator,
+  deleteWorkSessionController
 );
 
 export default workSessionRouter;

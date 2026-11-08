@@ -26,3 +26,51 @@ export async function fetchMySessionsToday(): Promise<MySessionsResponse> {
   return res.data;
 }
 
+export interface AdminSessionsParams {
+  page?: number;
+  limit?: number;
+  userId?: number;
+  projectId?: number;
+  approval?: string;
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface AdminSessionsResponse {
+  totalSeconds: number;
+  sessions: WorkSession[];
+}
+
+export async function fetchAdminWorkSessions(params: AdminSessionsParams = {}): Promise<{ data: AdminSessionsResponse; meta?: unknown }> {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  if (params.userId) query.set('userId', String(params.userId));
+  if (params.projectId) query.set('projectId', String(params.projectId));
+  if (params.approval && params.approval !== 'ALL') query.set('approval', params.approval);
+  if (params.date) query.set('date', params.date);
+  if (params.dateFrom) query.set('dateFrom', params.dateFrom);
+  if (params.dateTo) query.set('dateTo', params.dateTo);
+
+  const qs = query.toString();
+  const url = `/api/work-sessions${qs ? `?${qs}` : ''}`;
+  const res = await apiClient<AdminSessionsResponse>(url);
+  return { data: res.data, meta: res.meta };
+}
+
+export async function decideWorkSession(id: number, decision: 'APPROVED' | 'REJECTED'): Promise<WorkSession> {
+  const res = await apiClient<WorkSession>(`/api/work-sessions/${id}/decision`, {
+    method: 'PATCH',
+    body: JSON.stringify({ decision }),
+  });
+  return res.data;
+}
+
+export async function deleteWorkSession(id: number): Promise<{ id: number }> {
+  const res = await apiClient<{ id: number }>(`/api/work-sessions/${id}`, {
+    method: 'DELETE',
+  });
+  return res.data;
+}
+

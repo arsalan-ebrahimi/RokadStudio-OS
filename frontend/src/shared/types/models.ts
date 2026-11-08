@@ -48,6 +48,11 @@ export interface WorkSession {
   durationSeconds: number;
   clientRequestId?: string;
   workDate?: string;
+  attendanceDate?: string;
+  approval: ApprovalStatus;
+  source?: DecisionSource;
+  decidedBy?: { id: number; name: string } | null;
+  decidedAt?: string | null;
   startedAt?: string | null;
   createdAt: string;
   user?: Pick<User, 'id' | 'name' | 'role'>;

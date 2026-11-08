@@ -1,20 +1,35 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
-import { Card, Button, Skeleton, EmptyState, PersianDatePicker, Select } from '@/shared/ui';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Download, Check, X, Trash2, Clock, FolderKanban } from 'lucide-react';
+import { Card, Button, Skeleton, EmptyState, PersianDatePicker, Select, toast } from '@/shared/ui';
 import { fetchWorkSessionsSummary } from '@/features/reports/api/reports-api';
 import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { exportReportsToCsv } from '@/features/reports/lib/export-csv';
+import {
+  fetchAdminWorkSessions,
+  decideWorkSession,
+  deleteWorkSession,
+} from '@/features/timer/api/timer-api';
+import { SessionBadge } from '@/features/timer/components/SessionBadge';
+import { SessionDecisionDialog } from '@/features/timer/components/SessionDecisionDialog';
+import { DeleteSessionDialog } from '@/features/timer/components/DeleteSessionDialog';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
-import { getTehranTodayString, getJalaliWeekRange, getJalaliMonthRange } from '@/shared/lib/date';
+import { getTehranTodayString, getJalaliWeekRange, getJalaliMonthRange, formatToJalali } from '@/shared/lib/date';
 import { cn } from '@/shared/lib/utils';
+import type { WorkSession } from '@/shared/types/models';
 
 export const AdminReportsPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const today = getTehranTodayString();
+  const [activeTab, setActiveTab] = useState<'summary' | 'sessions'>('summary');
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
   const [projectId, setProjectId] = useState<number | undefined>(undefined);
   const [groupBy, setGroupBy] = useState<'user' | 'project' | 'user_project'>('user_project');
+  const [sessionStatusFilter, setSessionStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+
+  const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; info: string } | null>(null);
+  const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
 
   const { data: projectsRes } = useQuery({
     queryKey: ['admin-projects-list'],
@@ -22,13 +37,60 @@ export const AdminReportsPage: React.FC = () => {
   });
   const projects = projectsRes?.data || [];
 
-  const { data: rows = [], isLoading } = useQuery({
+  // Summary aggregation query
+  const { data: rows = [], isLoading: isSummaryLoading } = useQuery({
     queryKey: ['reports-summary', dateFrom, dateTo, groupBy, projectId],
     queryFn: () => fetchWorkSessionsSummary({ dateFrom, dateTo, groupBy, projectId }),
+    enabled: activeTab === 'summary',
+  });
+
+  // Individual work sessions query
+  const { data: sessionsRes, isLoading: isSessionsLoading } = useQuery({
+    queryKey: ['admin-work-sessions', dateFrom, dateTo, projectId, sessionStatusFilter],
+    queryFn: () => fetchAdminWorkSessions({
+      dateFrom,
+      dateTo,
+      projectId,
+      approval: sessionStatusFilter === 'ALL' ? undefined : sessionStatusFilter,
+      limit: 100,
+    }),
+    enabled: activeTab === 'sessions',
+  });
+
+  const sessions = sessionsRes?.data?.sessions || [];
+  const sessionsTotalSeconds = sessionsRes?.data?.totalSeconds || 0;
+
+  const decideMut = useMutation({
+    mutationFn: ({ id, decision }: { id: number; decision: 'APPROVED' | 'REJECTED' }) =>
+      decideWorkSession(id, decision),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      toast.success('وضعیت سشن با موفقیت تغییر کرد');
+      setActiveDecision(null);
+    },
+    onError: (err: Error) => toast.error(err.message || 'خطا در ثبت وضعیت سشن'),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => deleteWorkSession(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      toast.success('سشن کاری با موفقیت حذف شد');
+      setDeletingSession(null);
+    },
+    onError: (err: Error) => toast.error(err.message || 'خطا در حذف سشن کاری'),
   });
 
   const totalSeconds = rows.reduce((acc, r) => acc + r.totalSeconds, 0);
   const totalRounds = rows.reduce((acc, r) => acc + r.sessionsCount, 0);
+
+  const approvedSessionsCount = sessions.filter((s: WorkSession) => s.approval === 'APPROVED').length;
+  const pendingSessionsCount = sessions.filter((s: WorkSession) => s.approval === 'PENDING').length;
+  const rejectedSessionsCount = sessions.filter((s: WorkSession) => s.approval === 'REJECTED').length;
 
   const applyToday = () => {
     setDateFrom(today);
@@ -49,15 +111,45 @@ export const AdminReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with View Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-lg font-black text-sec dark:text-white">گزارش عملکرد</h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-lg font-black text-sec dark:text-white">گزارش و مدیریت عملکرد</h1>
+          <div className="flex items-center bg-gray-100 dark:bg-[#182030] p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={cn(
+                'px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all',
+                activeTab === 'summary'
+                  ? 'bg-white dark:bg-[#121824] text-sec dark:text-white shadow-hard-sm border border-gray-200 dark:border-gray-700'
+                  : 'text-ink-normal/60 dark:text-gray-400 hover:text-sec dark:hover:text-white'
+              )}
+            >
+              گزارش تجمیعی
+            </button>
+            <button
+              onClick={() => setActiveTab('sessions')}
+              className={cn(
+                'px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all flex items-center gap-1.5',
+                activeTab === 'sessions'
+                  ? 'bg-white dark:bg-[#121824] text-sec dark:text-white shadow-hard-sm border border-gray-200 dark:border-gray-700'
+                  : 'text-ink-normal/60 dark:text-gray-400 hover:text-sec dark:hover:text-white'
+              )}
+            >
+              <span>ریز و وضعیت سشن‌ها</span>
+            </button>
+          </div>
+        </div>
 
-        <Button size="sm" variant="outline" onClick={() => exportReportsToCsv(rows)}>
-          <Download className="w-3.5 h-3.5 me-1" />
-          خروجی
-        </Button>
+        {activeTab === 'summary' && (
+          <Button size="sm" variant="outline" onClick={() => exportReportsToCsv(rows)}>
+            <Download className="w-3.5 h-3.5 me-1" />
+            خروجی CSV
+          </Button>
+        )}
       </div>
 
+      {/* Global Filter Bar */}
       <Card className="p-3.5 sm:p-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Presets and Date Pickers */}
@@ -100,7 +192,7 @@ export const AdminReportsPage: React.FC = () => {
 
           <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden lg:block self-center" />
 
-          {/* Project & GroupBy Filters */}
+          {/* Project & View Filters */}
           <div className="flex items-center gap-2.5 flex-col sm:flex-row w-full lg:w-auto">
             <div className="w-full sm:w-44">
               <Select
@@ -117,116 +209,299 @@ export const AdminReportsPage: React.FC = () => {
               </Select>
             </div>
 
-            <div className="w-full sm:w-40">
-              <Select
-                selectSize="sm"
-                value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
-              >
-                <option value="user_project">کاربر و پروژه</option>
-                <option value="user">تفکیک کاربر</option>
-                <option value="project">تفکیک پروژه</option>
-              </Select>
-            </div>
+            {activeTab === 'summary' ? (
+              <div className="w-full sm:w-40">
+                <Select
+                  selectSize="sm"
+                  value={groupBy}
+                  onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
+                >
+                  <option value="user_project">کاربر و پروژه</option>
+                  <option value="user">تفکیک کاربر</option>
+                  <option value="project">تفکیک پروژه</option>
+                </Select>
+              </div>
+            ) : (
+              <div className="w-full sm:w-44">
+                <Select
+                  selectSize="sm"
+                  value={sessionStatusFilter}
+                  onChange={(e) => setSessionStatusFilter(e.target.value as 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED')}
+                >
+                  <option value="ALL">همه وضعیت‌ها</option>
+                  <option value="PENDING">در انتظار تایید</option>
+                  <option value="APPROVED">تایید شده</option>
+                  <option value="REJECTED">رد شده</option>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 text-center">
-          <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">مجموع دورها</span>
-          <p className="text-2xl font-black text-sec dark:text-white mt-1">{toPersianDigits(totalRounds)}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">مجموع ساعات</span>
-          <p className="text-2xl font-black text-primary mt-1">{formatDurationToHoursMins(totalSeconds)}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">تعداد موارد</span>
-          <p className="text-2xl font-black text-sec dark:text-white mt-1">{toPersianDigits(rows.length)}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">میانگین هر دور</span>
-          <p className="text-2xl font-black text-third mt-1">
-            {formatDurationToHoursMins(totalRounds > 0 ? Math.round(totalSeconds / totalRounds) : 0)}
-          </p>
-        </Card>
-      </div>
-
-      {!isLoading && rows.length > 0 && totalSeconds > 0 && (
-        <Card className="p-4 space-y-3">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-sec dark:text-white">سهم تمرکز در این بازه</span>
-            <span className="text-ink-normal/50 dark:text-gray-400 font-mono">
-              {formatDurationToHoursMins(totalSeconds)} کل
-            </span>
+      {/* Tab 1: Summary Report */}
+      {activeTab === 'summary' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4 text-center">
+              <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">مجموع دورها</span>
+              <p className="text-2xl font-black text-sec dark:text-white mt-1">{toPersianDigits(totalRounds)}</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">مجموع ساعات</span>
+              <p className="text-2xl font-black text-primary mt-1">{formatDurationToHoursMins(totalSeconds)}</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">تعداد موارد</span>
+              <p className="text-2xl font-black text-sec dark:text-white mt-1">{toPersianDigits(rows.length)}</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">میانگین هر دور</span>
+              <p className="text-2xl font-black text-third mt-1">
+                {formatDurationToHoursMins(totalRounds > 0 ? Math.round(totalSeconds / totalRounds) : 0)}
+              </p>
+            </Card>
           </div>
 
-          <div className="w-full h-3 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex gap-0.5">
-            {rows.slice(0, 5).map((row, idx) => {
-              const pct = (row.totalSeconds / totalSeconds) * 100;
-              const colors = ['bg-primary', 'bg-girl', 'bg-third', 'bg-[#612B89]', 'bg-[#202A5A]'];
-              return (
-                <div
-                  key={idx}
-                  style={{ width: `${pct}%` }}
-                  className={cn('h-full transition-all duration-500', colors[idx % colors.length])}
-                  title={`${row.user?.name || row.project?.name || ''}: ${pct.toFixed(0)}%`}
-                />
-              );
-            })}
-          </div>
+          {!isSummaryLoading && rows.length > 0 && totalSeconds > 0 && (
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-sec dark:text-white">سهم تمرکز در این بازه</span>
+                <span className="text-ink-normal/50 dark:text-gray-400 font-mono">
+                  {formatDurationToHoursMins(totalSeconds)} کل
+                </span>
+              </div>
 
-          <div className="flex items-center gap-4 flex-wrap text-[11px] font-bold">
-            {rows.slice(0, 4).map((row, idx) => {
-              const label = row.user && row.project ? `${row.user.name} - ${row.project.name}` : (row.user?.name || row.project?.name || '—');
-              const dotColors = ['bg-primary', 'bg-girl', 'bg-third', 'bg-[#612B89]'];
-              const pct = Math.round((row.totalSeconds / totalSeconds) * 100);
-              return (
-                <div key={idx} className="flex items-center gap-1.5 text-ink-normal/70 dark:text-gray-300">
-                  <span className={cn('w-2 h-2 rounded-full', dotColors[idx % dotColors.length])} />
-                  <span className="truncate max-w-[140px]">{label}</span>
-                  <span className="text-ink-normal/40 font-mono">({toPersianDigits(pct)}٪)</span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {isLoading ? (
-        <div className="space-y-3">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-      ) : rows.length === 0 ? (
-        <EmptyState title="داده‌ای در این بازه زمانی ثبت نشده است" />
-      ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs executive-table min-w-[340px]">
-              <thead className="bg-gray-50 dark:bg-[#182030] text-ink-normal/60 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  <th className="p-3.5 sm:p-4 font-bold md:w-1/2">نام</th>
-                  <th className="p-3.5 sm:p-4 font-bold md:w-1/4">تعداد دور</th>
-                  <th className="p-3.5 sm:p-4 font-bold md:w-1/4">مجموع زمان</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {rows.map((row, idx) => {
-                  const label = row.user && row.project
-                    ? `${row.user.name} (${row.project.name})`
-                    : (row.user?.name || row.project?.name || '—');
+              <div className="w-full h-3 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex gap-0.5">
+                {rows.slice(0, 5).map((row, idx) => {
+                  const pct = (row.totalSeconds / totalSeconds) * 100;
+                  const colors = ['bg-primary', 'bg-girl', 'bg-third', 'bg-[#612B89]', 'bg-[#202A5A]'];
                   return (
-                    <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50 transition-colors">
-                      <td className="p-3.5 sm:p-4 font-bold text-sec dark:text-white">{label}</td>
-                      <td className="p-3.5 sm:p-4 font-bold tabular-nums text-sec dark:text-white">{toPersianDigits(row.sessionsCount)} دور</td>
-                      <td className="p-3.5 sm:p-4 font-bold text-primary">{formatDurationToHoursMins(row.totalSeconds)}</td>
-                    </tr>
+                    <div
+                      key={idx}
+                      style={{ width: `${pct}%` }}
+                      className={cn('h-full transition-all duration-500', colors[idx % colors.length])}
+                      title={`${row.user?.name || row.project?.name || ''}: ${pct.toFixed(0)}%`}
+                    />
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+              </div>
+
+              <div className="flex items-center gap-4 flex-wrap text-[11px] font-bold">
+                {rows.slice(0, 4).map((row, idx) => {
+                  const label = row.user && row.project ? `${row.user.name} - ${row.project.name}` : (row.user?.name || row.project?.name || '—');
+                  const dotColors = ['bg-primary', 'bg-girl', 'bg-third', 'bg-[#612B89]'];
+                  const pct = Math.round((row.totalSeconds / totalSeconds) * 100);
+                  return (
+                    <div key={idx} className="flex items-center gap-1.5 text-ink-normal/70 dark:text-gray-300">
+                      <span className={cn('w-2 h-2 rounded-full', dotColors[idx % dotColors.length])} />
+                      <span className="truncate max-w-[140px]">{label}</span>
+                      <span className="text-ink-normal/40 font-mono">({toPersianDigits(pct)}٪)</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {isSummaryLoading ? (
+            <div className="space-y-3">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+          ) : rows.length === 0 ? (
+            <EmptyState title="داده‌ای در این بازه زمانی ثبت نشده است" />
+          ) : (
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs executive-table min-w-[340px]">
+                  <thead className="bg-gray-50 dark:bg-[#182030] text-ink-normal/60 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                    <tr>
+                      <th className="p-3.5 sm:p-4 font-bold md:w-1/2">نام</th>
+                      <th className="p-3.5 sm:p-4 font-bold md:w-1/4">تعداد دور</th>
+                      <th className="p-3.5 sm:p-4 font-bold md:w-1/4">مجموع زمان</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {rows.map((row, idx) => {
+                      const label = row.user && row.project
+                        ? `${row.user.name} (${row.project.name})`
+                        : (row.user?.name || row.project?.name || '—');
+                      return (
+                        <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-[#151C28]/50 transition-colors">
+                          <td className="p-3.5 sm:p-4 font-bold text-sec dark:text-white">{label}</td>
+                          <td className="p-3.5 sm:p-4 font-bold tabular-nums text-sec dark:text-white">{toPersianDigits(row.sessionsCount)} دور</td>
+                          <td className="p-3.5 sm:p-4 font-bold text-primary">{formatDurationToHoursMins(row.totalSeconds)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
       )}
+
+      {/* Tab 2: Individual Sessions Management */}
+      {activeTab === 'sessions' && (
+        <div className="space-y-4">
+          {/* Status Breakdown Bar */}
+          {!isSessionsLoading && sessions.length > 0 && (
+            <Card className="p-3.5 sm:p-4 space-y-2.5">
+              <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-2">
+                <span className="text-sec dark:text-white">
+                  وضعیت سشن‌ها ({toPersianDigits(sessions.length)} سشن • {formatDurationToHoursMins(sessionsTotalSeconds)})
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    تایید ({toPersianDigits(approvedSessionsCount)})
+                  </span>
+                  <span className="flex items-center gap-1.5 text-amber-500">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    انتظار ({toPersianDigits(pendingSessionsCount)})
+                  </span>
+                  {rejectedSessionsCount > 0 && (
+                    <span className="flex items-center gap-1.5 text-rose-500">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      رد ({toPersianDigits(rejectedSessionsCount)})
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex">
+                {approvedSessionsCount > 0 && (
+                  <div
+                    style={{ width: `${(approvedSessionsCount / sessions.length) * 100}%` }}
+                    className="h-full bg-emerald-500 transition-all duration-500"
+                  />
+                )}
+                {pendingSessionsCount > 0 && (
+                  <div
+                    style={{ width: `${(pendingSessionsCount / sessions.length) * 100}%` }}
+                    className="h-full bg-amber-400 transition-all duration-500"
+                  />
+                )}
+                {rejectedSessionsCount > 0 && (
+                  <div
+                    style={{ width: `${(rejectedSessionsCount / sessions.length) * 100}%` }}
+                    className="h-full bg-rose-500 transition-all duration-500"
+                  />
+                )}
+              </div>
+            </Card>
+          )}
+
+          {isSessionsLoading ? (
+            <div className="space-y-3">{Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+          ) : sessions.length === 0 ? (
+            <EmptyState title="هیچ سشن کاری در این بازه زمانی یافت نشد" />
+          ) : (
+            <div className="space-y-3">
+              {sessions.map((s: WorkSession) => {
+                const userName = s.user?.name || 'کاربر';
+                const projectName = s.project?.name || s.projectName || 'پروژه';
+                const sessionDate = s.workDate || s.attendanceDate || s.createdAt;
+                const sessionInfo = `${userName} - ${projectName} (${formatDurationToHoursMins(s.durationSeconds)})`;
+
+                return (
+                  <Card
+                    key={s.id}
+                    className="p-3.5 sm:p-4 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 transition-all"
+                  >
+                    <div className="md:col-span-5 flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-sm shrink-0 border border-gray-200 dark:border-gray-700">
+                        {userName.slice(0, 1)}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-black text-sec dark:text-white truncate" title={userName}>
+                            {userName}
+                          </p>
+                          <span className="text-[10px] text-ink-normal/30 dark:text-gray-600 font-bold">•</span>
+                          <span className="text-xs font-bold text-primary flex items-center gap-1">
+                            <FolderKanban className="w-3.5 h-3.5 shrink-0" />
+                            {projectName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <SessionBadge approval={s.approval} />
+                          <span className="text-[10px] text-ink-normal/30 dark:text-gray-600 font-bold">•</span>
+                          <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-medium">
+                            {formatToJalali(sessionDate)}
+                          </span>
+                          {s.startedAt && (
+                            <span className="text-[11px] text-ink-normal/50 dark:text-gray-400 font-mono">
+                              ({new Date(s.startedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2.5 md:pt-0 border-t border-gray-100 dark:border-gray-800 md:border-0 md:col-span-7">
+                      <div className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0">
+                        <Clock className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-primary font-extrabold">{formatDurationToHoursMins(s.durationSeconds)}</span>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-1.5 shrink-0">
+                        {s.approval !== 'APPROVED' && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
+                          </Button>
+                        )}
+                        {s.approval !== 'REJECTED' && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 p-2"
+                          onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
+                          aria-label="حذف سشن"
+                          title="حذف سشن کاری"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Decision and Delete Confirmation Dialogs */}
+      <SessionDecisionDialog
+        isOpen={Boolean(activeDecision)}
+        decision={activeDecision?.decision || null}
+        targetInfo={activeDecision?.info || ''}
+        isLoading={decideMut.isPending}
+        onConfirm={() => activeDecision && decideMut.mutate(activeDecision)}
+        onCancel={() => setActiveDecision(null)}
+      />
+
+      <DeleteSessionDialog
+        isOpen={Boolean(deletingSession)}
+        targetInfo={deletingSession?.info || ''}
+        isLoading={deleteMut.isPending}
+        onConfirm={() => deletingSession && deleteMut.mutate(deletingSession.id)}
+        onCancel={() => setDeletingSession(null)}
+      />
     </div>
   );
 };

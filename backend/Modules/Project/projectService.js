@@ -133,26 +133,24 @@ export const syncProjectMembers = async (projectId, userIds = []) => {
 export const deleteProjectSafe = async (projectId) => {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
+    include: {
+      members: {
+        select: { userId: true },
+      },
+    },
   });
 
   if (!project) {
     throw new HandleERROR("Project not found", 404);
   }
 
-  const sessionCount = await prisma.workSession.count({
-    where: { projectId },
-  });
-
-  if (sessionCount > 0) {
-    throw new HandleERROR(
-      "Cannot delete project with existing work sessions. Deactivate the project instead.",
-      409
-    );
-  }
-
   await prisma.project.delete({
     where: { id: projectId },
   });
 
+  // Invalidate cache for all affected members and all projects
+  for (const m of project.members || []) {
+    await invalidateUserProjectsCache(m.userId);
+  }
   await invalidateAllProjectsCache();
 };

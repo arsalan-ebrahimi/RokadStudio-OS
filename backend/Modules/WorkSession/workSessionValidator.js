@@ -1,4 +1,4 @@
-import { body, query, validationResult } from "express-validator";
+import { body, query, param, validationResult } from "express-validator";
 import { isIsoDateString } from "../../Utils/date.js";
 
 export const handleValidation = (req, res, next) => {
@@ -91,6 +91,7 @@ export const getAdminWorkSessionsValidator = [
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
   query("userId").optional().isInt({ min: 1 }).toInt(),
   query("projectId").optional().isInt({ min: 1 }).toInt(),
+  query("approval").optional().isIn(["PENDING", "APPROVED", "REJECTED"]).withMessage("approval must be PENDING, APPROVED, or REJECTED"),
   query("date").optional().custom(dateValidator),
   query("dateFrom").optional().custom(dateValidator),
   query("dateTo").optional().custom(dateValidator),
@@ -100,6 +101,7 @@ export const getAdminWorkSessionsValidator = [
 export const getWorkSessionsSummaryValidator = [
   query("userId").optional().isInt({ min: 1 }).toInt(),
   query("projectId").optional().isInt({ min: 1 }).toInt(),
+  query("approval").optional().isIn(["PENDING", "APPROVED", "REJECTED"]).withMessage("approval must be PENDING, APPROVED, or REJECTED"),
   query("date").optional().custom(dateValidator),
   query("dateFrom").optional().custom(dateValidator),
   query("dateTo").optional().custom(dateValidator),
@@ -107,5 +109,18 @@ export const getWorkSessionsSummaryValidator = [
     .optional()
     .isIn(["user", "project", "user_project"])
     .withMessage("groupBy must be user, project, or user_project"),
+  handleValidation,
+];
+
+export const decideWorkSessionValidator = [
+  param("id").isInt({ min: 1 }).toInt().withMessage("id must be a positive integer"),
+  body("decision")
+    .isIn(["APPROVED", "REJECTED"])
+    .withMessage("decision must be either APPROVED or REJECTED"),
+  handleValidation,
+];
+
+export const deleteWorkSessionValidator = [
+  param("id").isInt({ min: 1 }).toInt().withMessage("id must be a positive integer"),
   handleValidation,
 ];

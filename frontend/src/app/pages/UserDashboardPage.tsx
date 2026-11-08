@@ -10,7 +10,9 @@ import {
   Rocket,
   CheckCircle2,
   Calendar,
+  Trash2,
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth';
 import { useTodayAttendance, useMidnightWatcher, AttendanceBadge, AttendanceModal } from '@/features/attendance';
 import { useMyProjects, ProjectSelect } from '@/features/projects';
@@ -19,9 +21,13 @@ import {
   TimerDisplay,
   RegisterDialog,
   ProjectChangeDialog,
+  fetchMySessionsToday,
+  deleteWorkSession,
+  SessionBadge,
+  DeleteSessionDialog,
 } from '@/features/timer';
 import { ScreenPet, PetSelectorModal } from '@/features/pet';
-import { Card, Button, Modal } from '@/shared/ui';
+import { Card, Button, Modal, toast } from '@/shared/ui';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { formatToJalali, getTehranTodayString } from '@/shared/lib/date';
 
@@ -41,6 +47,8 @@ const UserDashboardPage: React.FC = () => {
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
   const [isConfirmComeOpen, setIsConfirmComeOpen] = useState(false);
   const [hasInitiallyChecked, setHasInitiallyChecked] = useState(false);
+  const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!attLoading) {
@@ -71,6 +79,25 @@ const UserDashboardPage: React.FC = () => {
   const totalSeconds = attendance?.totalSeconds || 0;
   const sessionsCount = attendance?.sessionsCount || 0;
   const currentProject = projects.find((p) => p.id === timer.projectId);
+
+  const { data: mySessionsRes } = useQuery({
+    queryKey: ['my-sessions-today'],
+    queryFn: () => fetchMySessionsToday(),
+    enabled: hasDeclaredToday && !isAbsentToday,
+  });
+  const mySessions = mySessionsRes?.sessions || [];
+
+  const deleteSessionMut = useMutation({
+    mutationFn: (id: number) => deleteWorkSession(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      toast.success('سشن کاری با موفقیت حذف شد');
+      setDeletingSession(null);
+    },
+    onError: (err: Error) => toast.error(err.message || 'خطا در حذف سشن کاری'),
+  });
 
   // Desktop keyboard shortcut: Space to toggle start/pause
   useEffect(() => {
@@ -381,6 +408,50 @@ const UserDashboardPage: React.FC = () => {
                 </p>
               </div>
             </div>
+
+            {/* Today's Logged Sessions */}
+            {mySessions.length > 0 && (
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-2">
+                <span className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400">
+                  سشن‌های ثبت‌شده امروز ({toPersianDigits(mySessions.length)})
+                </span>
+                <div className="space-y-2 max-h-52 overflow-y-auto pe-1">
+                  {mySessions.map((s) => {
+                    const pName = s.projectName || 'پروژه';
+                    const sInfo = `${pName} (${formatDurationToHoursMins(s.durationSeconds)})`;
+                    return (
+                      <div
+                        key={s.id}
+                        className="p-2.5 rounded-xl bg-gray-50 dark:bg-[#182030] border border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-1.5 font-black text-sec dark:text-white truncate">
+                            <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span className="truncate">{pName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <SessionBadge approval={s.approval} className="text-[10px] py-0.5 px-1.5" />
+                            <span className="text-[11px] font-bold text-primary">
+                              {formatDurationToHoursMins(s.durationSeconds)}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 p-1.5 shrink-0"
+                          onClick={() => setDeletingSession({ id: s.id, info: sInfo })}
+                          title="حذف سشن"
+                          aria-label="حذف سشن"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Active Info Card */}
@@ -442,6 +513,15 @@ const UserDashboardPage: React.FC = () => {
       {/* Interactive Screen Pet Companion */}
       <ScreenPet timerState={timer.state} onOpenSelector={() => setIsPetModalOpen(true)} />
       <PetSelectorModal isOpen={isPetModalOpen} onClose={() => setIsPetModalOpen(false)} />
+
+      {/* Delete Session Dialog */}
+      <DeleteSessionDialog
+        isOpen={Boolean(deletingSession)}
+        targetInfo={deletingSession?.info || ''}
+        isLoading={deleteSessionMut.isPending}
+        onConfirm={() => deletingSession && deleteSessionMut.mutate(deletingSession.id)}
+        onCancel={() => setDeletingSession(null)}
+      />
     </div>
   );
 };

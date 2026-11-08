@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { create } from 'zustand';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -37,13 +38,13 @@ export const ToastContainer: React.FC = () => {
   const { toasts, remove } = useToastStore();
   if (toasts.length === 0) return null;
 
-  return (
-    <div aria-live="polite" className="fixed bottom-4 start-4 z-50 flex flex-col gap-2 max-w-sm w-full">
+  return createPortal(
+    <div aria-live="polite" className="fixed bottom-4 start-4 z-[99999] pointer-events-none flex flex-col gap-2 max-w-sm w-full">
       {toasts.map((t) => (
         <div
           key={t.id}
           className={cn(
-            'flex items-center justify-between p-3.5 rounded-xl border shadow-hard-md text-xs sm:text-sm font-bold animate-in slide-in-from-bottom-2',
+            'pointer-events-auto flex items-center justify-between p-3.5 rounded-xl border shadow-hard-md text-xs sm:text-sm font-bold animate-in slide-in-from-bottom-2',
             t.type === 'success' && 'bg-white dark:bg-[#151C28] text-emerald-600 border-emerald-500 shadow-ecosystem',
             t.type === 'error' && 'bg-white dark:bg-[#151C28] text-[#C60036] border-[#C60036] shadow-female',
             t.type === 'info' && 'bg-white dark:bg-[#151C28] text-sec dark:text-white border-sec dark:border-primary shadow-male'
@@ -60,7 +61,8 @@ export const ToastContainer: React.FC = () => {
           </button>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 };
 

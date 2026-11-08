@@ -1,0 +1,164 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Check, X, Trash2, Clock, FolderKanban } from 'lucide-react';
+import { Modal, Button, Skeleton, EmptyState, toast } from '@/shared/ui';
+import { SessionBadge } from './SessionBadge';
+import { SessionDecisionDialog } from './SessionDecisionDialog';
+import { DeleteSessionDialog } from './DeleteSessionDialog';
+import { fetchAdminWorkSessions, decideWorkSession, deleteWorkSession } from '../api/timer-api';
+import { formatDurationToHoursMins } from '@/shared/lib/formatters';
+import { formatToJalali } from '@/shared/lib/date';
+import type { WorkSession } from '@/shared/types/models';
+
+interface AttendanceSessionsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userId: number | null;
+  userName: string;
+  date: string;
+}
+
+export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = ({
+  isOpen,
+  onClose,
+  userId,
+  userName,
+  date,
+}) => {
+  const queryClient = useQueryClient();
+  const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; info: string } | null>(null);
+  const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-work-sessions', userId, date],
+    queryFn: () => fetchAdminWorkSessions({ userId: userId || undefined, date }),
+    enabled: isOpen && Boolean(userId) && Boolean(date),
+  });
+
+  const decideMut = useMutation({
+    mutationFn: ({ id, decision }: { id: number; decision: 'APPROVED' | 'REJECTED' }) =>
+      decideWorkSession(id, decision),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+      toast.success('وضعیت سشن با موفقیت تغییر کرد');
+      setActiveDecision(null);
+    },
+    onError: (err: Error) => toast.error(err.message || 'خطا در ثبت وضعیت سشن'),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => deleteWorkSession(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+      toast.success('سشن کاری با موفقیت حذف شد');
+      setDeletingSession(null);
+    },
+    onError: (err: Error) => toast.error(err.message || 'خطا در حذف سشن کاری'),
+  });
+
+  const sessions = data?.data?.sessions || [];
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={`سشن‌های کاری ${userName} - ${formatToJalali(date)}`}
+        className="max-w-xl"
+      >
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pe-1">
+          {isLoading ? (
+            <div className="space-y-2.5">
+              {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+            </div>
+          ) : sessions.length === 0 ? (
+            <EmptyState title="هیچ سشن کاری برای این تاریخ ثبت نشده است" />
+          ) : (
+            <div className="space-y-2.5">
+              {sessions.map((s: WorkSession) => {
+                const projectTitle = s.project?.name || s.projectName || 'پروژه';
+                const sessionInfo = `${projectTitle} (${formatDurationToHoursMins(s.durationSeconds)})`;
+
+                return (
+                  <div
+                    key={s.id}
+                    className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-[#182030] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <FolderKanban className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-xs font-black text-sec dark:text-white truncate">{projectTitle}</span>
+                        <SessionBadge approval={s.approval} />
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-ink-normal/60 dark:text-gray-400 font-bold">
+                        <span className="flex items-center gap-1 text-primary">
+                          <Clock className="w-3.5 h-3.5" />
+                          {formatDurationToHoursMins(s.durationSeconds)}
+                        </span>
+                        <span>•</span>
+                        <span>{s.startedAt ? new Date(s.startedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1.5 shrink-0 pt-2 sm:pt-0 border-t border-gray-200 dark:border-gray-700 sm:border-0">
+                      {s.approval !== 'APPROVED' && (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
+                        </Button>
+                      )}
+                      {s.approval !== 'REJECTED' && (
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 p-1.5"
+                        onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
+                        aria-label="حذف سشن"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <SessionDecisionDialog
+        isOpen={Boolean(activeDecision)}
+        decision={activeDecision?.decision || null}
+        targetInfo={activeDecision?.info || ''}
+        isLoading={decideMut.isPending}
+        onConfirm={() => activeDecision && decideMut.mutate(activeDecision)}
+        onCancel={() => setActiveDecision(null)}
+      />
+
+      <DeleteSessionDialog
+        isOpen={Boolean(deletingSession)}
+        targetInfo={deletingSession?.info || ''}
+        isLoading={deleteMut.isPending}
+        onConfirm={() => deletingSession && deleteMut.mutate(deletingSession.id)}
+        onCancel={() => setDeletingSession(null)}
+      />
+    </>
+  );
+};

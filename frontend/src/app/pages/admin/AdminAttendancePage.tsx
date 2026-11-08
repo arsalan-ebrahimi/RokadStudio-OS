@@ -4,6 +4,7 @@ import { Check, X } from 'lucide-react';
 import { Card, Button, Skeleton, EmptyState, toast, PersianDatePicker, Select } from '@/shared/ui';
 import { AttendanceBadge } from '@/features/attendance/components/AttendanceBadge';
 import { AttendanceDecisionDialog } from '@/features/attendance/components/AttendanceDecisionDialog';
+import { AttendanceSessionsModal } from '@/features/timer/components/AttendanceSessionsModal';
 import { fetchAdminAttendance, decideAttendance } from '@/features/attendance/api/admin-attendance-api';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
@@ -14,6 +15,7 @@ export const AdminAttendancePage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(getTehranTodayString());
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; name: string } | null>(null);
+  const [sessionsModalUser, setSessionsModalUser] = useState<{ userId: number; userName: string; date: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-attendance', selectedDate, statusFilter],
@@ -143,11 +145,16 @@ export const AdminAttendancePage: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between gap-2 pt-2.5 md:pt-0 border-t border-gray-100 dark:border-gray-800 md:border-0 md:col-span-7">
-                <div className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => r.user?.id && setSessionsModalUser({ userId: r.user.id, userName: r.user.name || '', date: r.date })}
+                  className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0 hover:border-primary/60 hover:bg-gray-100 dark:hover:bg-[#1f293d] transition-all cursor-pointer"
+                  title="مشاهده، تایید، رد یا حذف سشن‌های کاری"
+                >
                   <span className="tabular-nums text-sec dark:text-white font-extrabold">{toPersianDigits(r.sessionsCount || 0)}</span> دور
                   <span className="mx-1 opacity-40">•</span>
                   <span className="text-primary font-extrabold">{formatDurationToHoursMins(r.totalSeconds || 0)}</span>
-                </div>
+                </button>
 
                 <div className="flex items-center justify-end gap-2 shrink-0">
                   <div className="flex items-center gap-1.5">
@@ -186,6 +193,14 @@ export const AdminAttendancePage: React.FC = () => {
         isLoading={mutation.isPending}
         onConfirm={() => activeDecision && mutation.mutate(activeDecision)}
         onCancel={() => setActiveDecision(null)}
+      />
+
+      <AttendanceSessionsModal
+        isOpen={Boolean(sessionsModalUser)}
+        onClose={() => setSessionsModalUser(null)}
+        userId={sessionsModalUser?.userId || null}
+        userName={sessionsModalUser?.userName || ''}
+        date={sessionsModalUser?.date || ''}
       />
     </div>
   );

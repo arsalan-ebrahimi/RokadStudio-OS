@@ -216,11 +216,18 @@ export const getWorkSessionsSummaryAgg = async ({
   dateFrom,
   dateTo,
   groupBy = "user_project",
+  approval,
 }) => {
   const where = {};
 
   if (userId) where.userId = Number(userId);
   if (projectId) where.projectId = Number(projectId);
+  if (approval) {
+    where.approval = approval;
+  } else {
+    // By default, exclude REJECTED sessions from summary aggregation
+    where.approval = { not: "REJECTED" };
+  }
 
   if (date || dateFrom || dateTo) {
     where.attendance = {};
@@ -296,4 +303,78 @@ export const getWorkSessionsSummaryAgg = async ({
   });
 
   return rows;
+};
+
+export const decideWorkSessionRecord = async (sessionId, decision, adminUser, now = new Date()) => {
+  const session = await prisma.workSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+        },
+      },
+      project: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!session) {
+    throw new HandleERROR("سشن کاری یافت نشد", 404);
+  }
+
+  // Guard: ADMIN may not decide a SUPER_ADMIN's record
+  if (adminUser.role === "ADMIN" && session.user.role === "SUPER_ADMIN") {
+    throw new HandleERROR("مدیران اجازه بررسی و تغییر وضعیت سشن سوپرادمین را ندارند", 403);
+  }
+
+  if (decision !== "APPROVED" && decision !== "REJECTED") {
+    throw new HandleERROR("وضعیت انتخابی نامعتبر است", 400);
+  }
+
+  const updated = await prisma.workSession.update({
+    where: { id: sessionId },
+    data: {
+      approval: decision,
+      source: "ADMIN",
+      decidedById: adminUser.id,
+      decidedAt: now,
+    },
+    include: {
+      user: { select: { id: true, name: true, role: true } },
+      project: { select: { id: true, name: true } },
+      decidedBy: { select: { id: true, name: true } },
+    },
+  });
+
+  return updated;
+};
+
+export const deleteWorkSession = async (sessionId, currentUser) => {
+  const session = await prisma.workSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw new HandleERROR("سشن کاری یافت نشد", 404);
+  }
+
+  const isPrivileged = currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN";
+  const isOwner = session.userId === currentUser.id;
+
+  if (!isPrivileged && !isOwner) {
+    throw new HandleERROR("شما اجازه حذف این سشن کاری را ندارید", 403);
+  }
+
+  await prisma.workSession.delete({
+    where: { id: sessionId },
+  });
+
+  return { id: sessionId };
 };

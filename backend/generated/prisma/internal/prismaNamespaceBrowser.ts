@@ -135,6 +135,10 @@ export const WorkSessionScalarFieldEnum = {
   durationSeconds: 'durationSeconds',
   clientRequestId: 'clientRequestId',
   workDate: 'workDate',
+  approval: 'approval',
+  source: 'source',
+  decidedById: 'decidedById',
+  decidedAt: 'decidedAt',
   startedAt: 'startedAt',
   createdAt: 'createdAt'
 } as const

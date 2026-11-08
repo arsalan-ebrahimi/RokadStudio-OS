@@ -5,6 +5,8 @@ import { getPagination, formatPaginationMeta } from "../../Utils/pagination.js";
 import {
   logWorkSession,
   getWorkSessionsSummaryAgg,
+  decideWorkSessionRecord,
+  deleteWorkSession,
 } from "./workSessionService.js";
 
 export const postWorkSession = catchAsync(async (req, res, next) => {
@@ -67,6 +69,9 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
     projectName: s.project?.name,
     durationSeconds: s.durationSeconds,
     attendanceDate: formatDate(s.attendance?.date),
+    workDate: formatDate(s.workDate),
+    approval: s.approval,
+    source: s.source,
     createdAt: s.createdAt,
   }));
 
@@ -82,12 +87,13 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
 
 export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
   const { page, limit, skip } = getPagination(req.query);
-  const { userId, projectId, date, dateFrom, dateTo } = req.query;
+  const { userId, projectId, date, dateFrom, dateTo, approval } = req.query;
 
   const where = {};
 
   if (userId) where.userId = Number(userId);
   if (projectId) where.projectId = Number(projectId);
+  if (approval) where.approval = approval;
 
   if (date) {
     where.attendance = { date: toDateOnly(date) };
@@ -117,6 +123,9 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
         attendance: {
           select: { date: true },
         },
+        decidedBy: {
+          select: { id: true, name: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -128,6 +137,12 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
     project: s.project,
     durationSeconds: s.durationSeconds,
     attendanceDate: formatDate(s.attendance?.date),
+    workDate: formatDate(s.workDate),
+    approval: s.approval,
+    source: s.source,
+    decidedBy: s.decidedBy,
+    decidedAt: s.decidedAt,
+    startedAt: s.startedAt,
     createdAt: s.createdAt,
   }));
 
@@ -149,5 +164,32 @@ export const getWorkSessionsSummary = catchAsync(async (req, res, next) => {
     success: true,
     message: "Work sessions summary fetched successfully",
     data: summaryRows,
+  });
+});
+
+export const patchWorkSessionDecision = catchAsync(async (req, res, next) => {
+  const id = Number(req.params.id);
+  const { decision } = req.body;
+
+  const result = await decideWorkSessionRecord(id, decision, req.user);
+
+  return res.status(200).json({
+    success: true,
+    message: decision === "APPROVED" ? "سشن کاری با موفقیت تایید شد" : "سشن کاری با موفقیت رد شد",
+    data: {
+      ...result,
+      workDate: formatDate(result.workDate),
+    },
+  });
+});
+
+export const deleteWorkSessionController = catchAsync(async (req, res, next) => {
+  const id = Number(req.params.id);
+  await deleteWorkSession(id, req.user);
+
+  return res.status(200).json({
+    success: true,
+    message: "سشن کاری با موفقیت حذف شد",
+    data: { id },
   });
 });

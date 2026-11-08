@@ -6,7 +6,6 @@ import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { createProject, updateProject, deleteProject, fetchProjectDetails, syncMembers } from '@/features/projects/api/projects-crud-api';
 import { searchActiveUsers } from '@/features/users/api/users-api';
 import { useAuthStore } from '@/features/auth';
-import { ApiError } from '@/shared/types/api';
 import { cn } from '@/shared/lib/utils';
 import { toPersianDigits } from '@/shared/lib/formatters';
 import type { Project, User } from '@/shared/types/models';
@@ -71,15 +70,13 @@ export const AdminProjectsPage: React.FC = () => {
     mutationFn: (id: number) => deleteProject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
       setDeletingId(null);
-      toast.success('پروژه حذف شد');
+      toast.success('پروژه و سشن‌های مربوط به آن با موفقیت حذف شدند');
     },
     onError: (err: unknown) => {
-      if (err instanceof ApiError && err.status === 409) {
-        toast.error('پروژه دارای سشن کاری است؛ می‌توانید آن را غیرفعال کنید.');
-      } else {
-        toast.error(err instanceof Error ? err.message : 'خطا در حذف پروژه');
-      }
+      toast.error(err instanceof Error ? err.message : 'خطا در حذف پروژه');
     },
   });
 

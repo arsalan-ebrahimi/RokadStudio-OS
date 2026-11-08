@@ -98,16 +98,34 @@ export const runDailyClose = async (now = new Date(), prismaClient = prisma) => 
 
   const autoApprovedCount = autoApproveResult.count;
 
+  // Auto-approve pending work sessions with workDate <= autoApproveCutoff
+  const autoApproveSessionsResult = await prismaClient.workSession.updateMany({
+    where: {
+      approval: "PENDING",
+      workDate: {
+        lte: autoApproveCutoff,
+      },
+    },
+    data: {
+      approval: "APPROVED",
+      source: "SYSTEM",
+      decidedAt: now,
+    },
+  });
+
+  const autoApprovedSessionsCount = autoApproveSessionsResult.count;
+
   // Invalidate any cached project/auth summaries if needed
   await invalidateAllProjectsCache();
 
   // One-line summary log (counts only - never codes)
   console.log(
-    `[DailyClose] Processed: ${filledAbsencesCount} absences filled, ${autoApprovedCount} attendances auto-approved.`
+    `[DailyClose] Processed: ${filledAbsencesCount} absences filled, ${autoApprovedCount} attendances auto-approved, ${autoApprovedSessionsCount} work sessions auto-approved.`
   );
 
   return {
     filledAbsencesCount,
     autoApprovedCount,
+    autoApprovedSessionsCount,
   };
 };

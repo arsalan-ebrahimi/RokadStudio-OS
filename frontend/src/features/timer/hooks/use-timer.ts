@@ -328,6 +328,7 @@ export function useTimer(selectedProjectId?: number | null) {
         setActiveClientRequestId(null);
         setPendingProjectChange(null);
         queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
+        queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
         toast.success('زمان پروژه ثبت و پروژه تغییر یافت');
       } catch (err: unknown) {
         let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
@@ -405,6 +406,7 @@ export function useTimer(selectedProjectId?: number | null) {
         setIsRegisterDialogOpen(false);
         setShowFocusBanner(false);
         queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
+        queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
         queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
         toast.success('زمان کار با موفقیت ثبت شد');
       } catch (err: unknown) {

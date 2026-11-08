@@ -236,6 +236,7 @@ export type UserWhereInput = {
   attendances?: Prisma.AttendanceListRelationFilter
   decidedAttendances?: Prisma.AttendanceListRelationFilter
   workSessions?: Prisma.WorkSessionListRelationFilter
+  decidedWorkSessions?: Prisma.WorkSessionListRelationFilter
   createdProjects?: Prisma.ProjectListRelationFilter
 }
 
@@ -251,6 +252,7 @@ export type UserOrderByWithRelationInput = {
   attendances?: Prisma.AttendanceOrderByRelationAggregateInput
   decidedAttendances?: Prisma.AttendanceOrderByRelationAggregateInput
   workSessions?: Prisma.WorkSessionOrderByRelationAggregateInput
+  decidedWorkSessions?: Prisma.WorkSessionOrderByRelationAggregateInput
   createdProjects?: Prisma.ProjectOrderByRelationAggregateInput
 }
 
@@ -269,6 +271,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   attendances?: Prisma.AttendanceListRelationFilter
   decidedAttendances?: Prisma.AttendanceListRelationFilter
   workSessions?: Prisma.WorkSessionListRelationFilter
+  decidedWorkSessions?: Prisma.WorkSessionListRelationFilter
   createdProjects?: Prisma.ProjectListRelationFilter
 }, "id" | "code">
 
@@ -311,6 +314,7 @@ export type UserCreateInput = {
   attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
 }
 
@@ -326,6 +330,7 @@ export type UserUncheckedCreateInput = {
   attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
@@ -340,6 +345,7 @@ export type UserUpdateInput = {
   attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -355,6 +361,7 @@ export type UserUncheckedUpdateInput = {
   attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -523,12 +530,28 @@ export type UserCreateNestedOneWithoutWorkSessionsInput = {
   connect?: Prisma.UserWhereUniqueInput
 }
 
+export type UserCreateNestedOneWithoutDecidedWorkSessionsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDecidedWorkSessionsInput, Prisma.UserUncheckedCreateWithoutDecidedWorkSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDecidedWorkSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
 export type UserUpdateOneRequiredWithoutWorkSessionsNestedInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutWorkSessionsInput, Prisma.UserUncheckedCreateWithoutWorkSessionsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutWorkSessionsInput
   upsert?: Prisma.UserUpsertWithoutWorkSessionsInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutWorkSessionsInput, Prisma.UserUpdateWithoutWorkSessionsInput>, Prisma.UserUncheckedUpdateWithoutWorkSessionsInput>
+}
+
+export type UserUpdateOneWithoutDecidedWorkSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDecidedWorkSessionsInput, Prisma.UserUncheckedCreateWithoutDecidedWorkSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDecidedWorkSessionsInput
+  upsert?: Prisma.UserUpsertWithoutDecidedWorkSessionsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDecidedWorkSessionsInput, Prisma.UserUpdateWithoutDecidedWorkSessionsInput>, Prisma.UserUncheckedUpdateWithoutDecidedWorkSessionsInput>
 }
 
 export type UserCreateWithoutCreatedProjectsInput = {
@@ -542,6 +565,7 @@ export type UserCreateWithoutCreatedProjectsInput = {
   attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
 }
 
 export type UserUncheckedCreateWithoutCreatedProjectsInput = {
@@ -556,6 +580,7 @@ export type UserUncheckedCreateWithoutCreatedProjectsInput = {
   attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
 }
 
 export type UserCreateOrConnectWithoutCreatedProjectsInput = {
@@ -585,6 +610,7 @@ export type UserUpdateWithoutCreatedProjectsInput = {
   attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedProjectsInput = {
@@ -599,6 +625,7 @@ export type UserUncheckedUpdateWithoutCreatedProjectsInput = {
   attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
 }
 
 export type UserCreateWithoutProjectMembersInput = {
@@ -611,6 +638,7 @@ export type UserCreateWithoutProjectMembersInput = {
   attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
 }
 
@@ -625,6 +653,7 @@ export type UserUncheckedCreateWithoutProjectMembersInput = {
   attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
@@ -654,6 +683,7 @@ export type UserUpdateWithoutProjectMembersInput = {
   attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -668,6 +698,7 @@ export type UserUncheckedUpdateWithoutProjectMembersInput = {
   attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -681,6 +712,7 @@ export type UserCreateWithoutAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
 }
 
@@ -695,6 +727,7 @@ export type UserUncheckedCreateWithoutAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
@@ -713,6 +746,7 @@ export type UserCreateWithoutDecidedAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
   attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
 }
 
@@ -727,6 +761,7 @@ export type UserUncheckedCreateWithoutDecidedAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
   attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
@@ -756,6 +791,7 @@ export type UserUpdateWithoutAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -770,6 +806,7 @@ export type UserUncheckedUpdateWithoutAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -794,6 +831,7 @@ export type UserUpdateWithoutDecidedAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
   attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -808,6 +846,7 @@ export type UserUncheckedUpdateWithoutDecidedAttendancesInput = {
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
   attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -821,6 +860,7 @@ export type UserCreateWithoutWorkSessionsInput = {
   projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
   attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
 }
 
@@ -835,12 +875,47 @@ export type UserUncheckedCreateWithoutWorkSessionsInput = {
   projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
   attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutWorkSessionsInput = {
   where: Prisma.UserWhereUniqueInput
   create: Prisma.XOR<Prisma.UserCreateWithoutWorkSessionsInput, Prisma.UserUncheckedCreateWithoutWorkSessionsInput>
+}
+
+export type UserCreateWithoutDecidedWorkSessionsInput = {
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserUncheckedCreateWithoutDecidedWorkSessionsInput = {
+  id?: number
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserCreateOrConnectWithoutDecidedWorkSessionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDecidedWorkSessionsInput, Prisma.UserUncheckedCreateWithoutDecidedWorkSessionsInput>
 }
 
 export type UserUpsertWithoutWorkSessionsInput = {
@@ -864,6 +939,7 @@ export type UserUpdateWithoutWorkSessionsInput = {
   projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
   attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -878,6 +954,47 @@ export type UserUncheckedUpdateWithoutWorkSessionsInput = {
   projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
   attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
+  createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserUpsertWithoutDecidedWorkSessionsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDecidedWorkSessionsInput, Prisma.UserUncheckedUpdateWithoutDecidedWorkSessionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDecidedWorkSessionsInput, Prisma.UserUncheckedCreateWithoutDecidedWorkSessionsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDecidedWorkSessionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDecidedWorkSessionsInput, Prisma.UserUncheckedUpdateWithoutDecidedWorkSessionsInput>
+}
+
+export type UserUpdateWithoutDecidedWorkSessionsInput = {
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDecidedWorkSessionsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -891,6 +1008,7 @@ export type UserCountOutputType = {
   attendances: number
   decidedAttendances: number
   workSessions: number
+  decidedWorkSessions: number
   createdProjects: number
 }
 
@@ -899,6 +1017,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   attendances?: boolean | UserCountOutputTypeCountAttendancesArgs
   decidedAttendances?: boolean | UserCountOutputTypeCountDecidedAttendancesArgs
   workSessions?: boolean | UserCountOutputTypeCountWorkSessionsArgs
+  decidedWorkSessions?: boolean | UserCountOutputTypeCountDecidedWorkSessionsArgs
   createdProjects?: boolean | UserCountOutputTypeCountCreatedProjectsArgs
 }
 
@@ -943,6 +1062,13 @@ export type UserCountOutputTypeCountWorkSessionsArgs<ExtArgs extends runtime.Typ
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountDecidedWorkSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WorkSessionWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountCreatedProjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ProjectWhereInput
 }
@@ -960,6 +1086,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   attendances?: boolean | Prisma.User$attendancesArgs<ExtArgs>
   decidedAttendances?: boolean | Prisma.User$decidedAttendancesArgs<ExtArgs>
   workSessions?: boolean | Prisma.User$workSessionsArgs<ExtArgs>
+  decidedWorkSessions?: boolean | Prisma.User$decidedWorkSessionsArgs<ExtArgs>
   createdProjects?: boolean | Prisma.User$createdProjectsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -1000,6 +1127,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   attendances?: boolean | Prisma.User$attendancesArgs<ExtArgs>
   decidedAttendances?: boolean | Prisma.User$decidedAttendancesArgs<ExtArgs>
   workSessions?: boolean | Prisma.User$workSessionsArgs<ExtArgs>
+  decidedWorkSessions?: boolean | Prisma.User$decidedWorkSessionsArgs<ExtArgs>
   createdProjects?: boolean | Prisma.User$createdProjectsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1013,6 +1141,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     attendances: Prisma.$AttendancePayload<ExtArgs>[]
     decidedAttendances: Prisma.$AttendancePayload<ExtArgs>[]
     workSessions: Prisma.$WorkSessionPayload<ExtArgs>[]
+    decidedWorkSessions: Prisma.$WorkSessionPayload<ExtArgs>[]
     createdProjects: Prisma.$ProjectPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1421,6 +1550,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   attendances<T extends Prisma.User$attendancesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$attendancesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AttendancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   decidedAttendances<T extends Prisma.User$decidedAttendancesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$decidedAttendancesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AttendancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   workSessions<T extends Prisma.User$workSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$workSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  decidedWorkSessions<T extends Prisma.User$decidedWorkSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$decidedWorkSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdProjects<T extends Prisma.User$createdProjectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdProjectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1926,6 +2056,30 @@ export type User$decidedAttendancesArgs<ExtArgs extends runtime.Types.Extensions
  * User.workSessions
  */
 export type User$workSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WorkSession
+   */
+  select?: Prisma.WorkSessionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WorkSession
+   */
+  omit?: Prisma.WorkSessionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WorkSessionInclude<ExtArgs> | null
+  where?: Prisma.WorkSessionWhereInput
+  orderBy?: Prisma.WorkSessionOrderByWithRelationInput | Prisma.WorkSessionOrderByWithRelationInput[]
+  cursor?: Prisma.WorkSessionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.WorkSessionScalarFieldEnum | Prisma.WorkSessionScalarFieldEnum[]
+}
+
+/**
+ * User.decidedWorkSessions
+ */
+export type User$decidedWorkSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the WorkSession
    */
