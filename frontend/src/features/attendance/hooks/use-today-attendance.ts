@@ -28,7 +28,13 @@ export function useTodayAttendance() {
   const mutation = useMutation({
     mutationFn: submitTodayAttendance,
     onSuccess: (data) => {
-      queryClient.setQueryData(attendanceKeys.today(), data);
+      queryClient.setQueryData(attendanceKeys.today(), (old: typeof data | undefined) => ({
+        ...(old || {}),
+        ...data,
+        sessionsCount: data.sessionsCount ?? old?.sessionsCount ?? 0,
+        totalSeconds: data.totalSeconds ?? old?.totalSeconds ?? 0,
+      }));
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.today() });
       if (data.status === 'ABSENT') {
         toast.info('عدم حضور شما برای امروز ثبت شد');
       } else {

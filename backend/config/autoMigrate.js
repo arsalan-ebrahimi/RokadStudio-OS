@@ -111,3 +111,4 @@ export const ensureSchemaUpdated = async () => {
 
   return syncPromise;
 };
+

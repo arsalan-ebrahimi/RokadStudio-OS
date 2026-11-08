@@ -23,6 +23,8 @@ export const AdminProjectsPage: React.FC = () => {
   const [membersProject, setMembersProject] = useState<Project | null>(null);
   const [projectMembers, setProjectMembers] = useState<{ id: number; name: string }[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [isMembersLoading, setIsMembersLoading] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -35,7 +37,7 @@ export const AdminProjectsPage: React.FC = () => {
     queryFn: () => fetchAllProjects(),
   });
 
-  const { data: activeUsers = [] } = useQuery({
+  const { data: activeUsers = [], isLoading: isActiveUsersLoading } = useQuery({
     queryKey: ['active-users'],
     queryFn: () => searchActiveUsers(),
     enabled: Boolean(membersProject && isSuperAdmin),
@@ -92,14 +94,19 @@ export const AdminProjectsPage: React.FC = () => {
 
   const openMembersModal = async (project: Project) => {
     setMembersProject(project);
+    setIsMembersLoading(true);
+    setMemberSearchQuery('');
     try {
       const details = await fetchProjectDetails(project.id);
       const members = details.members || [];
       setProjectMembers(members);
       setSelectedUserIds(members.map((m: { id: number }) => m.id));
-    } catch {
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'خطا در بارگذاری اعضای پروژه');
       setProjectMembers([]);
       setSelectedUserIds([]);
+    } finally {
+      setIsMembersLoading(false);
     }
   };
 
@@ -117,6 +124,17 @@ export const AdminProjectsPage: React.FC = () => {
     if (statusFilter === 'ACTIVE') return p.isActive;
     if (statusFilter === 'COMPLETED') return !p.isActive;
     return true;
+  });
+
+  const isMembersModalLoading = isMembersLoading || (isSuperAdmin && isActiveUsersLoading);
+
+  const filteredActiveUsers = activeUsers.filter((u: User) => {
+    if (!memberSearchQuery.trim()) return true;
+    const query = memberSearchQuery.trim().toLowerCase();
+    return (
+      u.name?.toLowerCase().includes(query) ||
+      (u.code && u.code.toLowerCase().includes(query))
+    );
   });
 
   return (
@@ -309,48 +327,131 @@ export const AdminProjectsPage: React.FC = () => {
 
       {/* Manage Members Modal */}
       {membersProject && (
-        <Modal isOpen onClose={() => setMembersProject(null)} title={`اعضای پروژه ${membersProject.name}`}>
-          {isSuperAdmin ? (
-            <>
-              <div className="space-y-3 max-h-80 overflow-y-auto p-1">
-                {activeUsers.map((u: User) => {
-                  const isSelected = selectedUserIds.includes(u.id);
-                  return (
-                    <label
-                      key={u.id}
-                      className={cn(
-                        'flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer select-none',
-                        isSelected
-                          ? 'border-primary bg-primary/10 dark:bg-primary/15 shadow-[2px_2px_0_#202A5A] dark:shadow-[2px_2px_0_#59BBAF]'
-                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] hover:border-gray-300 dark:hover:border-gray-600'
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">{u.name}</span>
-                        {u.role && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                            {u.role === 'SUPER_ADMIN' ? 'مدیر ارشد' : u.role === 'ADMIN' ? 'ادمین' : 'کاربر'}
-                          </span>
-                        )}
-                      </div>
-                      <Checkbox
-                        checked={isSelected}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedUserIds([...selectedUserIds, u.id]);
-                          else setSelectedUserIds(selectedUserIds.filter((id) => id !== u.id));
-                        }}
-                      />
-                    </label>
-                  );
-                })}
+        <Modal
+          isOpen
+          onClose={() => {
+            if (!syncMembersMut.isPending) {
+              setMembersProject(null);
+              setMemberSearchQuery('');
+            }
+          }}
+          title={`اعضای پروژه «${membersProject.name}»`}
+        >
+          {isMembersModalLoading ? (
+            <div className="space-y-3 py-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-ink-normal/60 dark:text-gray-400 mb-1">
+                <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                <span>در حال بارگذاری لیست کاربران و اعضا...</span>
               </div>
+              {Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Skeleton className="w-8 h-8 rounded-lg" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="w-28 h-4 rounded" />
+                        <Skeleton className="w-16 h-3 rounded" />
+                      </div>
+                    </div>
+                    <Skeleton className="w-5 h-5 rounded" />
+                  </div>
+                ))}
+            </div>
+          ) : isSuperAdmin ? (
+            <>
+              {/* Search and Action Bar */}
+              <div className="space-y-3 mb-3">
+                <Input
+                  placeholder="جستجوی نام یا کد پرسنل..."
+                  value={memberSearchQuery}
+                  onChange={(e) => setMemberSearchQuery(e.target.value)}
+                  className="h-9 text-xs"
+                />
+                <div className="flex items-center justify-between text-xs text-ink-normal/60 dark:text-gray-400 px-1">
+                  <span>
+                    تعداد اعضای انتخاب شده:{' '}
+                    <strong className="text-primary font-black">{toPersianDigits(selectedUserIds.length)}</strong> نفر
+                  </span>
+                  {activeUsers.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedUserIds.length === activeUsers.length) {
+                          setSelectedUserIds([]);
+                        } else {
+                          setSelectedUserIds(activeUsers.map((u: User) => u.id));
+                        }
+                      }}
+                      className="text-primary hover:underline font-bold text-xs"
+                    >
+                      {selectedUserIds.length === activeUsers.length ? 'لغو انتخاب همه' : 'انتخاب همه'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Users List */}
+              {filteredActiveUsers.length === 0 ? (
+                <EmptyState
+                  title={memberSearchQuery ? 'کاربری با این مشخصات یافت نشد' : 'هیچ کاربر فعالی یافت نشد'}
+                />
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto p-1">
+                  {filteredActiveUsers.map((u: User) => {
+                    const isSelected = selectedUserIds.includes(u.id);
+                    return (
+                      <label
+                        key={u.id}
+                        className={cn(
+                          'flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer select-none',
+                          isSelected
+                            ? 'border-primary bg-primary/10 dark:bg-primary/15 shadow-[2px_2px_0_#202A5A] dark:shadow-[2px_2px_0_#59BBAF]'
+                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] hover:border-gray-300 dark:hover:border-gray-600'
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-xs shrink-0 border border-gray-200 dark:border-gray-700">
+                            {u.name?.slice(0, 1) || 'ک'}
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-xs sm:text-sm font-bold text-sec dark:text-white block">
+                              {u.name}
+                            </span>
+                            <div className="flex items-center gap-1.5 text-[10px] text-ink-normal/50 dark:text-gray-400 font-medium">
+                              {u.code && <span>کد: {u.code}</span>}
+                              {u.role && (
+                                <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-semibold">
+                                  {u.role === 'SUPER_ADMIN' ? 'مدیر ارشد' : u.role === 'ADMIN' ? 'ادمین' : 'کاربر'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedUserIds([...selectedUserIds, u.id]);
+                            else setSelectedUserIds(selectedUserIds.filter((id) => id !== u.id));
+                          }}
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
               <Button
                 variant="primary"
                 className="w-full mt-4"
                 isLoading={syncMembersMut.isPending}
+                disabled={isMembersModalLoading || syncMembersMut.isPending}
                 onClick={() => syncMembersMut.mutate({ id: membersProject.id, userIds: selectedUserIds })}
               >
-                ذخیره اعضا ({selectedUserIds.length})
+                ذخیره اعضا ({toPersianDigits(selectedUserIds.length)})
               </Button>
             </>
           ) : (
@@ -379,7 +480,7 @@ export const AdminProjectsPage: React.FC = () => {
       <ConfirmDialog
         isOpen={Boolean(deletingId)}
         title="حذف پروژه"
-        message="آیا از حذف این پروژه اطمینان دارید؟ اگر سشنی ثبت شده باشد پروژه حذف نخواهد شد."
+        message="آیا از حذف این پروژه اطمینان دارید؟ با حذف پروژه، تمامی سشن‌های کاری مربوط به آن نیز حذف خواهند شد."
         variant="danger"
         isLoading={deleteMut.isPending}
         onConfirm={() => deletingId && deleteMut.mutate(deletingId)}

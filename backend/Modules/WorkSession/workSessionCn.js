@@ -46,7 +46,10 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
 
   const [totalAgg, sessions] = await Promise.all([
     prisma.workSession.aggregate({
-      where,
+      where: {
+        ...where,
+        approval: { not: "REJECTED" },
+      },
       _sum: { durationSeconds: true },
     }),
     prisma.workSession.findMany({

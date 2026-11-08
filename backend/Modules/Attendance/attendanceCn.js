@@ -31,7 +31,13 @@ export const getTodayAttendance = catchAsync(async (req, res, next) => {
   }
 
   const sessionAgg = await prisma.workSession.aggregate({
-    where: { attendanceId: attendance.id },
+    where: {
+      OR: [
+        { attendanceId: attendance.id },
+        { userId, workDate: date },
+      ],
+      approval: { not: "REJECTED" },
+    },
     _count: { id: true },
     _sum: { durationSeconds: true },
   });
@@ -64,12 +70,26 @@ export const postTodayAttendance = catchAsync(async (req, res, next) => {
   const { status, reason } = req.body;
   const record = await declareTodayAttendance(req.userId, status, reason);
 
+  const sessionAgg = await prisma.workSession.aggregate({
+    where: {
+      OR: [
+        { attendanceId: record.id },
+        { userId: req.userId, workDate: record.date },
+      ],
+      approval: { not: "REJECTED" },
+    },
+    _count: { id: true },
+    _sum: { durationSeconds: true },
+  });
+
   return res.status(200).json({
     success: true,
     message: status === "PRESENT" ? "حضور با موفقیت ثبت شد" : "عدم حضور با موفقیت ثبت شد",
     data: {
       ...record,
       date: formatDate(record.date),
+      sessionsCount: sessionAgg._count.id,
+      totalSeconds: sessionAgg._sum.durationSeconds || 0,
     },
   });
 });
@@ -103,7 +123,10 @@ export const getMeAttendance = catchAsync(async (req, res, next) => {
     attendanceIds.length > 0
       ? await prisma.workSession.groupBy({
           by: ["attendanceId"],
-          where: { attendanceId: { in: attendanceIds } },
+          where: {
+            attendanceId: { in: attendanceIds },
+            approval: { not: "REJECTED" },
+          },
           _count: { id: true },
           _sum: { durationSeconds: true },
         })
@@ -193,7 +216,10 @@ export const getAdminAttendance = catchAsync(async (req, res, next) => {
     attendanceIds.length > 0
       ? await prisma.workSession.groupBy({
           by: ["attendanceId"],
-          where: { attendanceId: { in: attendanceIds } },
+          where: {
+            attendanceId: { in: attendanceIds },
+            approval: { not: "REJECTED" },
+          },
           _count: { id: true },
           _sum: { durationSeconds: true },
         })

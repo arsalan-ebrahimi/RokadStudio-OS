@@ -41,8 +41,17 @@ export function formatDurationToHoursMins(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   if (hours > 0) {
-    return `${toPersianDigits(hours)} ساعت و ${toPersianDigits(minutes)} دقیقه`;
+    if (minutes > 0) {
+      return `${toPersianDigits(hours)} ساعت و ${toPersianDigits(minutes)} دقیقه`;
+    }
+    return `${toPersianDigits(hours)} ساعت`;
   }
-  return `${toPersianDigits(minutes)} دقیقه`;
+  if (minutes > 0) {
+    return `${toPersianDigits(minutes)} دقیقه`;
+  }
+  if (totalSeconds > 0) {
+    return `${toPersianDigits(totalSeconds)} ثانیه`;
+  }
+  return '۰ دقیقه';
 }
 

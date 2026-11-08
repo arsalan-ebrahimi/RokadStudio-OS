@@ -76,9 +76,6 @@ const UserDashboardPage: React.FC = () => {
 
   const hasDeclaredToday = Boolean(attendance);
   const isAbsentToday = attendance?.status === 'ABSENT';
-  const totalSeconds = attendance?.totalSeconds || 0;
-  const sessionsCount = attendance?.sessionsCount || 0;
-  const currentProject = projects.find((p) => p.id === timer.projectId);
 
   const { data: mySessionsRes } = useQuery({
     queryKey: ['my-sessions-today'],
@@ -86,6 +83,22 @@ const UserDashboardPage: React.FC = () => {
     enabled: hasDeclaredToday && !isAbsentToday,
   });
   const mySessions = mySessionsRes?.sessions || [];
+
+  // Compute stats directly from today's sessions list (ignoring rejected sessions)
+  const validSessions = mySessions.filter((s) => s.approval !== 'REJECTED');
+  const computedSessionsCount = validSessions.length;
+  const computedTotalSeconds = validSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0);
+
+  // Synchronized counts: prioritize computed real-time stats from mySessions when available
+  const sessionsCount = mySessionsRes !== undefined
+    ? computedSessionsCount
+    : (attendance?.sessionsCount || 0);
+
+  const totalSeconds = mySessionsRes !== undefined
+    ? (mySessionsRes.totalSeconds ?? computedTotalSeconds)
+    : (attendance?.totalSeconds || 0);
+
+  const currentProject = projects.find((p) => p.id === timer.projectId);
 
   const deleteSessionMut = useMutation({
     mutationFn: (id: number) => deleteWorkSession(id),
