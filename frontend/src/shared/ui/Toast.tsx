@@ -56,7 +56,12 @@ export const ToastContainer: React.FC = () => {
             {t.type === 'info' && <Info className="w-4 h-4 shrink-0" />}
             <span>{t.message}</span>
           </div>
-          <button onClick={() => remove(t.id)} className="p-1 hover:opacity-70" aria-label="بستن">
+          <button
+            onClick={() => remove(t.id)}
+            className="p-1.5 -me-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-current opacity-80 hover:opacity-100 transition-all cursor-pointer"
+            aria-label="بستن پیام"
+            title="بستن"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>

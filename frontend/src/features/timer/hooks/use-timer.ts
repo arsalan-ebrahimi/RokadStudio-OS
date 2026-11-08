@@ -45,12 +45,24 @@ function safeUUID(): string {
   });
 }
 
-const localTabId = safeUUID();
+function getSessionTabId(): string {
+  if (typeof window === 'undefined') return 'server';
+  try {
+    let id = sessionStorage.getItem('rokad_timer_tab_id');
+    if (!id) {
+      id = safeUUID();
+      sessionStorage.setItem('rokad_timer_tab_id', id);
+    }
+    return id;
+  } catch {
+    return safeUUID();
+  }
+}
 
 export function useTimer(selectedProjectId?: number | null) {
   const { user } = useAuthStore();
   const userId = user?.id || 'guest';
-  const tabIdRef = useRef<string>(localTabId);
+  const tabIdRef = useRef<string>(getSessionTabId());
 
   const [initialData] = useState(() => {
     try {
@@ -100,6 +112,16 @@ export function useTimer(selectedProjectId?: number | null) {
     [userId]
   );
 
+  // Auto-dismiss recovered notice after 8 seconds
+  useEffect(() => {
+    if (showRecoveredNotice) {
+      const timer = setTimeout(() => {
+        setShowRecoveredNotice(false);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [showRecoveredNotice]);
+
   // Tab lock check and refresh
   const refreshTabLock = useCallback(() => {
     try {
@@ -123,6 +145,21 @@ export function useTimer(selectedProjectId?: number | null) {
           JSON.stringify({ tabId: tabIdRef.current, timestamp: currentTime })
         );
       }
+    } catch {
+      // Ignore storage errors
+    }
+  }, [userId]);
+
+  // Dismiss other tab lock and claim control in this tab
+  const dismissOtherTabLock = useCallback(() => {
+    try {
+      const lockKey = getLockKey(userId);
+      const currentTime = Date.now();
+      localStorage.setItem(
+        lockKey,
+        JSON.stringify({ tabId: tabIdRef.current, timestamp: currentTime })
+      );
+      setIsOtherTabActive(false);
     } catch {
       // Ignore storage errors
     }
@@ -468,6 +505,7 @@ export function useTimer(selectedProjectId?: number | null) {
     isLocked: derived.projectSelectLocked || isSubmitting,
     savedProjectId: engineState.projectId,
     isOtherTabActive,
+    dismissOtherTabLock,
     isSubmitting,
     showRecoveredNotice,
     dismissRecoveredNotice: () => setShowRecoveredNotice(false),

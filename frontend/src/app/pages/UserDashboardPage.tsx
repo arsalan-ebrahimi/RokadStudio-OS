@@ -30,6 +30,7 @@ import { ScreenPet, PetSelectorModal } from '@/features/pet';
 import { Card, Button, Modal, toast } from '@/shared/ui';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { formatToJalali, getTehranTodayString } from '@/shared/lib/date';
+import { useTheme } from '@/shared/lib/theme';
 
 const UserDashboardPage: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -67,12 +68,7 @@ const UserDashboardPage: React.FC = () => {
     }
   }, [projectsLoading, projects, timer.projectId, timer.clearProject]);
 
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
-
-  const toggleTheme = () => {
-    document.documentElement.classList.toggle('dark');
-    setIsDark(!isDark);
-  };
+  const { isDark, toggleTheme } = useTheme();
 
   const hasDeclaredToday = Boolean(attendance);
   const isAbsentToday = attendance?.status === 'ABSENT';
@@ -381,6 +377,7 @@ const UserDashboardPage: React.FC = () => {
               showRecoveredNotice={timer.showRecoveredNotice}
               onDismissRecoveredNotice={timer.dismissRecoveredNotice}
               isOtherTabActive={timer.isOtherTabActive}
+              onDismissOtherTabLock={timer.dismissOtherTabLock}
               isSubmitting={timer.isSubmitting}
             />
           </Card>

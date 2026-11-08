@@ -4,19 +4,15 @@ import { CheckSquare, BarChart3, Users, FolderKanban, LogOut, Sun, Moon, Menu, X
 import { useAuthStore } from '@/features/auth';
 import { cn } from '@/shared/lib/utils';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
+import { useTheme } from '@/shared/lib/theme';
 
 export const AdminLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const { isDark, toggleTheme } = useTheme();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
-
-  const toggleTheme = () => {
-    document.documentElement.classList.toggle('dark');
-    setIsDark(!isDark);
-  };
 
   const navItems = [
     { to: '/panel/attendance', label: 'حضور و غیاب', icon: CheckSquare },

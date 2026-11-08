@@ -24,6 +24,7 @@ interface TimerDisplayProps {
   showRecoveredNotice: boolean;
   onDismissRecoveredNotice: () => void;
   isOtherTabActive: boolean;
+  onDismissOtherTabLock?: () => void;
   isSubmitting: boolean;
 }
 
@@ -44,6 +45,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   showRecoveredNotice,
   onDismissRecoveredNotice,
   isOtherTabActive,
+  onDismissOtherTabLock,
   isSubmitting,
 }) => {
   const isRunning = status === 'RUNNING';
@@ -122,9 +124,22 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
 
       {/* Multi-Tab Lock Warning */}
       {isOtherTabActive && (
-        <div className="w-full flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 text-xs font-bold animate-in fade-in">
-          <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-          <span>تایمر در تب دیگری فعال است.</span>
+        <div className="w-full flex items-center justify-between p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 text-xs font-bold animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            <span>تایمر در تب دیگری فعال است.</span>
+          </div>
+          {onDismissOtherTabLock && (
+            <button
+              onClick={onDismissOtherTabLock}
+              className="p-1 hover:bg-rose-200/60 dark:hover:bg-rose-800/60 rounded-lg transition-colors flex items-center gap-1 text-[11px]"
+              aria-label="انتقال کنترل به این تب"
+              title="انتقال کنترل به این تب"
+            >
+              <span className="hidden sm:inline">انتقال به این تب</span>
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       )}
 
@@ -157,10 +172,10 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
       )}
 
       {/* 1. Large Work Stopwatch (HH:MM:SS) */}
-      <div className="flex flex-col items-center justify-center space-y-1 select-none">
-        <span className="text-xs font-bold text-ink-normal/60 dark:text-gray-400 flex items-center gap-1.5">
+      <div className="flex flex-col items-center justify-center select-none">
+        <span className="text-xs font-bold text-ink-normal/60 dark:text-gray-400 flex items-center gap-1.5 mb-2.5">
           <Flame className="w-3.5 h-3.5 text-primary" />
-          <span>زمان کار پروژه (Stopwatch)</span>
+          <span>زمان کار روی پروژه</span>
         </span>
         <div
           className="text-4xl sm:text-5xl lg:text-6xl font-black tabular-nums tracking-wider text-sec dark:text-white"
@@ -216,7 +231,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
           {/* Explicit Label: Not relying on color alone */}
           <div
             className={cn(
-              'px-3 py-0.5 rounded-full text-xs font-black flex items-center gap-1 mb-1',
+              'px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 mb-2.5 sm:mb-3',
               isBreak
                 ? 'bg-girl/15 text-girl border border-girl/30'
                 : 'bg-primary/15 text-primary border border-primary/30'
