@@ -11,17 +11,21 @@ let server = null;
 
 const startServer = async () => {
   try {
-    await connectRedis();
-
-    server = app.listen(port, () => {
-      console.log(`Rokad Attendance Platform server running on port ${port}`);
+    server = app.listen(port, "0.0.0.0", () => {
+      console.log(`Rokad Attendance Platform server running on port ${port} (0.0.0.0)`);
     });
 
-    // Start daily close cron job
-    startCronJobs();
-
-    // Catch up absences after server restart/downtime
-    runBootCatchup();
+    // Connect to Redis and initialize background jobs non-blockingly
+    connectRedis()
+      .then(() => {
+        // Start daily close cron job
+        startCronJobs();
+        // Catch up absences after server restart/downtime
+        runBootCatchup();
+      })
+      .catch((err) => {
+        console.error("Redis connection error (running in fail-open mode):", err.message);
+      });
   } catch (error) {
     console.error("Fatal error during server startup:", error);
     process.exit(1);

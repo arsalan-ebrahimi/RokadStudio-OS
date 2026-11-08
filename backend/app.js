@@ -50,6 +50,15 @@ if (process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1") {
   app.set("trust proxy", true);
 }
 
+// Root landing endpoint (for Docker / PaaS health checks)
+app.get("/", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "Rokad Studio OS Backend API is live",
+    version: "1.0.0",
+  });
+});
+
 // Health check endpoint (public, unauthenticated)
 app.get("/health", async (req, res) => {
   let dbOk = false;
