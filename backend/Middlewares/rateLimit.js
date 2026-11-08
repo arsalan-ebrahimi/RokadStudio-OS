@@ -11,7 +11,7 @@ const WORK_SESSION_WINDOW_SECONDS = 60; // 1 minute
  */
 export const loginRateLimiter = async (req, res, next) => {
   try {
-    if (!redis.isOpen) return next();
+    if (!redis.isReady) return next();
 
     const ip = req.ip || req.socket.remoteAddress || "unknown_ip";
     const key = `ratelimit:login:fails:${ip}`;
@@ -36,7 +36,7 @@ export const loginRateLimiter = async (req, res, next) => {
  */
 export const recordLoginFailure = async (req) => {
   try {
-    if (!redis.isOpen) return;
+    if (!redis.isReady) return;
     const ip = req.ip || req.socket.remoteAddress || "unknown_ip";
     const key = `ratelimit:login:fails:${ip}`;
     const current = await redis.incr(key);
@@ -53,7 +53,7 @@ export const recordLoginFailure = async (req) => {
  */
 export const clearLoginFailures = async (req) => {
   try {
-    if (!redis.isOpen) return;
+    if (!redis.isReady) return;
     const ip = req.ip || req.socket.remoteAddress || "unknown_ip";
     const key = `ratelimit:login:fails:${ip}`;
     await redis.del(key);
@@ -67,7 +67,7 @@ export const clearLoginFailures = async (req) => {
  */
 export const workSessionRateLimiter = async (req, res, next) => {
   try {
-    if (!redis.isOpen || !req.userId) return next();
+    if (!redis.isReady || !req.userId) return next();
 
     const key = `ratelimit:work-session:${req.userId}`;
     const count = await redis.incr(key);

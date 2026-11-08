@@ -5,7 +5,7 @@ import redis, { deleteKeysByPattern } from "../config/redis.js";
  */
 export const cacheGet = async (key) => {
   try {
-    if (!redis.isOpen) return null;
+    if (!redis.isReady) return null;
     const data = await redis.get(key);
     return data ? JSON.parse(data) : null;
   } catch (err) {
@@ -19,7 +19,7 @@ export const cacheGet = async (key) => {
  */
 export const cacheSet = async (key, value, ttlSeconds = 3600) => {
   try {
-    if (!redis.isOpen) return;
+    if (!redis.isReady) return;
     const serialized = JSON.stringify(value);
     await redis.set(key, serialized, { EX: ttlSeconds });
   } catch (err) {
@@ -32,7 +32,7 @@ export const cacheSet = async (key, value, ttlSeconds = 3600) => {
  */
 export const cacheDel = async (keyOrKeys) => {
   try {
-    if (!redis.isOpen) return;
+    if (!redis.isReady) return;
     if (Array.isArray(keyOrKeys)) {
       if (keyOrKeys.length > 0) {
         await redis.del(keyOrKeys);

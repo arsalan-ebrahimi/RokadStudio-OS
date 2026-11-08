@@ -2,9 +2,11 @@ import { createClient } from "redis";
 
 const redis = createClient({
   url: process.env.REDIS_URL || "redis://localhost:6379",
+  disableOfflineQueue: true, // Fail-fast: never hang requests when redis is connecting/reconnecting
   socket: {
+    connectTimeout: 2000,
     reconnectStrategy: (retries) => {
-      if (retries > 5) {
+      if (retries > 3) {
         console.warn("[Redis] Maximum reconnection attempts reached. Continuing in offline mode.");
         return false; // stop reconnecting
       }
@@ -27,11 +29,14 @@ redis.on("ready", () => {
 
 export const connectRedis = async () => {
   try {
-    if (!redis.isOpen) {
-      await redis.connect();
+    if (!redis.isOpen && !redis.isReady) {
+      await Promise.race([
+        redis.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Redis connect timeout")), 1500)),
+      ]);
     }
   } catch (err) {
-    console.error("Failed to connect to Redis (continuing in fail-open mode):", err.message);
+    console.warn("Failed to connect to Redis (continuing in fail-open mode):", err.message);
   }
   return redis;
 };
