@@ -32,14 +32,15 @@ app.use(
   })
 );
 
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["*"];
-
 app.use(
   cors({
-    origin: corsOrigins.includes("*") ? "*" : corsOrigins,
+    origin: (origin, callback) => {
+      // Reflect origin so browsers never block when credentials: true is sent
+      callback(null, true);
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 

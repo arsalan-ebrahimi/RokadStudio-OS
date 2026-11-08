@@ -30,7 +30,13 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     reqHeaders['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, { headers: reqHeaders, ...rest });
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: reqHeaders, ...rest });
+  } catch (networkErr: any) {
+    console.error('[API Network Error]', url, networkErr);
+    throw new ApiError(networkErr?.message || 'Network error', 0);
+  }
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
