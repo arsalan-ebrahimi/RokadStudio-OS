@@ -427,6 +427,11 @@ export type ProjectScalarRelationFilter = {
   isNot?: Prisma.ProjectWhereInput
 }
 
+export type ProjectNullableScalarRelationFilter = {
+  is?: Prisma.ProjectWhereInput | null
+  isNot?: Prisma.ProjectWhereInput | null
+}
+
 export type ProjectCreateNestedManyWithoutCreatedByInput = {
   create?: Prisma.XOR<Prisma.ProjectCreateWithoutCreatedByInput, Prisma.ProjectUncheckedCreateWithoutCreatedByInput> | Prisma.ProjectCreateWithoutCreatedByInput[] | Prisma.ProjectUncheckedCreateWithoutCreatedByInput[]
   connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCreatedByInput | Prisma.ProjectCreateOrConnectWithoutCreatedByInput[]
@@ -493,10 +498,12 @@ export type ProjectCreateNestedOneWithoutWorkSessionsInput = {
   connect?: Prisma.ProjectWhereUniqueInput
 }
 
-export type ProjectUpdateOneRequiredWithoutWorkSessionsNestedInput = {
+export type ProjectUpdateOneWithoutWorkSessionsNestedInput = {
   create?: Prisma.XOR<Prisma.ProjectCreateWithoutWorkSessionsInput, Prisma.ProjectUncheckedCreateWithoutWorkSessionsInput>
   connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutWorkSessionsInput
   upsert?: Prisma.ProjectUpsertWithoutWorkSessionsInput
+  disconnect?: Prisma.ProjectWhereInput | boolean
+  delete?: Prisma.ProjectWhereInput | boolean
   connect?: Prisma.ProjectWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutWorkSessionsInput, Prisma.ProjectUpdateWithoutWorkSessionsInput>, Prisma.ProjectUncheckedUpdateWithoutWorkSessionsInput>
 }

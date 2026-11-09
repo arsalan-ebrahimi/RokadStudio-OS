@@ -12,7 +12,8 @@
 export const Role = {
   USER: 'USER',
   ADMIN: 'ADMIN',
-  SUPER_ADMIN: 'SUPER_ADMIN'
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  SCRUM_ADMIN: 'SCRUM_ADMIN'
 } as const
 
 export type Role = (typeof Role)[keyof typeof Role]
@@ -42,3 +43,40 @@ export const DecisionSource = {
 } as const
 
 export type DecisionSource = (typeof DecisionSource)[keyof typeof DecisionSource]
+
+
+export const ScrumColor = {
+  ECOSYSTEM: 'ECOSYSTEM',
+  MALE: 'MALE',
+  FEMALE: 'FEMALE',
+  COLLEGE: 'COLLEGE',
+  CLUB: 'CLUB'
+} as const
+
+export type ScrumColor = (typeof ScrumColor)[keyof typeof ScrumColor]
+
+
+export const SprintStatus = {
+  PLANNED: 'PLANNED',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED'
+} as const
+
+export type SprintStatus = (typeof SprintStatus)[keyof typeof SprintStatus]
+
+
+export const ItemStatus = {
+  TODO: 'TODO',
+  DOING: 'DOING',
+  DONE: 'DONE'
+} as const
+
+export type ItemStatus = (typeof ItemStatus)[keyof typeof ItemStatus]
+
+
+export const EventScheduleType = {
+  WEEKLY: 'WEEKLY',
+  ONCE: 'ONCE'
+} as const
+
+export type EventScheduleType = (typeof EventScheduleType)[keyof typeof EventScheduleType]

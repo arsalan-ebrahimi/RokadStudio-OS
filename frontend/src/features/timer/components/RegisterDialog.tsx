@@ -23,6 +23,21 @@ export const RegisterDialog: React.FC<RegisterDialogProps> = ({
 }) => {
   const durationText = formatDurationToHumanPersian(durationSeconds);
 
+  const renderTargetName = (name: string) => {
+    const match = name.match(/^\[(.*?)\]\s*(.*)$/);
+    if (match) {
+      return (
+        <span className="inline-flex items-center gap-1.5 flex-wrap align-middle">
+          <span className="px-2 py-0.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-black">
+            {match[1]}
+          </span>
+          <span className="font-black text-sec dark:text-white">{match[2]}</span>
+        </span>
+      );
+    }
+    return <span className="font-bold text-sec dark:text-white">{name}</span>;
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -32,7 +47,7 @@ export const RegisterDialog: React.FC<RegisterDialogProps> = ({
     >
       <div className="space-y-5 py-1">
         <p className="text-xs sm:text-sm text-ink-normal/80 dark:text-gray-300 leading-relaxed">
-          {durationText} روی پروژه «<span className="font-bold text-sec dark:text-white">{projectName}</span>» ثبت می‌شود.
+          {durationText} روی {renderTargetName(projectName)} ثبت می‌شود.
         </p>
 
         <div className="flex flex-col gap-2.5 pt-2">

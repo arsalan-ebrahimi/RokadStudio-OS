@@ -54,6 +54,12 @@ export const ModelName = {
   User: 'User',
   Project: 'Project',
   ProjectMember: 'ProjectMember',
+  Scrum: 'Scrum',
+  ScrumMember: 'ScrumMember',
+  Sprint: 'Sprint',
+  SprintProject: 'SprintProject',
+  ScrumKpi: 'ScrumKpi',
+  ScrumEvent: 'ScrumEvent',
   Attendance: 'Attendance',
   WorkSession: 'WorkSession'
 } as const
@@ -110,6 +116,96 @@ export const ProjectMemberScalarFieldEnum = {
 export type ProjectMemberScalarFieldEnum = (typeof ProjectMemberScalarFieldEnum)[keyof typeof ProjectMemberScalarFieldEnum]
 
 
+export const ScrumScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  color: 'color',
+  isActive: 'isActive',
+  ownerId: 'ownerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ScrumScalarFieldEnum = (typeof ScrumScalarFieldEnum)[keyof typeof ScrumScalarFieldEnum]
+
+
+export const ScrumMemberScalarFieldEnum = {
+  scrumId: 'scrumId',
+  userId: 'userId',
+  label: 'label'
+} as const
+
+export type ScrumMemberScalarFieldEnum = (typeof ScrumMemberScalarFieldEnum)[keyof typeof ScrumMemberScalarFieldEnum]
+
+
+export const SprintScalarFieldEnum = {
+  id: 'id',
+  scrumId: 'scrumId',
+  number: 'number',
+  title: 'title',
+  description: 'description',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  status: 'status',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SprintScalarFieldEnum = (typeof SprintScalarFieldEnum)[keyof typeof SprintScalarFieldEnum]
+
+
+export const SprintProjectScalarFieldEnum = {
+  id: 'id',
+  sprintId: 'sprintId',
+  name: 'name',
+  points: 'points',
+  assigneeId: 'assigneeId',
+  status: 'status',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SprintProjectScalarFieldEnum = (typeof SprintProjectScalarFieldEnum)[keyof typeof SprintProjectScalarFieldEnum]
+
+
+export const ScrumKpiScalarFieldEnum = {
+  id: 'id',
+  scrumId: 'scrumId',
+  indicator: 'indicator',
+  formula: 'formula',
+  strategicGoal: 'strategicGoal',
+  unit: 'unit',
+  target: 'target',
+  firstMonthTarget: 'firstMonthTarget',
+  actualValue: 'actualValue',
+  minExpected: 'minExpected',
+  sortOrder: 'sortOrder',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ScrumKpiScalarFieldEnum = (typeof ScrumKpiScalarFieldEnum)[keyof typeof ScrumKpiScalarFieldEnum]
+
+
+export const ScrumEventScalarFieldEnum = {
+  id: 'id',
+  scrumId: 'scrumId',
+  name: 'name',
+  scheduleType: 'scheduleType',
+  dayOfWeek: 'dayOfWeek',
+  date: 'date',
+  startTime: 'startTime',
+  durationMinutes: 'durationMinutes',
+  inputs: 'inputs',
+  outputs: 'outputs',
+  sortOrder: 'sortOrder'
+} as const
+
+export type ScrumEventScalarFieldEnum = (typeof ScrumEventScalarFieldEnum)[keyof typeof ScrumEventScalarFieldEnum]
+
+
 export const AttendanceScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -131,6 +227,7 @@ export const WorkSessionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   projectId: 'projectId',
+  sprintProjectId: 'sprintProjectId',
   attendanceId: 'attendanceId',
   durationSeconds: 'durationSeconds',
   clientRequestId: 'clientRequestId',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { CheckSquare, BarChart3, Users, FolderKanban, LogOut, Sun, Moon, Menu, X } from 'lucide-react';
+import { CheckSquare, BarChart3, Users, FolderKanban, LogOut, Sun, Moon, Menu, X, Layers } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { cn } from '@/shared/lib/utils';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
@@ -13,13 +13,17 @@ export const AdminLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isScrumAdmin = user?.role === 'SCRUM_ADMIN';
 
-  const navItems = [
-    { to: '/panel/attendance', label: 'حضور و غیاب', icon: CheckSquare },
-    { to: '/panel/reports', label: 'گزارش عملکرد', icon: BarChart3 },
-    ...(isSuperAdmin ? [{ to: '/panel/users', label: 'کاربران', icon: Users }] : []),
-    { to: '/panel/projects', label: 'پروژه‌ها', icon: FolderKanban },
-  ];
+  const navItems = isScrumAdmin
+    ? [{ to: '/panel/scrums', label: 'اسکرام‌ها', icon: Layers }]
+    : [
+        { to: '/panel/attendance', label: 'حضور و غیاب', icon: CheckSquare },
+        { to: '/panel/reports', label: 'گزارش عملکرد', icon: BarChart3 },
+        ...(isSuperAdmin ? [{ to: '/panel/users', label: 'کاربران', icon: Users }] : []),
+        { to: '/panel/projects', label: 'پروژه‌ها', icon: FolderKanban },
+        ...(isSuperAdmin ? [{ to: '/panel/scrums', label: 'اسکرام‌ها', icon: Layers }] : []),
+      ];
 
   const currentNav = navItems.find((item) => location.pathname.startsWith(item.to));
 

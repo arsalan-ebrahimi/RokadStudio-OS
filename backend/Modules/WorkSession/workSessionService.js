@@ -8,7 +8,7 @@ import {
 } from "../../Utils/date.js";
 
 export const logWorkSession = async (
-  { userId, projectId, durationSeconds, startedAt, clientRequestId },
+  { userId, projectId, sprintProjectId, durationSeconds, startedAt, clientRequestId },
   now = new Date()
 ) => {
   // Idempotency: return existing session if clientRequestId already processed
@@ -23,6 +23,19 @@ export const logWorkSession = async (
       include: {
         project: {
           select: { id: true, name: true },
+        },
+        sprintProject: {
+          select: {
+            id: true,
+            name: true,
+            sprint: {
+              select: {
+                id: true,
+                number: true,
+                scrum: { select: { id: true, name: true } },
+              },
+            },
+          },
         },
       },
     });
@@ -60,36 +73,74 @@ export const logWorkSession = async (
     throw new HandleERROR("startedAt cannot be older than 2 days", 400);
   }
 
-  // 3. Verify project exists, is active, and user is assigned
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { id: true, name: true, isActive: true },
-  });
+  // 3. Target verification (Project or SprintProject)
+  if (projectId) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, name: true, isActive: true },
+    });
 
-  if (!project || !project.isActive) {
-    throw new HandleERROR("Project not found or inactive", 400);
-  }
+    if (!project || !project.isActive) {
+      throw new HandleERROR("Project not found or inactive", 400);
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true },
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
 
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+    const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
-  if (!isSuperAdmin) {
-    const membership = await prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
+    if (!isSuperAdmin) {
+      const membership = await prisma.projectMember.findUnique({
+        where: {
+          projectId_userId: {
+            projectId,
+            userId,
+          },
+        },
+      });
+
+      if (!membership) {
+        throw new HandleERROR("You are not an assigned member of this project", 403);
+      }
+    }
+  } else if (sprintProjectId) {
+    const sprintProject = await prisma.sprintProject.findUnique({
+      where: { id: sprintProjectId },
+      include: {
+        sprint: {
+          include: {
+            scrum: { select: { id: true, name: true, isActive: true } },
+          },
         },
       },
     });
 
-    if (!membership) {
-      throw new HandleERROR("You are not an assigned member of this project", 403);
+    if (!sprintProject) {
+      throw new HandleERROR("پروژه اسپرینت یافت نشد", 404);
     }
+
+    if (!sprintProject.sprint.scrum.isActive) {
+      throw new HandleERROR("اسکرام مربوطه غیرفعال است", 400);
+    }
+
+    if (sprintProject.assigneeId !== userId) {
+      throw new HandleERROR("این پروژه اسپرینت به شما اختصاص ندارد", 403);
+    }
+
+    const sprint = sprintProject.sprint;
+    const isSprintActive = sprint.status === "ACTIVE";
+    const isRecentlyCompleted =
+      sprint.status === "COMPLETED" &&
+      sprint.completedAt &&
+      now.getTime() - new Date(sprint.completedAt).getTime() <= 60 * 60 * 1000;
+
+    if (!isSprintActive && !isRecentlyCompleted) {
+      throw new HandleERROR("اسپرینت این تسک فعال نیست", 400);
+    }
+  } else {
+    throw new HandleERROR("باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود", 422);
   }
 
   // 4. Resolve Attendance for workDate: derived using same day boundary helper as attendance
@@ -169,7 +220,8 @@ export const logWorkSession = async (
       const created = await tx.workSession.create({
         data: {
           userId,
-          projectId,
+          projectId: projectId || null,
+          sprintProjectId: sprintProjectId || null,
           attendanceId: lockedAttendance.id,
           durationSeconds,
           clientRequestId: clientRequestId || null,
@@ -180,6 +232,19 @@ export const logWorkSession = async (
         include: {
           project: {
             select: { id: true, name: true },
+          },
+          sprintProject: {
+            select: {
+              id: true,
+              name: true,
+              sprint: {
+                select: {
+                  id: true,
+                  number: true,
+                  scrum: { select: { id: true, name: true } },
+                },
+              },
+            },
           },
         },
       });
@@ -200,6 +265,19 @@ export const logWorkSession = async (
         include: {
           project: {
             select: { id: true, name: true },
+          },
+          sprintProject: {
+            select: {
+              id: true,
+              name: true,
+              sprint: {
+                select: {
+                  id: true,
+                  number: true,
+                  scrum: { select: { id: true, name: true } },
+                },
+              },
+            },
           },
         },
       });
@@ -243,9 +321,9 @@ export const getWorkSessionsSummaryAgg = async ({
   if (groupBy === "user") {
     byFields = ["userId"];
   } else if (groupBy === "project") {
-    byFields = ["projectId"];
+    byFields = ["projectId", "sprintProjectId"];
   } else {
-    byFields = ["userId", "projectId"];
+    byFields = ["userId", "projectId", "sprintProjectId"];
   }
 
   // Database groupBy aggregation
@@ -259,8 +337,9 @@ export const getWorkSessionsSummaryAgg = async ({
   // Batch load names to prevent N+1
   const userIds = [...new Set(grouped.map((g) => g.userId).filter(Boolean))];
   const projectIds = [...new Set(grouped.map((g) => g.projectId).filter(Boolean))];
+  const sprintProjectIds = [...new Set(grouped.map((g) => g.sprintProjectId).filter(Boolean))];
 
-  const [users, projects] = await Promise.all([
+  const [users, projects, sprintProjects] = await Promise.all([
     userIds.length > 0
       ? prisma.user.findMany({
           where: { id: { in: userIds } },
@@ -273,10 +352,31 @@ export const getWorkSessionsSummaryAgg = async ({
           select: { id: true, name: true },
         })
       : [],
+    sprintProjectIds.length > 0
+      ? prisma.sprintProject.findMany({
+          where: { id: { in: sprintProjectIds } },
+          select: {
+            id: true,
+            name: true,
+            sprint: {
+              select: {
+                number: true,
+                scrum: { select: { name: true } },
+              },
+            },
+          },
+        })
+      : [],
   ]);
 
   const userMap = new Map(users.map((u) => [u.id, u.name]));
   const projectMap = new Map(projects.map((p) => [p.id, p.name]));
+  const sprintProjectMap = new Map(
+    sprintProjects.map((sp) => [
+      sp.id,
+      `[${sp.sprint.scrum.name} · S${sp.sprint.number}] ${sp.name}`,
+    ])
+  );
 
   const rows = grouped.map((g) => {
     const row = {
@@ -295,6 +395,11 @@ export const getWorkSessionsSummaryAgg = async ({
       row.project = {
         id: g.projectId,
         name: projectMap.get(g.projectId) || "Unknown",
+      };
+    } else if (g.sprintProjectId) {
+      row.project = {
+        id: g.sprintProjectId,
+        name: sprintProjectMap.get(g.sprintProjectId) || "Unknown",
       };
     }
 

@@ -21,10 +21,10 @@ const usersRouter = express.Router();
 
 usersRouter.use(isLogin);
 
-// Search endpoint for ADMIN + SUPER_ADMIN (must be registered BEFORE /:id)
+// Search endpoint for ADMIN + SUPER_ADMIN + SCRUM_ADMIN (must be registered BEFORE /:id)
 usersRouter.get(
   "/search",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"),
   searchUsersValidator,
   searchUsers
 );

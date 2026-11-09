@@ -618,18 +618,6 @@ export type EnumDecisionSourceFieldUpdateOperationsInput = {
   set?: $Enums.DecisionSource
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type AttendanceCreateNestedOneWithoutWorkSessionsInput = {
   create?: Prisma.XOR<Prisma.AttendanceCreateWithoutWorkSessionsInput, Prisma.AttendanceUncheckedCreateWithoutWorkSessionsInput>
   connectOrCreate?: Prisma.AttendanceCreateOrConnectWithoutWorkSessionsInput

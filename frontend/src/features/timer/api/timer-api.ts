@@ -2,7 +2,8 @@ import { apiClient } from '@/shared/lib/api-client';
 import type { WorkSession } from '@/shared/types/models';
 
 export interface LogSessionPayload {
-  projectId: number;
+  projectId?: number;
+  sprintProjectId?: number;
   durationSeconds: number;
   startedAt: string;
   clientRequestId: string;

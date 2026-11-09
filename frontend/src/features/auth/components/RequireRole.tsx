@@ -27,7 +27,8 @@ export const RequireRole: React.FC<RequireRoleProps> = ({ roles, children }) => 
   }
 
   if (!roles.includes(user.role)) {
-    return <Navigate to={user.role === 'USER' ? '/' : '/panel/attendance'} replace />;
+    const target = user.role === 'USER' ? '/' : (user.role === 'SCRUM_ADMIN' ? '/panel/scrums' : '/panel/attendance');
+    return <Navigate to={target} replace />;
   }
 
   return <>{children}</>;

@@ -41,8 +41,8 @@ export const createUserValidator = [
     .withMessage("Name must be between 2 and 100 characters"),
   body("role")
     .optional()
-    .isIn(["USER", "ADMIN", "SUPER_ADMIN"])
-    .withMessage("Role must be USER, ADMIN, or SUPER_ADMIN"),
+    .isIn(["USER", "ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"])
+    .withMessage("Role must be USER, ADMIN, SUPER_ADMIN, or SCRUM_ADMIN"),
   handleValidation,
 ];
 
@@ -65,8 +65,8 @@ export const updateUserValidator = [
     .withMessage("Name must be between 2 and 100 characters"),
   body("role")
     .optional()
-    .isIn(["USER", "ADMIN", "SUPER_ADMIN"])
-    .withMessage("Role must be USER, ADMIN, or SUPER_ADMIN"),
+    .isIn(["USER", "ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"])
+    .withMessage("Role must be USER, ADMIN, SUPER_ADMIN, or SCRUM_ADMIN"),
   body("isActive")
     .optional()
     .isBoolean()
@@ -78,7 +78,7 @@ export const updateUserValidator = [
 export const getUsersValidator = [
   query("page").optional().isInt({ min: 1 }).toInt(),
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
-  query("role").optional().isIn(["USER", "ADMIN", "SUPER_ADMIN"]),
+  query("role").optional().isIn(["USER", "ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"]),
   query("isActive").optional().isBoolean().toBoolean(),
   query("search").optional().trim(),
   handleValidation,

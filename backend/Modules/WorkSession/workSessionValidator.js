@@ -5,7 +5,11 @@ export const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorList = errors.array();
-    return res.status(400).json({
+    const isExactlyOneError = errorList.some(
+      (err) => err.msg && err.msg.includes("باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود")
+    );
+    const statusCode = isExactlyOneError ? 422 : 400;
+    return res.status(statusCode).json({
       success: false,
       message: errorList[0].msg,
       errors: errorList.map((err) => ({
@@ -31,11 +35,24 @@ export const MAX_SESSION_SECONDS = parseInt(
 );
 
 export const createWorkSessionValidator = [
+  body().custom((_, { req }) => {
+    const hasProject = req.body.projectId !== undefined && req.body.projectId !== null && req.body.projectId !== "";
+    const hasSprintProject = req.body.sprintProjectId !== undefined && req.body.sprintProjectId !== null && req.body.sprintProjectId !== "";
+
+    if ((hasProject && hasSprintProject) || (!hasProject && !hasSprintProject)) {
+      throw new Error("باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود");
+    }
+    return true;
+  }),
   body("projectId")
-    .notEmpty()
-    .withMessage("projectId is required")
+    .optional({ nullable: true })
     .isInt({ min: 1 })
     .withMessage("projectId must be a positive integer")
+    .toInt(),
+  body("sprintProjectId")
+    .optional({ nullable: true })
+    .isInt({ min: 1 })
+    .withMessage("sprintProjectId must be a positive integer")
     .toInt(),
   body("durationSeconds")
     .notEmpty()

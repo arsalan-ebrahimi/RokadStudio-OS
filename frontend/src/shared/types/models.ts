@@ -1,4 +1,4 @@
-export type Role = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+export type Role = 'USER' | 'ADMIN' | 'SUPER_ADMIN' | 'SCRUM_ADMIN';
 
 export type AttendanceStatus = 'PRESENT' | 'ABSENT';
 
@@ -43,7 +43,8 @@ export interface Attendance {
 export interface WorkSession {
   id: number;
   userId?: number;
-  projectId: number;
+  projectId?: number | null;
+  sprintProjectId?: number | null;
   projectName?: string;
   durationSeconds: number;
   clientRequestId?: string;
@@ -56,7 +57,7 @@ export interface WorkSession {
   startedAt?: string | null;
   createdAt: string;
   user?: Pick<User, 'id' | 'name' | 'role'>;
-  project?: Pick<Project, 'id' | 'name'>;
+  project?: Pick<Project, 'id' | 'name'> | null;
 }
 
 export interface WorkSessionSummaryRow {

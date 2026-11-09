@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   LogOut,
   Sun,
@@ -11,11 +12,13 @@ import {
   CheckCircle2,
   Calendar,
   Trash2,
+  Layers,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth';
 import { useTodayAttendance, useMidnightWatcher, AttendanceBadge, AttendanceModal } from '@/features/attendance';
-import { useMyProjects, ProjectSelect } from '@/features/projects';
+import { useMyProjects, WorkTargetSelect } from '@/features/projects';
+import { TodayScrumEventsCard } from '@/features/scrum';
 import {
   useTimer,
   TimerDisplay,
@@ -62,11 +65,11 @@ const UserDashboardPage: React.FC = () => {
   // Validate that the timer's selected project actually belongs to the user's assigned projects
   useEffect(() => {
     if (!projectsLoading && projects.length > 0) {
-      if (timer.projectId && !projects.some((p) => p.id === timer.projectId)) {
-        timer.clearProject();
+      if (timer.target?.kind === 'STUDIO' && !projects.some((p) => p.id === timer.target?.id)) {
+        timer.clearTarget();
       }
     }
-  }, [projectsLoading, projects, timer.projectId, timer.clearProject]);
+  }, [projectsLoading, projects, timer.target, timer.clearTarget]);
 
   const { isDark, toggleTheme } = useTheme();
 
@@ -90,8 +93,6 @@ const UserDashboardPage: React.FC = () => {
 
   // Default is 0; exactly 1 round for each 25 minutes (1500 seconds)
   const sessionsCount = Math.floor(totalSeconds / 1500);
-
-  const currentProject = projects.find((p) => p.id === timer.projectId);
 
   const deleteSessionMut = useMutation({
     mutationFn: (id: number) => deleteWorkSession(id),
@@ -140,11 +141,6 @@ const UserDashboardPage: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [timer, hasDeclaredToday, isAbsentToday]);
-
-  const handleProjectSelect = (projectId: number) => {
-    const p = projects.find((item) => item.id === projectId);
-    timer.handleSelectProject(projectId, p?.name || '');
-  };
 
   if (attLoading && !hasInitiallyChecked) {
     return (
@@ -330,6 +326,14 @@ const UserDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <Link
+            to="/my-scrums"
+            className="h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary/50 shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
+            title="اسکرام‌های من"
+          >
+            <Layers className="w-4 h-4 text-primary shrink-0" />
+            <span className="hidden sm:inline whitespace-nowrap">اسکرام‌های من</span>
+          </Link>
           <button
             onClick={() => setIsPetModalOpen(true)}
             className="w-[38px] h-[38px] flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-sec dark:hover:text-white shadow-hard-sm transition-all cursor-pointer"
@@ -362,14 +366,11 @@ const UserDashboardPage: React.FC = () => {
         {/* Focus Timer Area */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-6">
           <Card className="p-5 sm:p-7 space-y-6">
-            {!projectsLoading && (
-              <ProjectSelect
-                projects={projects}
-                selectedProjectId={timer.projectId}
-                onSelect={handleProjectSelect}
-                isLocked={timer.isLocked}
-              />
-            )}
+            <WorkTargetSelect
+              selectedTarget={timer.target}
+              onSelect={timer.handleSelectTarget}
+              isLocked={timer.isLocked}
+            />
 
             <TimerDisplay
               status={timer.status}
@@ -407,6 +408,9 @@ const UserDashboardPage: React.FC = () => {
 
         {/* Sidebar Cards Area on Desktop */}
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
+          {/* Today's Scrum Ceremonies */}
+          <TodayScrumEventsCard />
+
           {/* Daily Performance Card */}
           <Card className="p-5 space-y-4">
             <h2 className="text-xs font-bold text-ink-normal/60 dark:text-gray-400">عملکرد امروز</h2>
@@ -482,10 +486,10 @@ const UserDashboardPage: React.FC = () => {
             <h2 className="text-xs font-bold text-ink-normal/60 dark:text-gray-400">جزئیات نشست</h2>
             <div className="space-y-2.5 text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-                <span className="text-ink-normal/60 dark:text-gray-400 font-bold">پروژه جاری</span>
-                <span className="font-extrabold text-sec dark:text-white flex items-center gap-1">
-                  <FolderKanban className="w-3.5 h-3.5 text-primary" />
-                  {currentProject?.name || 'انتخاب نشده'}
+                <span className="text-ink-normal/60 dark:text-gray-400 font-bold">هدف کاری جاری</span>
+                <span className="font-extrabold text-sec dark:text-white flex items-center gap-1 truncate max-w-[200px]" title={timer.target?.label || ''}>
+                  <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="truncate">{timer.target?.label || 'انتخاب نشده'}</span>
                 </span>
               </div>
               <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
@@ -514,7 +518,7 @@ const UserDashboardPage: React.FC = () => {
       <RegisterDialog
         isOpen={timer.isRegisterDialogOpen}
         onClose={timer.closeRegisterDialog}
-        projectName={currentProject?.name || 'پروژه جاری'}
+        projectName={timer.target?.label || 'هدف کاری جاری'}
         durationSeconds={timer.workSeconds}
         isLoading={timer.isSubmitting}
         onConfirmContinue={() => timer.confirmRegister('continue')}
@@ -523,14 +527,14 @@ const UserDashboardPage: React.FC = () => {
 
       {/* Project Change Dialog */}
       <ProjectChangeDialog
-        isOpen={Boolean(timer.pendingProjectChange)}
-        onClose={timer.cancelProjectChange}
-        currentProjectName={currentProject?.name || 'پروژه جاری'}
-        newProjectName={timer.pendingProjectChange?.newProjectName || ''}
+        isOpen={Boolean(timer.pendingTargetChange || timer.pendingProjectChange)}
+        onClose={timer.cancelTargetChange}
+        currentProjectName={timer.target?.label || 'هدف کاری جاری'}
+        newProjectName={timer.pendingTargetChange?.label || timer.pendingProjectChange?.newProjectName || ''}
         durationSeconds={timer.workSeconds}
         isLoading={timer.isSubmitting}
-        onConfirmContinue={() => timer.confirmProjectChange('continue')}
-        onConfirmFinish={() => timer.confirmProjectChange('finish')}
+        onConfirmContinue={() => timer.confirmTargetChange('continue')}
+        onConfirmFinish={() => timer.confirmTargetChange('finish')}
       />
 
       {/* Interactive Screen Pet Companion */}

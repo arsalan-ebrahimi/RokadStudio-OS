@@ -96,6 +96,140 @@ export const ensureSchemaUpdated = async () => {
           ) THEN
             CREATE INDEX "WorkSession_workDate_approval_idx" ON "WorkSession"("workDate", "approval");
           END IF;
+
+          -- 11. Add SCRUM_ADMIN to Role enum if not present
+          BEGIN
+            ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'SCRUM_ADMIN';
+          EXCEPTION
+            WHEN duplicate_object THEN null;
+          END;
+
+          -- 12. Scrum Enums
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ScrumColor') THEN
+            CREATE TYPE "ScrumColor" AS ENUM ('ECOSYSTEM', 'MALE', 'FEMALE', 'COLLEGE', 'CLUB');
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SprintStatus') THEN
+            CREATE TYPE "SprintStatus" AS ENUM ('PLANNED', 'ACTIVE', 'COMPLETED');
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ItemStatus') THEN
+            CREATE TYPE "ItemStatus" AS ENUM ('TODO', 'DOING', 'DONE');
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'EventScheduleType') THEN
+            CREATE TYPE "EventScheduleType" AS ENUM ('WEEKLY', 'ONCE');
+          END IF;
+
+          -- 13. Create Scrum Table
+          CREATE TABLE IF NOT EXISTS "Scrum" (
+            "id" SERIAL PRIMARY KEY,
+            "name" TEXT NOT NULL,
+            "description" TEXT,
+            "color" "ScrumColor" NOT NULL DEFAULT 'ECOSYSTEM',
+            "isActive" BOOLEAN NOT NULL DEFAULT true,
+            "ownerId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+          );
+
+          -- 14. Create ScrumMember Table
+          CREATE TABLE IF NOT EXISTS "ScrumMember" (
+            "scrumId" INTEGER NOT NULL REFERENCES "Scrum"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "label" TEXT,
+            PRIMARY KEY ("scrumId", "userId")
+          );
+
+          -- 15. Create Sprint Table
+          CREATE TABLE IF NOT EXISTS "Sprint" (
+            "id" SERIAL PRIMARY KEY,
+            "scrumId" INTEGER NOT NULL REFERENCES "Scrum"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "number" INTEGER NOT NULL,
+            "title" TEXT NOT NULL,
+            "description" TEXT,
+            "startDate" DATE,
+            "endDate" DATE,
+            "status" "SprintStatus" NOT NULL DEFAULT 'PLANNED',
+            "completedAt" TIMESTAMP(3),
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "Sprint_scrumId_number_key" UNIQUE ("scrumId", "number")
+          );
+
+          -- 16. Create SprintProject Table
+          CREATE TABLE IF NOT EXISTS "SprintProject" (
+            "id" SERIAL PRIMARY KEY,
+            "sprintId" INTEGER NOT NULL REFERENCES "Sprint"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "name" TEXT NOT NULL,
+            "points" INTEGER NOT NULL DEFAULT 0,
+            "assigneeId" INTEGER REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE,
+            "status" "ItemStatus" NOT NULL DEFAULT 'TODO',
+            "sortOrder" INTEGER NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+          );
+
+          -- 17. Create ScrumKpi Table
+          CREATE TABLE IF NOT EXISTS "ScrumKpi" (
+            "id" SERIAL PRIMARY KEY,
+            "scrumId" INTEGER NOT NULL REFERENCES "Scrum"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "indicator" TEXT,
+            "formula" TEXT,
+            "strategicGoal" TEXT,
+            "unit" TEXT,
+            "target" DECIMAL(12,2),
+            "firstMonthTarget" DECIMAL(12,2),
+            "actualValue" DECIMAL(12,2),
+            "minExpected" DECIMAL(12,2),
+            "sortOrder" INTEGER NOT NULL DEFAULT 0,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+          );
+
+          -- 18. Create ScrumEvent Table
+          CREATE TABLE IF NOT EXISTS "ScrumEvent" (
+            "id" SERIAL PRIMARY KEY,
+            "scrumId" INTEGER NOT NULL REFERENCES "Scrum"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "name" TEXT NOT NULL,
+            "scheduleType" "EventScheduleType" NOT NULL,
+            "dayOfWeek" INTEGER,
+            "date" DATE,
+            "startTime" TEXT,
+            "durationMinutes" INTEGER,
+            "inputs" TEXT,
+            "outputs" TEXT,
+            "sortOrder" INTEGER NOT NULL DEFAULT 0
+          );
+
+          -- 19. Alter WorkSession
+          ALTER TABLE "WorkSession" ALTER COLUMN "projectId" DROP NOT NULL;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'WorkSession' AND column_name = 'sprintProjectId'
+          ) THEN
+            ALTER TABLE "WorkSession" ADD COLUMN "sprintProjectId" INTEGER;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = 'WorkSession_sprintProjectId_fkey'
+          ) THEN
+            ALTER TABLE "WorkSession" ADD CONSTRAINT "WorkSession_sprintProjectId_fkey" 
+              FOREIGN KEY ("sprintProjectId") REFERENCES "SprintProject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = 'WorkSession_project_or_sprint_check'
+          ) THEN
+            ALTER TABLE "WorkSession" ADD CONSTRAINT "WorkSession_project_or_sprint_check" 
+              CHECK (("projectId" IS NOT NULL AND "sprintProjectId" IS NULL) OR ("projectId" IS NULL AND "sprintProjectId" IS NOT NULL));
+          END IF;
+
+          -- 20. Ensure Sprint partial unique index
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_indexes 
+            WHERE tablename = 'Sprint' AND indexname = 'Sprint_scrumId_active_unique'
+          ) THEN
+            CREATE UNIQUE INDEX "Sprint_scrumId_active_unique" ON "Sprint"("scrumId") WHERE "status" = 'ACTIVE';
+          END IF;
         END $$;
       `);
       isSynced = true;

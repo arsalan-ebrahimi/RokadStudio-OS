@@ -7,7 +7,16 @@ import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminProjectsPage from './pages/admin/AdminProjectsPage';
-import { RequireRole } from '@/features/auth';
+import { RequireRole, useAuthStore } from '@/features/auth';
+import { ScrumListPage, ScrumDetailPage } from '@/features/scrum';
+
+const PanelIndexRedirect: React.FC = () => {
+  const { user } = useAuthStore();
+  if (user?.role === 'SCRUM_ADMIN') {
+    return <Navigate to="/panel/scrums" replace />;
+  }
+  return <Navigate to="/panel/attendance" replace />;
+};
 
 export const router = createBrowserRouter([
   {
@@ -21,30 +30,66 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: (
-      <RequireRole roles={['USER']}>
+      <RequireRole roles={['USER', 'SCRUM_ADMIN', 'ADMIN', 'SUPER_ADMIN']}>
         <UserDashboardPage />
+      </RequireRole>
+    ),
+  },
+  {
+    path: '/app',
+    element: (
+      <RequireRole roles={['USER', 'SCRUM_ADMIN', 'ADMIN', 'SUPER_ADMIN']}>
+        <UserDashboardPage />
+      </RequireRole>
+    ),
+  },
+  {
+    path: '/my-scrums',
+    element: (
+      <RequireRole roles={['USER', 'ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}>
+        <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B0F17] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+          <ScrumListPage />
+        </div>
+      </RequireRole>
+    ),
+  },
+  {
+    path: '/my-scrums/:id',
+    element: (
+      <RequireRole roles={['USER', 'ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}>
+        <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B0F17] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+          <ScrumDetailPage />
+        </div>
       </RequireRole>
     ),
   },
   {
     path: '/panel',
     element: (
-      <RequireRole roles={['ADMIN', 'SUPER_ADMIN']}>
+      <RequireRole roles={['ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}>
         <AdminLayout />
       </RequireRole>
     ),
     children: [
       {
         index: true,
-        element: <Navigate to="/panel/attendance" replace />,
+        element: <PanelIndexRedirect />,
       },
       {
         path: 'attendance',
-        element: <AdminAttendancePage />,
+        element: (
+          <RequireRole roles={['ADMIN', 'SUPER_ADMIN']}>
+            <AdminAttendancePage />
+          </RequireRole>
+        ),
       },
       {
         path: 'reports',
-        element: <AdminReportsPage />,
+        element: (
+          <RequireRole roles={['ADMIN', 'SUPER_ADMIN']}>
+            <AdminReportsPage />
+          </RequireRole>
+        ),
       },
       {
         path: 'users',
@@ -56,7 +101,27 @@ export const router = createBrowserRouter([
       },
       {
         path: 'projects',
-        element: <AdminProjectsPage />,
+        element: (
+          <RequireRole roles={['ADMIN', 'SUPER_ADMIN']}>
+            <AdminProjectsPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: 'scrums',
+        element: (
+          <RequireRole roles={['SUPER_ADMIN', 'SCRUM_ADMIN']}>
+            <ScrumListPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: 'scrums/:id',
+        element: (
+          <RequireRole roles={['SUPER_ADMIN', 'SCRUM_ADMIN']}>
+            <ScrumDetailPage />
+          </RequireRole>
+        ),
       },
     ],
   },

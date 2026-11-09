@@ -34,6 +34,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
         navigate('/panel/attendance');
         return;
       }
+      if (isAdmin && user.role === 'SCRUM_ADMIN') {
+        navigate('/panel/scrums');
+        return;
+      }
       navigate(isAdmin ? '/panel/attendance' : '/');
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {

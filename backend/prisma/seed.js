@@ -14,6 +14,12 @@ export const runSeed = async () => {
   // 1. Clean up ALL existing data in reverse relational order
   console.log("🧹 Wiping all existing database tables for a clean slate...");
   await prisma.workSession.deleteMany({});
+  await prisma.sprintProject.deleteMany({});
+  await prisma.sprint.deleteMany({});
+  await prisma.scrumMember.deleteMany({});
+  await prisma.scrumKpi.deleteMany({});
+  await prisma.scrumEvent.deleteMany({});
+  await prisma.scrum.deleteMany({});
   await prisma.attendance.deleteMany({});
   await prisma.projectMember.deleteMany({});
   await prisma.project.deleteMany({});
@@ -43,6 +49,18 @@ export const runSeed = async () => {
     },
   });
   console.log(`   ✓ Operations Admin: [${simpleAdmin.code}] - ${simpleAdmin.name}`);
+
+  // 3.5. Seed Scrum Admin (SCRUM_ADMIN) - 6 chars: SC1101
+  console.log("\n⚡ Seeding Scrum Admin account...");
+  const scrumAdmin = await prisma.user.create({
+    data: {
+      code: "SC1101",
+      name: "Studio Scrum Master",
+      role: "SCRUM_ADMIN",
+      isActive: true,
+    },
+  });
+  console.log(`   ✓ Scrum Admin: [${scrumAdmin.code}] - ${scrumAdmin.name}`);
 
   // 4. Seed Personnel Users (USER) partitioned by Department (All exactly 6 characters)
   // ITxxxx: Engineering & Development (IT)
@@ -233,12 +251,146 @@ export const runSeed = async () => {
   });
   console.log("   ✓ 4 work sessions registered (1500s each).");
 
+  // 8. Seed Sample Scrum with Sprint 1 (ACTIVE), items, KPI and Ceremonies
+  console.log("\n🚀 Seeding sample Scrum workspace...");
+  const sampleScrum = await prisma.scrum.create({
+    data: {
+      name: "اسکرام توسعه پلتفرم",
+      description: "اسکرام تیم فنی برای توسعه و بهبود پلتفرم استودیو رکاد",
+      color: "ECOSYSTEM",
+      isActive: true,
+      ownerId: scrumAdmin.id,
+    },
+  });
+
+  // Scrum Members
+  await prisma.scrumMember.createMany({
+    data: [
+      { scrumId: sampleScrum.id, userId: scrumAdmin.id, label: "اسکرام مستر" },
+      { scrumId: sampleScrum.id, userId: seededUsers[0].id, label: "توسعه‌دهنده فرانت‌اند" },
+      { scrumId: sampleScrum.id, userId: seededUsers[1].id, label: "توسعه‌دهنده بک‌اند" },
+    ],
+  });
+
+  // Sprint 1 (ACTIVE)
+  const sprint1 = await prisma.sprint.create({
+    data: {
+      scrumId: sampleScrum.id,
+      number: 1,
+      title: "اسپرینت ۱",
+      description: "راه‌اندازی ماژول اسکرام و پنل مدیریت",
+      status: "ACTIVE",
+      startDate: today,
+    },
+  });
+
+  // Sprint Projects (Items)
+  await prisma.sprintProject.createMany({
+    data: [
+      {
+        sprintId: sprint1.id,
+        name: "طراحی مدل داده و APIهای اسکرام",
+        points: 5,
+        assigneeId: seededUsers[1].id,
+        status: "DONE",
+        sortOrder: 0,
+      },
+      {
+        sprintId: sprint1.id,
+        name: "پیاده‌سازی کامپوننت‌های فرانت‌اند اسکرام",
+        points: 8,
+        assigneeId: seededUsers[0].id,
+        status: "DOING",
+        sortOrder: 1,
+      },
+    ],
+  });
+
+  // Scrum KPI row
+  await prisma.scrumKpi.create({
+    data: {
+      scrumId: sampleScrum.id,
+      indicator: "نرخ تحویل تسک‌های اسپرینت",
+      formula: "تعداد تسک‌های انجام‌شده / کل تسک‌ها * ۱۰۰",
+      strategicGoal: "افزایش بهره‌وری و تعهد تیم در پایان هر اسپرینت",
+      unit: "درصد",
+      target: 85,
+      firstMonthTarget: 70,
+      actualValue: 80,
+      minExpected: 65,
+      sortOrder: 0,
+    },
+  });
+
+  // Scrum Ceremonies
+  await prisma.scrumEvent.createMany({
+    data: [
+      {
+        scrumId: sampleScrum.id,
+        name: "دیلی اسکرام",
+        scheduleType: "WEEKLY",
+        dayOfWeek: 0,
+        startTime: "09:30",
+        durationMinutes: 15,
+        inputs: "کارهای دیروز، موانع",
+        outputs: "همگامی تیم برای امروز",
+        sortOrder: 0,
+      },
+      {
+        scrumId: sampleScrum.id,
+        name: "برنامه‌ریزی اسپرینت",
+        scheduleType: "WEEKLY",
+        dayOfWeek: 0,
+        startTime: "10:00",
+        durationMinutes: 60,
+        inputs: "بک‌لاگ اولویت‌بندی‌شده",
+        outputs: "اسپرینت گل و تسک‌ها",
+        sortOrder: 1,
+      },
+      {
+        scrumId: sampleScrum.id,
+        name: "پالایش بک‌لاگ",
+        scheduleType: "WEEKLY",
+        dayOfWeek: 2,
+        startTime: "14:00",
+        durationMinutes: 45,
+        inputs: "ایده‌ها و تسک‌های جدید",
+        outputs: "تسک‌های شفاف و تخمین‌خورده",
+        sortOrder: 2,
+      },
+      {
+        scrumId: sampleScrum.id,
+        name: "بررسی اسپرینت (دمو)",
+        scheduleType: "WEEKLY",
+        dayOfWeek: 4,
+        startTime: "15:00",
+        durationMinutes: 45,
+        inputs: "محصول قابل‌ارائه",
+        outputs: "بازخورد ذینفعان",
+        sortOrder: 3,
+      },
+      {
+        scrumId: sampleScrum.id,
+        name: "بازنگری اسپرینت (رترو)",
+        scheduleType: "WEEKLY",
+        dayOfWeek: 4,
+        startTime: "16:00",
+        durationMinutes: 45,
+        inputs: "تجربیات اسپرینت اخیر",
+        outputs: "اقدامات بهبود برای اسپرینت بعد",
+        sortOrder: 4,
+      },
+    ],
+  });
+  console.log("   ✓ Sample Scrum workspace seeded with Sprint 1, items, KPI, ceremonies.");
+
   console.log("\n=======================================================");
   console.log("🎉 All Seed Data Successfully Created & Verified!");
   console.log("=======================================================");
   console.log("🔑 All Login Codes (Exact 6 Characters):");
   console.log(`   👑 Super Admin:        [${superAdmin.code}] - ${superAdmin.name}`);
   console.log(`   🛡️  Operations Admin:   [${simpleAdmin.code}] - ${simpleAdmin.name}`);
+  console.log(`   ⚡ Scrum Admin:        [${scrumAdmin.code}] - ${scrumAdmin.name}`);
   console.log("\n   👥 Personnel Login Codes:");
   seededUsers.forEach((u) => {
     console.log(`      • [${u.code}] - ${u.name.padEnd(24)} (${u.department})`);

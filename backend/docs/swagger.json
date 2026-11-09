@@ -43,6 +43,10 @@
     {
       "name": "WorkSessions",
       "description": "ثبت سشن‌های کاری تمرکز، گزارش‌های روزانه پرسنل، و تجمیع آماری پروژه‌ها و کاربران"
+    },
+    {
+      "name": "Scrum",
+      "description": "مدیریت اسکرام، اسپرینت‌ها، تسک‌ها، شاخص‌های کلیدی (KPI)، ریتم جلسات و اهداف کاری"
     }
   ],
   "paths": {
@@ -1620,6 +1624,1075 @@
           }
         }
       }
+    },
+    "/api/scrums": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "لیست اسکرام‌های کاربر",
+        "description": "اعضای عادی فقط اسکرام‌هایی که عضو آن هستند را می‌بینند؛ SCRUM_ADMIN اسکرام‌های تحت مالکیت خود و SUPER_ADMIN تمام اسکرام‌ها را دریافت می‌کند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "لیست اسکرام‌ها",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScrumResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "ایجاد اسکرام جدید",
+        "description": "فقط توسط SCRUM_ADMIN یا SUPER_ADMIN قابل فراخوانی است.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "اسکرام توسعه پلتفرم"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "تیم فنی"
+                  },
+                  "color": {
+                    "$ref": "#/components/schemas/ScrumColor"
+                  },
+                  "ownerId": {
+                    "type": "integer",
+                    "description": "فقط سوپرادمین می‌تواند مالک را مشخص کند"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "اسکرام ایجاد شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/today-events": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "جلسات و ریتم‌های امروز کاربر در اسکرام‌ها",
+        "description": "رویدادهایی از اسکرام‌های فعال کاربر که امروز به وقت تهران برگزار می‌شوند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "لیست جلسات امروز",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "scrumId": {
+                            "type": "integer"
+                          },
+                          "scrumName": {
+                            "type": "string"
+                          },
+                          "scrumColor": {
+                            "$ref": "#/components/schemas/ScrumColor"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "startTime": {
+                            "type": "string"
+                          },
+                          "durationMinutes": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "جزئیات اسکرام به همراه اعضا",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "جزئیات اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "ویرایش اسکرام (مالک یا سوپرادمین)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "color": {
+                    "$ref": "#/components/schemas/ScrumColor"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "اسکرام ویرایش شد"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "حذف اسکرام",
+        "description": "در صورت وجود سشن کاری، با خطای 409 مسدود می‌شود و کاربر را به آرشیو راهنمایی می‌کند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "اسکرام حذف شد"
+          },
+          "409": {
+            "description": "دارای سشن کاری است و قابل حذف نیست"
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/members": {
+      "put": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "همگام‌سازی اعضای اسکرام (Set Diffing)",
+        "description": "تنظیم اعضای اسکرام. در صورت حذف عضوی که تسک منتسب داشته، تسک‌های وی بدون مسئول می‌شوند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "members"
+                ],
+                "properties": {
+                  "members": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "userId"
+                      ],
+                      "properties": {
+                        "userId": {
+                          "type": "integer",
+                          "example": 4
+                        },
+                        "label": {
+                          "type": "string",
+                          "example": "طراح محصول"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "اعضا بروزرسانی شدند"
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/sprints": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "لیست اسپرینت‌های اسکرام",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "لیست اسپرینت‌ها به همراه آمار پوینت",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SprintResponse"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "ایجاد اسپرینت بعدی",
+        "description": "شماره اسپرینت به صورت خودکار max(number)+1 تخصیص داده می‌شود.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "اسپرینت ۱"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "اسپرینت ایجاد شد"
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/kpis": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "جدول شاخص‌های کلیدی (KPI)",
+        "description": "برای اعضای عادی فیلد minExpected کاملاً حذف می‌شود (KpiRowMember). برای ادمین و مالک فیلد minExpected بازگردانده می‌شود (KpiRowAdmin).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "سطرهای KPI بر اساس نقش کاربر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/KpiRowAdmin"
+                          },
+                          {
+                            "$ref": "#/components/schemas/KpiRowMember"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "بروزرسانی دسته‌ای جدول KPI",
+        "description": "سطرهای خالی نادیده گرفته می‌شوند. سطرهای بدون id ایجاد، سطرهای با id بروزرسانی و سطرهای حذف‌شده از دیتابیس پاک می‌شوند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "rows"
+                ],
+                "properties": {
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/KpiRowAdmin"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "جدول KPI ذخیره شد"
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/events": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "جدول ریتم جلسات و رویدادهای اسکرام",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "رویدادها",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScrumEventItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "بروزرسانی دسته‌ای جدول ریتم جلسات",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "rows"
+                ],
+                "properties": {
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ScrumEventItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "جدول جلسات ذخیره شد"
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/report": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "گزارش عملکرد اسکرام",
+        "description": "نمایش سشن‌ها، زمان صرف‌شده و زمان به ازای هر پوینت. اعضای عادی فقط سشن‌های شخصی خود را می‌بینند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "sprintId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "داده‌های آماری گزارش"
+          }
+        }
+      }
+    },
+    "/api/sprints/{id}": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "جزئیات اسپرینت و پروژه‌های آن",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "اطلاعات کامل اسپرینت",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SprintResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "ویرایش متادیتای اسپرینت",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "اسپرینت بروزرسانی شد"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "حذف اسپرینت",
+        "description": "در صورت وجود سشن کاری، با خطای 409 مواجه می‌شود.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "اسپرینت حذف شد"
+          },
+          "409": {
+            "description": "دارای سشن کاری است و قابل حذف نیست"
+          }
+        }
+      }
+    },
+    "/api/sprints/{id}/status": {
+      "patch": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "تغییر وضعیت اسپرینت (ماشین وضعیت)",
+        "description": "فقط انتقال PLANNED->ACTIVE و ACTIVE->COMPLETED مجاز است. فعال‌سازی اسپرینت در صورت وجود اسپرینت فعال دیگر با 409 رد می‌شود.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/SprintStatus"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "وضعیت تغییر یافت"
+          },
+          "409": {
+            "description": "یک اسپرینت فعال دیگر وجود دارد"
+          }
+        }
+      }
+    },
+    "/api/sprints/{id}/projects": {
+      "post": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "افزودن پروژه/تسک به اسپرینت",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "طراحی رابط کاربری"
+                  },
+                  "points": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 0,
+                    "example": 5
+                  },
+                  "assigneeId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "پروژه اسپرینت ایجاد شد"
+          }
+        }
+      }
+    },
+    "/api/sprint-projects/{id}": {
+      "patch": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "ویرایش پروژه/تسک اسپرینت",
+        "description": "مالک و ادمین می‌توانند تمام فیلدها را تغییر دهند. کاربر منتسب غیر مالک فقط و فقط می‌تواند status را تغییر دهد (ارسال فیلد دیگر منجر به 403 می‌شود).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "points": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "assigneeId": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/ItemStatus"
+                  },
+                  "sortOrder": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "پروژه اسپرینت بروزرسانی شد"
+          },
+          "403": {
+            "description": "دسترسی غیرمجاز برای تغییر سایر فیلدها توسط عضو عادی"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "حذف پروژه اسپرینت",
+        "description": "در صورت وجود سشن کاری، با خطای 409 مسدود می‌شود.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "پروژه اسپرینت حذف شد"
+          },
+          "409": {
+            "description": "دارای سشن کاری است و قابل حذف نیست"
+          }
+        }
+      }
+    },
+    "/api/work-targets/mine": {
+      "get": {
+        "tags": [
+          "WorkSessions"
+        ],
+        "summary": "دریافت اهداف کاری کاربر برای تایم‌ترکر (Work Targets)",
+        "description": "شامل ۳ هدف اخیراً استفاده‌شده، تسک‌های اسپرینت فعال کاربر در اسکرام‌ها، و پروژه‌های استودیو.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "اهداف کاری قابل انتخاب",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "recent": {
+                          "type": "array"
+                        },
+                        "scrums": {
+                          "type": "array"
+                        },
+                        "studioProjects": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1637,7 +2710,8 @@
         "enum": [
           "USER",
           "ADMIN",
-          "SUPER_ADMIN"
+          "SUPER_ADMIN",
+          "SCRUM_ADMIN"
         ],
         "example": "USER"
       },
@@ -2723,21 +3797,39 @@
       "CreateWorkSessionRequest": {
         "type": "object",
         "required": [
-          "projectId",
           "durationSeconds"
         ],
+        "description": "ثبت سشن کاری. بر اساس قوانین، باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود (در غیر این صورت خطای 422 بازگردانده می‌شود).",
         "properties": {
           "projectId": {
             "type": "integer",
             "minimum": 1,
-            "description": "شناسه پروژه‌ای که کاربر به آن تخصیص یافته است",
+            "description": "شناسه پروژه استودیو (اختیاری در صورت ارسال sprintProjectId)",
             "example": 10
+          },
+          "sprintProjectId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "شناسه پروژه/تسک اسپرینت (اختیاری در صورت ارسال projectId). کاربر باید منتسب به این تسک باشد و اسپرینت فعال باشد.",
+            "example": 25
           },
           "durationSeconds": {
             "type": "integer",
             "minimum": 1,
-            "description": "مدت زمان کار به ثانیه (باید عدد صحیح باشد و حداکثر برابر با سقف SESSION_MAX_SECONDS)",
-            "example": 825
+            "description": "مدت زمان کار به ثانیه",
+            "example": 1500
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "زمان شروع سشن",
+            "example": "2026-11-09T10:00:00.000Z"
+          },
+          "clientRequestId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "شناسه یکتا جهت تضمین Idempotency",
+            "example": "c73a812b-2321-4d33-bc87-9d7a224a1bfa"
           }
         }
       },
@@ -2996,6 +4088,392 @@
             "items": {
               "$ref": "#/components/schemas/WorkSessionSummaryItem"
             }
+          }
+        }
+      },
+      "ScrumColor": {
+        "type": "string",
+        "enum": [
+          "ECOSYSTEM",
+          "MALE",
+          "FEMALE",
+          "COLLEGE",
+          "CLUB"
+        ],
+        "example": "ECOSYSTEM"
+      },
+      "SprintStatus": {
+        "type": "string",
+        "enum": [
+          "PLANNED",
+          "ACTIVE",
+          "COMPLETED"
+        ],
+        "example": "ACTIVE"
+      },
+      "ItemStatus": {
+        "type": "string",
+        "enum": [
+          "TODO",
+          "DOING",
+          "DONE"
+        ],
+        "example": "DOING"
+      },
+      "EventScheduleType": {
+        "type": "string",
+        "enum": [
+          "WEEKLY",
+          "ONCE"
+        ],
+        "example": "WEEKLY"
+      },
+      "KpiRowMember": {
+        "type": "object",
+        "description": "سطر KPI برای اعضای عادی اسکرام (بدون فیلد حداقل انتظار minExpected)",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "scrumId": {
+            "type": "integer",
+            "example": 10
+          },
+          "indicator": {
+            "type": "string",
+            "nullable": true,
+            "example": "نرخ تحویل تسک‌های اسپرینت"
+          },
+          "formula": {
+            "type": "string",
+            "nullable": true,
+            "example": "تعداد تسک‌های انجام‌شده / کل تسک‌ها * ۱۰۰"
+          },
+          "strategicGoal": {
+            "type": "string",
+            "nullable": true,
+            "example": "افزایش بهره‌وری و تعهد تیم"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true,
+            "example": "درصد"
+          },
+          "target": {
+            "type": "number",
+            "nullable": true,
+            "example": 85
+          },
+          "firstMonthTarget": {
+            "type": "number",
+            "nullable": true,
+            "example": 70
+          },
+          "actualValue": {
+            "type": "number",
+            "nullable": true,
+            "example": 80
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 0
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "progressPercent": {
+            "type": "number",
+            "nullable": true,
+            "example": 94.12
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "BELOW_MIN",
+              "IN_RANGE",
+              "ON_TARGET"
+            ],
+            "example": "IN_RANGE"
+          }
+        }
+      },
+      "KpiRowAdmin": {
+        "type": "object",
+        "description": "سطر کامل KPI برای مدیران و مالکان اسکرام (شامل فیلد محرمانه minExpected)",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/KpiRowMember"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "minExpected": {
+                "type": "number",
+                "nullable": true,
+                "description": "حداقل انتظار (فقط قابل مشاهده برای ادمین/مالک)",
+                "example": 65
+              }
+            }
+          }
+        ]
+      },
+      "ScrumMemberItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 5
+          },
+          "name": {
+            "type": "string",
+            "example": "Artin Amiri"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true,
+            "example": "اسکرام مستر"
+          }
+        }
+      },
+      "ScrumResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "اسکرام توسعه پلتفرم"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "تیم مهندسی و نرم‌افزار"
+          },
+          "color": {
+            "$ref": "#/components/schemas/ScrumColor"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "ownerId": {
+            "type": "integer",
+            "example": 2
+          },
+          "memberCount": {
+            "type": "integer",
+            "example": 4
+          },
+          "canEdit": {
+            "type": "boolean",
+            "example": true
+          },
+          "activeSprint": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 10
+              },
+              "number": {
+                "type": "integer",
+                "example": 1
+              },
+              "title": {
+                "type": "string",
+                "example": "اسپرینت ۱"
+              }
+            }
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScrumMemberItem"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SprintProjectItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 101
+          },
+          "sprintId": {
+            "type": "integer",
+            "example": 12
+          },
+          "name": {
+            "type": "string",
+            "example": "پیاده‌سازی ماژول اسکرام"
+          },
+          "points": {
+            "type": "integer",
+            "example": 8
+          },
+          "status": {
+            "$ref": "#/components/schemas/ItemStatus"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 0
+          },
+          "assignee": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 3
+              },
+              "name": {
+                "type": "string",
+                "example": "Artin Amiri"
+              }
+            }
+          },
+          "totalTrackedSeconds": {
+            "type": "integer",
+            "example": 3000
+          },
+          "sessionCount": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "SprintResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12
+          },
+          "scrumId": {
+            "type": "integer",
+            "example": 1
+          },
+          "number": {
+            "type": "integer",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "اسپرینت ۱"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/SprintStatus"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totalPoints": {
+            "type": "integer",
+            "example": 25
+          },
+          "donePoints": {
+            "type": "integer",
+            "example": 13
+          },
+          "itemCount": {
+            "type": "integer",
+            "example": 4
+          },
+          "totalTrackedSeconds": {
+            "type": "integer",
+            "example": 9000
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintProjectItem"
+            }
+          }
+        }
+      },
+      "ScrumEventItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "scrumId": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "دیلی اسکرام"
+          },
+          "scheduleType": {
+            "$ref": "#/components/schemas/EventScheduleType"
+          },
+          "dayOfWeek": {
+            "type": "integer",
+            "nullable": true,
+            "example": 0,
+            "description": "0 = شنبه تا 6 = جمعه"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "startTime": {
+            "type": "string",
+            "nullable": true,
+            "example": "09:30"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "nullable": true,
+            "example": 15
+          },
+          "inputs": {
+            "type": "string",
+            "nullable": true,
+            "example": "کارهای دیروز"
+          },
+          "outputs": {
+            "type": "string",
+            "nullable": true,
+            "example": "همگامی تیم"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 0
           }
         }
       }

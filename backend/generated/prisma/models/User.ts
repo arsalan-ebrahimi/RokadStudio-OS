@@ -238,6 +238,9 @@ export type UserWhereInput = {
   workSessions?: Prisma.WorkSessionListRelationFilter
   decidedWorkSessions?: Prisma.WorkSessionListRelationFilter
   createdProjects?: Prisma.ProjectListRelationFilter
+  ownedScrums?: Prisma.ScrumListRelationFilter
+  scrumMembers?: Prisma.ScrumMemberListRelationFilter
+  assignedSprintProjects?: Prisma.SprintProjectListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -254,6 +257,9 @@ export type UserOrderByWithRelationInput = {
   workSessions?: Prisma.WorkSessionOrderByRelationAggregateInput
   decidedWorkSessions?: Prisma.WorkSessionOrderByRelationAggregateInput
   createdProjects?: Prisma.ProjectOrderByRelationAggregateInput
+  ownedScrums?: Prisma.ScrumOrderByRelationAggregateInput
+  scrumMembers?: Prisma.ScrumMemberOrderByRelationAggregateInput
+  assignedSprintProjects?: Prisma.SprintProjectOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -273,6 +279,9 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   workSessions?: Prisma.WorkSessionListRelationFilter
   decidedWorkSessions?: Prisma.WorkSessionListRelationFilter
   createdProjects?: Prisma.ProjectListRelationFilter
+  ownedScrums?: Prisma.ScrumListRelationFilter
+  scrumMembers?: Prisma.ScrumMemberListRelationFilter
+  assignedSprintProjects?: Prisma.SprintProjectListRelationFilter
 }, "id" | "code">
 
 export type UserOrderByWithAggregationInput = {
@@ -316,6 +325,9 @@ export type UserCreateInput = {
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -332,6 +344,9 @@ export type UserUncheckedCreateInput = {
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUpdateInput = {
@@ -347,6 +362,9 @@ export type UserUpdateInput = {
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -363,6 +381,9 @@ export type UserUncheckedUpdateInput = {
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -494,6 +515,50 @@ export type UserUpdateOneRequiredWithoutProjectMembersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutProjectMembersInput, Prisma.UserUpdateWithoutProjectMembersInput>, Prisma.UserUncheckedUpdateWithoutProjectMembersInput>
 }
 
+export type UserCreateNestedOneWithoutOwnedScrumsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOwnedScrumsInput, Prisma.UserUncheckedCreateWithoutOwnedScrumsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOwnedScrumsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutOwnedScrumsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOwnedScrumsInput, Prisma.UserUncheckedCreateWithoutOwnedScrumsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOwnedScrumsInput
+  upsert?: Prisma.UserUpsertWithoutOwnedScrumsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOwnedScrumsInput, Prisma.UserUpdateWithoutOwnedScrumsInput>, Prisma.UserUncheckedUpdateWithoutOwnedScrumsInput>
+}
+
+export type UserCreateNestedOneWithoutScrumMembersInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutScrumMembersInput, Prisma.UserUncheckedCreateWithoutScrumMembersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutScrumMembersInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutScrumMembersNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutScrumMembersInput, Prisma.UserUncheckedCreateWithoutScrumMembersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutScrumMembersInput
+  upsert?: Prisma.UserUpsertWithoutScrumMembersInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutScrumMembersInput, Prisma.UserUpdateWithoutScrumMembersInput>, Prisma.UserUncheckedUpdateWithoutScrumMembersInput>
+}
+
+export type UserCreateNestedOneWithoutAssignedSprintProjectsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAssignedSprintProjectsInput, Prisma.UserUncheckedCreateWithoutAssignedSprintProjectsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAssignedSprintProjectsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutAssignedSprintProjectsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAssignedSprintProjectsInput, Prisma.UserUncheckedCreateWithoutAssignedSprintProjectsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAssignedSprintProjectsInput
+  upsert?: Prisma.UserUpsertWithoutAssignedSprintProjectsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAssignedSprintProjectsInput, Prisma.UserUpdateWithoutAssignedSprintProjectsInput>, Prisma.UserUncheckedUpdateWithoutAssignedSprintProjectsInput>
+}
+
 export type UserCreateNestedOneWithoutAttendancesInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutAttendancesInput, Prisma.UserUncheckedCreateWithoutAttendancesInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutAttendancesInput
@@ -566,6 +631,9 @@ export type UserCreateWithoutCreatedProjectsInput = {
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUncheckedCreateWithoutCreatedProjectsInput = {
@@ -581,6 +649,9 @@ export type UserUncheckedCreateWithoutCreatedProjectsInput = {
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserCreateOrConnectWithoutCreatedProjectsInput = {
@@ -611,6 +682,9 @@ export type UserUpdateWithoutCreatedProjectsInput = {
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedProjectsInput = {
@@ -626,6 +700,9 @@ export type UserUncheckedUpdateWithoutCreatedProjectsInput = {
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserCreateWithoutProjectMembersInput = {
@@ -640,6 +717,9 @@ export type UserCreateWithoutProjectMembersInput = {
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUncheckedCreateWithoutProjectMembersInput = {
@@ -655,6 +735,9 @@ export type UserUncheckedCreateWithoutProjectMembersInput = {
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserCreateOrConnectWithoutProjectMembersInput = {
@@ -685,6 +768,9 @@ export type UserUpdateWithoutProjectMembersInput = {
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProjectMembersInput = {
@@ -700,6 +786,267 @@ export type UserUncheckedUpdateWithoutProjectMembersInput = {
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
+}
+
+export type UserCreateWithoutOwnedScrumsInput = {
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
+  createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
+}
+
+export type UserUncheckedCreateWithoutOwnedScrumsInput = {
+  id?: number
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
+  createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
+}
+
+export type UserCreateOrConnectWithoutOwnedScrumsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutOwnedScrumsInput, Prisma.UserUncheckedCreateWithoutOwnedScrumsInput>
+}
+
+export type UserUpsertWithoutOwnedScrumsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOwnedScrumsInput, Prisma.UserUncheckedUpdateWithoutOwnedScrumsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOwnedScrumsInput, Prisma.UserUncheckedCreateWithoutOwnedScrumsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutOwnedScrumsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOwnedScrumsInput, Prisma.UserUncheckedUpdateWithoutOwnedScrumsInput>
+}
+
+export type UserUpdateWithoutOwnedScrumsInput = {
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
+  createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
+}
+
+export type UserUncheckedUpdateWithoutOwnedScrumsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
+  createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
+}
+
+export type UserCreateWithoutScrumMembersInput = {
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
+  createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
+}
+
+export type UserUncheckedCreateWithoutScrumMembersInput = {
+  id?: number
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
+  createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
+}
+
+export type UserCreateOrConnectWithoutScrumMembersInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutScrumMembersInput, Prisma.UserUncheckedCreateWithoutScrumMembersInput>
+}
+
+export type UserUpsertWithoutScrumMembersInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutScrumMembersInput, Prisma.UserUncheckedUpdateWithoutScrumMembersInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutScrumMembersInput, Prisma.UserUncheckedCreateWithoutScrumMembersInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutScrumMembersInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutScrumMembersInput, Prisma.UserUncheckedUpdateWithoutScrumMembersInput>
+}
+
+export type UserUpdateWithoutScrumMembersInput = {
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
+  createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
+}
+
+export type UserUncheckedUpdateWithoutScrumMembersInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
+  createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
+}
+
+export type UserCreateWithoutAssignedSprintProjectsInput = {
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
+  createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAssignedSprintProjectsInput = {
+  id?: number
+  code: string
+  name: string
+  role?: $Enums.Role
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutUserInput
+  attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutUserInput
+  decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
+  workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
+  createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAssignedSprintProjectsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAssignedSprintProjectsInput, Prisma.UserUncheckedCreateWithoutAssignedSprintProjectsInput>
+}
+
+export type UserUpsertWithoutAssignedSprintProjectsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAssignedSprintProjectsInput, Prisma.UserUncheckedUpdateWithoutAssignedSprintProjectsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAssignedSprintProjectsInput, Prisma.UserUncheckedCreateWithoutAssignedSprintProjectsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAssignedSprintProjectsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAssignedSprintProjectsInput, Prisma.UserUncheckedUpdateWithoutAssignedSprintProjectsInput>
+}
+
+export type UserUpdateWithoutAssignedSprintProjectsInput = {
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
+  createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAssignedSprintProjectsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectMembers?: Prisma.ProjectMemberUncheckedUpdateManyWithoutUserNestedInput
+  attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutUserNestedInput
+  decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
+  workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
+  decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
+  createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAttendancesInput = {
@@ -714,6 +1061,9 @@ export type UserCreateWithoutAttendancesInput = {
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUncheckedCreateWithoutAttendancesInput = {
@@ -729,6 +1079,9 @@ export type UserUncheckedCreateWithoutAttendancesInput = {
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserCreateOrConnectWithoutAttendancesInput = {
@@ -748,6 +1101,9 @@ export type UserCreateWithoutDecidedAttendancesInput = {
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUncheckedCreateWithoutDecidedAttendancesInput = {
@@ -763,6 +1119,9 @@ export type UserUncheckedCreateWithoutDecidedAttendancesInput = {
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserCreateOrConnectWithoutDecidedAttendancesInput = {
@@ -793,6 +1152,9 @@ export type UserUpdateWithoutAttendancesInput = {
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAttendancesInput = {
@@ -808,6 +1170,9 @@ export type UserUncheckedUpdateWithoutAttendancesInput = {
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUpsertWithoutDecidedAttendancesInput = {
@@ -833,6 +1198,9 @@ export type UserUpdateWithoutDecidedAttendancesInput = {
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDecidedAttendancesInput = {
@@ -848,6 +1216,9 @@ export type UserUncheckedUpdateWithoutDecidedAttendancesInput = {
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserCreateWithoutWorkSessionsInput = {
@@ -862,6 +1233,9 @@ export type UserCreateWithoutWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
   decidedWorkSessions?: Prisma.WorkSessionCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUncheckedCreateWithoutWorkSessionsInput = {
@@ -877,6 +1251,9 @@ export type UserUncheckedCreateWithoutWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutDecidedByInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserCreateOrConnectWithoutWorkSessionsInput = {
@@ -896,6 +1273,9 @@ export type UserCreateWithoutDecidedWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutUserInput
   createdProjects?: Prisma.ProjectCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserUncheckedCreateWithoutDecidedWorkSessionsInput = {
@@ -911,6 +1291,9 @@ export type UserUncheckedCreateWithoutDecidedWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutDecidedByInput
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutUserInput
   createdProjects?: Prisma.ProjectUncheckedCreateNestedManyWithoutCreatedByInput
+  ownedScrums?: Prisma.ScrumUncheckedCreateNestedManyWithoutOwnerInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutUserInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutAssigneeInput
 }
 
 export type UserCreateOrConnectWithoutDecidedWorkSessionsInput = {
@@ -941,6 +1324,9 @@ export type UserUpdateWithoutWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWorkSessionsInput = {
@@ -956,6 +1342,9 @@ export type UserUncheckedUpdateWithoutWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
   decidedWorkSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutDecidedByNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUpsertWithoutDecidedWorkSessionsInput = {
@@ -981,6 +1370,9 @@ export type UserUpdateWithoutDecidedWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutUserNestedInput
   createdProjects?: Prisma.ProjectUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUpdateManyWithoutAssigneeNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDecidedWorkSessionsInput = {
@@ -996,6 +1388,9 @@ export type UserUncheckedUpdateWithoutDecidedWorkSessionsInput = {
   decidedAttendances?: Prisma.AttendanceUncheckedUpdateManyWithoutDecidedByNestedInput
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutUserNestedInput
   createdProjects?: Prisma.ProjectUncheckedUpdateManyWithoutCreatedByNestedInput
+  ownedScrums?: Prisma.ScrumUncheckedUpdateManyWithoutOwnerNestedInput
+  scrumMembers?: Prisma.ScrumMemberUncheckedUpdateManyWithoutUserNestedInput
+  assignedSprintProjects?: Prisma.SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput
 }
 
 
@@ -1010,6 +1405,9 @@ export type UserCountOutputType = {
   workSessions: number
   decidedWorkSessions: number
   createdProjects: number
+  ownedScrums: number
+  scrumMembers: number
+  assignedSprintProjects: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1019,6 +1417,9 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   workSessions?: boolean | UserCountOutputTypeCountWorkSessionsArgs
   decidedWorkSessions?: boolean | UserCountOutputTypeCountDecidedWorkSessionsArgs
   createdProjects?: boolean | UserCountOutputTypeCountCreatedProjectsArgs
+  ownedScrums?: boolean | UserCountOutputTypeCountOwnedScrumsArgs
+  scrumMembers?: boolean | UserCountOutputTypeCountScrumMembersArgs
+  assignedSprintProjects?: boolean | UserCountOutputTypeCountAssignedSprintProjectsArgs
 }
 
 /**
@@ -1073,6 +1474,27 @@ export type UserCountOutputTypeCountCreatedProjectsArgs<ExtArgs extends runtime.
   where?: Prisma.ProjectWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountOwnedScrumsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ScrumWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountScrumMembersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ScrumMemberWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountAssignedSprintProjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SprintProjectWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1088,6 +1510,9 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   workSessions?: boolean | Prisma.User$workSessionsArgs<ExtArgs>
   decidedWorkSessions?: boolean | Prisma.User$decidedWorkSessionsArgs<ExtArgs>
   createdProjects?: boolean | Prisma.User$createdProjectsArgs<ExtArgs>
+  ownedScrums?: boolean | Prisma.User$ownedScrumsArgs<ExtArgs>
+  scrumMembers?: boolean | Prisma.User$scrumMembersArgs<ExtArgs>
+  assignedSprintProjects?: boolean | Prisma.User$assignedSprintProjectsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1129,6 +1554,9 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   workSessions?: boolean | Prisma.User$workSessionsArgs<ExtArgs>
   decidedWorkSessions?: boolean | Prisma.User$decidedWorkSessionsArgs<ExtArgs>
   createdProjects?: boolean | Prisma.User$createdProjectsArgs<ExtArgs>
+  ownedScrums?: boolean | Prisma.User$ownedScrumsArgs<ExtArgs>
+  scrumMembers?: boolean | Prisma.User$scrumMembersArgs<ExtArgs>
+  assignedSprintProjects?: boolean | Prisma.User$assignedSprintProjectsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1143,6 +1571,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     workSessions: Prisma.$WorkSessionPayload<ExtArgs>[]
     decidedWorkSessions: Prisma.$WorkSessionPayload<ExtArgs>[]
     createdProjects: Prisma.$ProjectPayload<ExtArgs>[]
+    ownedScrums: Prisma.$ScrumPayload<ExtArgs>[]
+    scrumMembers: Prisma.$ScrumMemberPayload<ExtArgs>[]
+    assignedSprintProjects: Prisma.$SprintProjectPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1552,6 +1983,9 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   workSessions<T extends Prisma.User$workSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$workSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   decidedWorkSessions<T extends Prisma.User$decidedWorkSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$decidedWorkSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdProjects<T extends Prisma.User$createdProjectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdProjectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  ownedScrums<T extends Prisma.User$ownedScrumsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ownedScrumsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScrumPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  scrumMembers<T extends Prisma.User$scrumMembersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$scrumMembersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScrumMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  assignedSprintProjects<T extends Prisma.User$assignedSprintProjectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignedSprintProjectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SprintProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2122,6 +2556,78 @@ export type User$createdProjectsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.ProjectScalarFieldEnum | Prisma.ProjectScalarFieldEnum[]
+}
+
+/**
+ * User.ownedScrums
+ */
+export type User$ownedScrumsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Scrum
+   */
+  select?: Prisma.ScrumSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Scrum
+   */
+  omit?: Prisma.ScrumOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ScrumInclude<ExtArgs> | null
+  where?: Prisma.ScrumWhereInput
+  orderBy?: Prisma.ScrumOrderByWithRelationInput | Prisma.ScrumOrderByWithRelationInput[]
+  cursor?: Prisma.ScrumWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ScrumScalarFieldEnum | Prisma.ScrumScalarFieldEnum[]
+}
+
+/**
+ * User.scrumMembers
+ */
+export type User$scrumMembersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ScrumMember
+   */
+  select?: Prisma.ScrumMemberSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ScrumMember
+   */
+  omit?: Prisma.ScrumMemberOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ScrumMemberInclude<ExtArgs> | null
+  where?: Prisma.ScrumMemberWhereInput
+  orderBy?: Prisma.ScrumMemberOrderByWithRelationInput | Prisma.ScrumMemberOrderByWithRelationInput[]
+  cursor?: Prisma.ScrumMemberWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ScrumMemberScalarFieldEnum | Prisma.ScrumMemberScalarFieldEnum[]
+}
+
+/**
+ * User.assignedSprintProjects
+ */
+export type User$assignedSprintProjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SprintProject
+   */
+  select?: Prisma.SprintProjectSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SprintProject
+   */
+  omit?: Prisma.SprintProjectOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SprintProjectInclude<ExtArgs> | null
+  where?: Prisma.SprintProjectWhereInput
+  orderBy?: Prisma.SprintProjectOrderByWithRelationInput | Prisma.SprintProjectOrderByWithRelationInput[]
+  cursor?: Prisma.SprintProjectWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SprintProjectScalarFieldEnum | Prisma.SprintProjectScalarFieldEnum[]
 }
 
 /**

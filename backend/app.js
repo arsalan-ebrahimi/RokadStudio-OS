@@ -14,6 +14,12 @@ import usersRouter from "./Modules/Users/users.js";
 import projectRouter from "./Modules/Project/project.js";
 import attendanceRouter from "./Modules/Attendance/attendance.js";
 import workSessionRouter from "./Modules/WorkSession/workSession.js";
+import {
+  scrumRouter,
+  sprintRouter,
+  sprintProjectRouter,
+  workTargetsRouter,
+} from "./Modules/Scrum/scrum.js";
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerDocument, swaggerUiOptions } from "./docs/swagger.js";
@@ -122,6 +128,10 @@ app.use("/api/users", usersRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/attendance", attendanceRouter);
 app.use("/api/work-sessions", workSessionRouter);
+app.use("/api/scrums", scrumRouter);
+app.use("/api/sprints", sprintRouter);
+app.use("/api/sprint-projects", sprintProjectRouter);
+app.use("/api/work-targets", workTargetsRouter);
 
 // 404 Route handler
 app.use((req, res, next) => {

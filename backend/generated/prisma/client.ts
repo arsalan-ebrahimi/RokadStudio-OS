@@ -57,6 +57,36 @@ export type Project = Prisma.ProjectModel
  */
 export type ProjectMember = Prisma.ProjectMemberModel
 /**
+ * Model Scrum
+ * 
+ */
+export type Scrum = Prisma.ScrumModel
+/**
+ * Model ScrumMember
+ * 
+ */
+export type ScrumMember = Prisma.ScrumMemberModel
+/**
+ * Model Sprint
+ * 
+ */
+export type Sprint = Prisma.SprintModel
+/**
+ * Model SprintProject
+ * 
+ */
+export type SprintProject = Prisma.SprintProjectModel
+/**
+ * Model ScrumKpi
+ * 
+ */
+export type ScrumKpi = Prisma.ScrumKpiModel
+/**
+ * Model ScrumEvent
+ * 
+ */
+export type ScrumEvent = Prisma.ScrumEventModel
+/**
  * Model Attendance
  * 
  */

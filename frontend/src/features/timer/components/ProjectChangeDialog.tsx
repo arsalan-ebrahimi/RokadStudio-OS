@@ -25,18 +25,31 @@ export const ProjectChangeDialog: React.FC<ProjectChangeDialogProps> = ({
 }) => {
   const durationText = formatDurationToHumanPersian(durationSeconds);
 
+  const renderTargetName = (name: string) => {
+    const match = name.match(/^\[(.*?)\]\s*(.*)$/);
+    if (match) {
+      return (
+        <span className="inline-flex items-center gap-1 flex-wrap align-middle">
+          <span className="px-2 py-0.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-black">
+            {match[1]}
+          </span>
+          <span className="font-black text-sec dark:text-white">{match[2]}</span>
+        </span>
+      );
+    }
+    return <span className="font-bold text-sec dark:text-white">{name}</span>;
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="تغییر پروژه"
+      title="تغییر پروژه / هدف کاری"
       dismissible={!isLoading}
     >
       <div className="space-y-5 py-1">
         <p className="text-xs sm:text-sm text-ink-normal/80 dark:text-gray-300 leading-relaxed">
-          با تغییر پروژه، {durationText} زمان کار روی پروژه «
-          <span className="font-bold text-sec dark:text-white">{currentProjectName}</span>» ثبت می‌شود و پروژه به «
-          <span className="font-bold text-sec dark:text-white">{newProjectName}</span>» تغییر می‌یابد.
+          با تغییر پروژه، {durationText} زمان کار روی {renderTargetName(currentProjectName)} ثبت می‌شود و هدف کاری به {renderTargetName(newProjectName)} تغییر می‌یابد.
         </p>
 
         <div className="flex flex-col gap-2.5 pt-2">

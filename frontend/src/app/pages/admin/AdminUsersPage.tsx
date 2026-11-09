@@ -204,6 +204,7 @@ export const AdminUsersPage: React.FC = () => {
           >
             <option value="USER">کاربر عادی</option>
             <option value="ADMIN">ادمین</option>
+            <option value="SCRUM_ADMIN">مدیر اسکرام</option>
             <option value="SUPER_ADMIN">مدیر ارشد</option>
           </Select>
           <Button variant="primary" className="w-full mt-4" isLoading={createMut.isPending} onClick={() => createMut.mutate()}>
@@ -238,6 +239,7 @@ export const AdminUsersPage: React.FC = () => {
             >
               <option value="USER">کاربر عادی</option>
               <option value="ADMIN">ادمین</option>
+              <option value="SCRUM_ADMIN">مدیر اسکرام</option>
               <option value="SUPER_ADMIN">مدیر ارشد</option>
             </Select>
             <Button

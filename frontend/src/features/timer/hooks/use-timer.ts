@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   TimerEngineState,
+  TimerTarget,
   createInitialTimerState,
   getDerivedTimerState,
   startTimer,
@@ -8,7 +9,7 @@ import {
   tickTimer,
   registerContinue,
   registerFinish,
-  changeProject,
+  changeTarget,
   restoreTimerState,
   PomodoroMode,
 } from '../lib/timer-engine';
@@ -32,6 +33,23 @@ function getStorageKey(userId: number | string): string {
 
 function getLockKey(userId: number | string): string {
   return `rokad_tab_lock_${userId}`;
+}
+
+function getRecentStorageKey(userId: number | string): string {
+  return `rokad_recent_targets_${userId}`;
+}
+
+function saveRecentTarget(userId: number | string, target: TimerTarget) {
+  try {
+    const key = getRecentStorageKey(userId);
+    const raw = localStorage.getItem(key);
+    const existing: TimerTarget[] = raw ? JSON.parse(raw) : [];
+    const filtered = existing.filter((t) => !(t.kind === target.kind && t.id === target.id));
+    const next = [target, ...filtered].slice(0, 3);
+    localStorage.setItem(key, JSON.stringify(next));
+  } catch {
+    // Ignore
+  }
 }
 
 function safeUUID(): string {
@@ -59,23 +77,28 @@ function getSessionTabId(): string {
   }
 }
 
-export function useTimer(selectedProjectId?: number | null) {
+export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null) {
   const { user } = useAuthStore();
   const userId = user?.id || 'guest';
   const tabIdRef = useRef<string>(getSessionTabId());
+
+  const normalizedInitial: TimerTarget | null =
+    typeof initialTargetOrProjectId === 'number'
+      ? { kind: 'STUDIO', id: initialTargetOrProjectId, label: '' }
+      : initialTargetOrProjectId || null;
 
   const [initialData] = useState(() => {
     try {
       const raw = localStorage.getItem(getStorageKey(userId));
       if (raw) {
         const parsed = JSON.parse(raw);
-        return restoreTimerState(parsed, selectedProjectId);
+        return restoreTimerState(parsed, normalizedInitial);
       }
     } catch {
       // Fallback
     }
     return {
-      state: createInitialTimerState(selectedProjectId),
+      state: createInitialTimerState(normalizedInitial),
       wasRecovered: false,
     };
   });
@@ -90,10 +113,7 @@ export function useTimer(selectedProjectId?: number | null) {
 
   // Dialog states
   const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
-  const [pendingProjectChange, setPendingProjectChange] = useState<{
-    newProjectId: number;
-    newProjectName: string;
-  } | null>(null);
+  const [pendingTargetChange, setPendingTargetChange] = useState<TimerTarget | null>(null);
 
   const engineStateRef = useRef(engineState);
   useEffect(() => {
@@ -187,7 +207,7 @@ export function useTimer(selectedProjectId?: number | null) {
       } else if (e.key === getStorageKey(userId) && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          const { state } = restoreTimerState(parsed, engineStateRef.current.projectId);
+          const { state } = restoreTimerState(parsed, engineStateRef.current.target);
           setEngineState(state);
         } catch {
           // Ignore
@@ -251,21 +271,25 @@ export function useTimer(selectedProjectId?: number | null) {
     return () => clearInterval(interval);
   }, [persistState, refreshTabLock]);
 
-  // Handle selected project changes from outside
+  // Handle selected target/project changes from outside
   useEffect(() => {
-    if (selectedProjectId && !engineStateRef.current.projectId && engineStateRef.current.status === 'IDLE') {
+    if (normalizedInitial && !engineStateRef.current.target && engineStateRef.current.status === 'IDLE') {
       setEngineState((prev) => {
-        const next = { ...prev, projectId: selectedProjectId };
+        const next = {
+          ...prev,
+          target: normalizedInitial,
+          projectId: normalizedInitial.kind === 'STUDIO' ? normalizedInitial.id : null,
+        };
         persistState(next);
         return next;
       });
     }
-  }, [selectedProjectId, persistState]);
+  }, [normalizedInitial, persistState]);
 
   // Start / Resume action
   const start = useCallback(() => {
-    if (!engineStateRef.current.projectId) {
-      toast.error('برای شروع، ابتدا یک پروژه انتخاب کنید.');
+    if (!engineStateRef.current.target) {
+      toast.error('برای شروع، ابتدا یک پروژه یا هدف کاری انتخاب کنید.');
       return;
     }
 
@@ -296,49 +320,63 @@ export function useTimer(selectedProjectId?: number | null) {
     });
   }, [persistState]);
 
-  // Clear project selection
-  const clearProject = useCallback(() => {
+  // Clear target / project selection
+  const clearTarget = useCallback(() => {
     setEngineState((prev) => {
-      const next = { ...prev, projectId: null };
+      const next = { ...prev, target: null, projectId: null };
       persistState(next);
       return next;
     });
   }, [persistState]);
 
-  // Project selection trigger
-  const handleSelectProject = useCallback(
-    (newProjectId: number, projectName: string) => {
+  const clearProject = clearTarget;
+
+  // Target selection trigger
+  const handleSelectTarget = useCallback(
+    (newTarget: TimerTarget) => {
       const current = engineStateRef.current;
       const derivedState = getDerivedTimerState(current);
       if (derivedState.projectSelectLocked) return;
 
-      // If timer hasn't recorded time or had no previous project, switch immediately without dialog!
-      if (derivedState.workSeconds < 1 || !current.projectId) {
+      // If timer hasn't recorded time or had no previous target, switch immediately without dialog!
+      if (derivedState.workSeconds < 1 || !current.target) {
         setEngineState((prev) => {
-          const next = { ...prev, projectId: newProjectId };
+          const next = {
+            ...prev,
+            target: newTarget,
+            projectId: newTarget.kind === 'STUDIO' ? newTarget.id : null,
+          };
           persistState(next);
           return next;
         });
       } else {
-        // Show project change confirmation dialog
-        setPendingProjectChange({
-          newProjectId,
-          newProjectName: projectName,
-        });
+        // Show target change confirmation dialog
+        setPendingTargetChange(newTarget);
       }
     },
     [persistState]
   );
 
-  // Confirm project change
-  const confirmProjectChange = useCallback(
+  const handleSelectProject = useCallback(
+    (newProjectId: number, projectName: string) => {
+      handleSelectTarget({
+        kind: 'STUDIO',
+        id: newProjectId,
+        label: projectName,
+      });
+    },
+    [handleSelectTarget]
+  );
+
+  // Confirm target change
+  const confirmTargetChange = useCallback(
     async (mode: 'continue' | 'finish' = 'continue') => {
-      if (!pendingProjectChange) return;
+      if (!pendingTargetChange) return;
       const current = engineStateRef.current;
       const currentDerived = getDerivedTimerState(current);
 
-      if (!current.projectId) {
-        setPendingProjectChange(null);
+      if (!current.target) {
+        setPendingTargetChange(null);
         return;
       }
 
@@ -348,14 +386,27 @@ export function useTimer(selectedProjectId?: number | null) {
 
       try {
         const startedAt = current.work.segmentStartedAt || new Date().toISOString();
-        const newSession = await submitWorkSession({
-          projectId: current.projectId,
+        const payload: {
+          durationSeconds: number;
+          startedAt: string;
+          clientRequestId: string;
+          projectId?: number;
+          sprintProjectId?: number;
+        } = {
           durationSeconds: currentDerived.workSeconds,
           startedAt,
           clientRequestId: clientReqId,
-        });
+        };
 
-        // Optimistically insert new session into cache so DOM updates immediately
+        if (current.target.kind === 'STUDIO') {
+          payload.projectId = current.target.id;
+        } else {
+          payload.sprintProjectId = current.target.id;
+        }
+
+        const newSession = await submitWorkSession(payload);
+
+        // Optimistically insert new session into cache
         if (newSession && typeof newSession === 'object') {
           queryClient.setQueriesData<MySessionsResponse>({ queryKey: ['my-sessions-today'] }, (old) => {
             if (!old) {
@@ -377,17 +428,23 @@ export function useTimer(selectedProjectId?: number | null) {
           });
         }
 
+        // Save target to recent targets in localStorage
+        saveRecentTarget(userId, current.target);
+
         // Local timer state changes only on success
         setEngineState((prev) => {
-          const next = changeProject(prev, pendingProjectChange.newProjectId, mode);
+          const next = changeTarget(prev, pendingTargetChange, mode);
           persistState(next);
           return next;
         });
 
         setActiveClientRequestId(null);
-        setPendingProjectChange(null);
+        setPendingTargetChange(null);
         queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
         queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
+        queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+        queryClient.invalidateQueries({ queryKey: ['scrum'] });
+        queryClient.invalidateQueries({ queryKey: ['sprint'] });
         toast.success('زمان پروژه ثبت و پروژه تغییر یافت');
       } catch (err: unknown) {
         let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
@@ -409,12 +466,12 @@ export function useTimer(selectedProjectId?: number | null) {
         setIsSubmitting(false);
       }
     },
-    [pendingProjectChange, activeClientRequestId, persistState]
+    [pendingTargetChange, activeClientRequestId, persistState, userId]
   );
 
-  // Cancel project change
-  const cancelProjectChange = useCallback(() => {
-    setPendingProjectChange(null);
+  // Cancel target change
+  const cancelTargetChange = useCallback(() => {
+    setPendingTargetChange(null);
   }, []);
 
   // Open register dialog
@@ -436,7 +493,7 @@ export function useTimer(selectedProjectId?: number | null) {
       const current = engineStateRef.current;
       const currentDerived = getDerivedTimerState(current);
 
-      if (!current.projectId || currentDerived.workSeconds < 1) {
+      if (!current.target || currentDerived.workSeconds < 1) {
         setIsRegisterDialogOpen(false);
         return;
       }
@@ -447,12 +504,25 @@ export function useTimer(selectedProjectId?: number | null) {
 
       try {
         const startedAt = current.work.segmentStartedAt || new Date().toISOString();
-        const newSession = await submitWorkSession({
-          projectId: current.projectId,
+        const payload: {
+          durationSeconds: number;
+          startedAt: string;
+          clientRequestId: string;
+          projectId?: number;
+          sprintProjectId?: number;
+        } = {
           durationSeconds: currentDerived.workSeconds,
           startedAt,
           clientRequestId: clientReqId,
-        });
+        };
+
+        if (current.target.kind === 'STUDIO') {
+          payload.projectId = current.target.id;
+        } else {
+          payload.sprintProjectId = current.target.id;
+        }
+
+        const newSession = await submitWorkSession(payload);
 
         // Optimistically insert new session into cache so DOM updates immediately
         if (newSession && typeof newSession === 'object') {
@@ -476,6 +546,9 @@ export function useTimer(selectedProjectId?: number | null) {
           });
         }
 
+        // Save to recent targets
+        saveRecentTarget(userId, current.target);
+
         // Local state changes ONLY after a successful response
         setEngineState((prev) => {
           const next = mode === 'continue' ? registerContinue(prev) : registerFinish(prev);
@@ -489,6 +562,9 @@ export function useTimer(selectedProjectId?: number | null) {
         queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
         queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
         queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+        queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+        queryClient.invalidateQueries({ queryKey: ['scrum'] });
+        queryClient.invalidateQueries({ queryKey: ['sprint'] });
         toast.success('زمان کار با موفقیت ثبت شد');
       } catch (err: unknown) {
         let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
@@ -510,7 +586,7 @@ export function useTimer(selectedProjectId?: number | null) {
         setIsSubmitting(false);
       }
     },
-    [activeClientRequestId, persistState]
+    [activeClientRequestId, persistState, userId]
   );
 
   const derived = getDerivedTimerState(engineState, now);
@@ -525,29 +601,35 @@ export function useTimer(selectedProjectId?: number | null) {
       ? 'PAUSED'
       : 'IDLE';
 
+  const pendingProjectChange = pendingTargetChange
+    ? { newProjectId: pendingTargetChange.id, newProjectName: pendingTargetChange.label }
+    : null;
+
   return {
     state: mappedState,
     status: engineState.status,
-    projectId: engineState.projectId,
+    target: engineState.target,
+    selectedTarget: engineState.target,
+    projectId: engineState.target?.kind === 'STUDIO' ? engineState.target.id : null,
     workMs: derived.workMs,
     workSeconds: derived.workSeconds,
     pomodoroRemainingMs: derived.pomodoroRemainingMs,
     pomodoroRemainingSeconds: derived.pomodoroRemainingSeconds,
     pomodoroMode: derived.pomodoroMode as PomodoroMode,
     isBreakActive: derived.isBreakActive,
-    canStart: derived.canStart && Boolean(engineState.projectId) && !isOtherTabActive && !isSubmitting,
+    canStart: derived.canStart && Boolean(engineState.target) && !isOtherTabActive && !isSubmitting,
     canRegister: derived.canRegister && !isOtherTabActive && !isSubmitting,
     mainButtonLabel: derived.mainButtonLabel,
-    mainButtonDisabled: derived.mainButtonDisabled || !engineState.projectId || isOtherTabActive || isSubmitting,
-    mainButtonDisabledReason: !engineState.projectId
-      ? 'برای شروع، ابتدا یک پروژه انتخاب کنید.'
+    mainButtonDisabled: derived.mainButtonDisabled || !engineState.target || isOtherTabActive || isSubmitting,
+    mainButtonDisabledReason: !engineState.target
+      ? 'برای شروع، ابتدا یک پروژه یا هدف کاری انتخاب کنید.'
       : isOtherTabActive
       ? 'تایمر در تب دیگری فعال است.'
       : derived.mainButtonDisabledReason,
     registerButtonDisabled: derived.registerButtonDisabled || isOtherTabActive || isSubmitting,
     registerButtonDisabledReason: isOtherTabActive ? 'تایمر در تب دیگری فعال است.' : derived.registerButtonDisabledReason,
     isLocked: derived.projectSelectLocked || isSubmitting,
-    savedProjectId: engineState.projectId,
+    savedProjectId: engineState.target?.kind === 'STUDIO' ? engineState.target.id : null,
     isOtherTabActive,
     dismissOtherTabLock,
     isSubmitting,
@@ -557,14 +639,19 @@ export function useTimer(selectedProjectId?: number | null) {
     dismissFocusBanner: () => setShowFocusBanner(false),
     start,
     pause,
+    clearTarget,
     clearProject,
+    handleSelectTarget,
     handleSelectProject,
     openRegisterDialog,
     closeRegisterDialog,
     isRegisterDialogOpen,
     confirmRegister,
+    pendingTargetChange,
+    confirmTargetChange,
+    cancelTargetChange,
     pendingProjectChange,
-    confirmProjectChange,
-    cancelProjectChange,
+    confirmProjectChange: confirmTargetChange,
+    cancelProjectChange: cancelTargetChange,
   };
 }

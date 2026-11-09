@@ -400,6 +400,12 @@ export const ModelName = {
   User: 'User',
   Project: 'Project',
   ProjectMember: 'ProjectMember',
+  Scrum: 'Scrum',
+  ScrumMember: 'ScrumMember',
+  Sprint: 'Sprint',
+  SprintProject: 'SprintProject',
+  ScrumKpi: 'ScrumKpi',
+  ScrumEvent: 'ScrumEvent',
   Attendance: 'Attendance',
   WorkSession: 'WorkSession'
 } as const
@@ -417,7 +423,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "project" | "projectMember" | "attendance" | "workSession"
+    modelProps: "user" | "project" | "projectMember" | "scrum" | "scrumMember" | "sprint" | "sprintProject" | "scrumKpi" | "scrumEvent" | "attendance" | "workSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -640,6 +646,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ProjectMemberCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ProjectMemberCountAggregateOutputType> | number
+        }
+      }
+    }
+    Scrum: {
+      payload: Prisma.$ScrumPayload<ExtArgs>
+      fields: Prisma.ScrumFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ScrumFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ScrumFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>
+        }
+        findFirst: {
+          args: Prisma.ScrumFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ScrumFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>
+        }
+        findMany: {
+          args: Prisma.ScrumFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>[]
+        }
+        create: {
+          args: Prisma.ScrumCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>
+        }
+        createMany: {
+          args: Prisma.ScrumCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ScrumCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>[]
+        }
+        delete: {
+          args: Prisma.ScrumDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>
+        }
+        update: {
+          args: Prisma.ScrumUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>
+        }
+        deleteMany: {
+          args: Prisma.ScrumDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ScrumUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ScrumUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>[]
+        }
+        upsert: {
+          args: Prisma.ScrumUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumPayload>
+        }
+        aggregate: {
+          args: Prisma.ScrumAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateScrum>
+        }
+        groupBy: {
+          args: Prisma.ScrumGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ScrumCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumCountAggregateOutputType> | number
+        }
+      }
+    }
+    ScrumMember: {
+      payload: Prisma.$ScrumMemberPayload<ExtArgs>
+      fields: Prisma.ScrumMemberFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ScrumMemberFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ScrumMemberFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>
+        }
+        findFirst: {
+          args: Prisma.ScrumMemberFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ScrumMemberFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>
+        }
+        findMany: {
+          args: Prisma.ScrumMemberFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>[]
+        }
+        create: {
+          args: Prisma.ScrumMemberCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>
+        }
+        createMany: {
+          args: Prisma.ScrumMemberCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ScrumMemberCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>[]
+        }
+        delete: {
+          args: Prisma.ScrumMemberDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>
+        }
+        update: {
+          args: Prisma.ScrumMemberUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>
+        }
+        deleteMany: {
+          args: Prisma.ScrumMemberDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ScrumMemberUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ScrumMemberUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>[]
+        }
+        upsert: {
+          args: Prisma.ScrumMemberUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumMemberPayload>
+        }
+        aggregate: {
+          args: Prisma.ScrumMemberAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateScrumMember>
+        }
+        groupBy: {
+          args: Prisma.ScrumMemberGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumMemberGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ScrumMemberCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumMemberCountAggregateOutputType> | number
+        }
+      }
+    }
+    Sprint: {
+      payload: Prisma.$SprintPayload<ExtArgs>
+      fields: Prisma.SprintFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SprintFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SprintFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>
+        }
+        findFirst: {
+          args: Prisma.SprintFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SprintFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>
+        }
+        findMany: {
+          args: Prisma.SprintFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>[]
+        }
+        create: {
+          args: Prisma.SprintCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>
+        }
+        createMany: {
+          args: Prisma.SprintCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SprintCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>[]
+        }
+        delete: {
+          args: Prisma.SprintDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>
+        }
+        update: {
+          args: Prisma.SprintUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>
+        }
+        deleteMany: {
+          args: Prisma.SprintDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SprintUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SprintUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>[]
+        }
+        upsert: {
+          args: Prisma.SprintUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintPayload>
+        }
+        aggregate: {
+          args: Prisma.SprintAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSprint>
+        }
+        groupBy: {
+          args: Prisma.SprintGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SprintGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SprintCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SprintCountAggregateOutputType> | number
+        }
+      }
+    }
+    SprintProject: {
+      payload: Prisma.$SprintProjectPayload<ExtArgs>
+      fields: Prisma.SprintProjectFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SprintProjectFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SprintProjectFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+        }
+        findFirst: {
+          args: Prisma.SprintProjectFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SprintProjectFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+        }
+        findMany: {
+          args: Prisma.SprintProjectFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>[]
+        }
+        create: {
+          args: Prisma.SprintProjectCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+        }
+        createMany: {
+          args: Prisma.SprintProjectCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SprintProjectCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>[]
+        }
+        delete: {
+          args: Prisma.SprintProjectDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+        }
+        update: {
+          args: Prisma.SprintProjectUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+        }
+        deleteMany: {
+          args: Prisma.SprintProjectDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SprintProjectUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SprintProjectUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>[]
+        }
+        upsert: {
+          args: Prisma.SprintProjectUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+        }
+        aggregate: {
+          args: Prisma.SprintProjectAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSprintProject>
+        }
+        groupBy: {
+          args: Prisma.SprintProjectGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SprintProjectGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SprintProjectCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SprintProjectCountAggregateOutputType> | number
+        }
+      }
+    }
+    ScrumKpi: {
+      payload: Prisma.$ScrumKpiPayload<ExtArgs>
+      fields: Prisma.ScrumKpiFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ScrumKpiFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ScrumKpiFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>
+        }
+        findFirst: {
+          args: Prisma.ScrumKpiFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ScrumKpiFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>
+        }
+        findMany: {
+          args: Prisma.ScrumKpiFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>[]
+        }
+        create: {
+          args: Prisma.ScrumKpiCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>
+        }
+        createMany: {
+          args: Prisma.ScrumKpiCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ScrumKpiCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>[]
+        }
+        delete: {
+          args: Prisma.ScrumKpiDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>
+        }
+        update: {
+          args: Prisma.ScrumKpiUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>
+        }
+        deleteMany: {
+          args: Prisma.ScrumKpiDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ScrumKpiUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ScrumKpiUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>[]
+        }
+        upsert: {
+          args: Prisma.ScrumKpiUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumKpiPayload>
+        }
+        aggregate: {
+          args: Prisma.ScrumKpiAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateScrumKpi>
+        }
+        groupBy: {
+          args: Prisma.ScrumKpiGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumKpiGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ScrumKpiCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumKpiCountAggregateOutputType> | number
+        }
+      }
+    }
+    ScrumEvent: {
+      payload: Prisma.$ScrumEventPayload<ExtArgs>
+      fields: Prisma.ScrumEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ScrumEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ScrumEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>
+        }
+        findFirst: {
+          args: Prisma.ScrumEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ScrumEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>
+        }
+        findMany: {
+          args: Prisma.ScrumEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>[]
+        }
+        create: {
+          args: Prisma.ScrumEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>
+        }
+        createMany: {
+          args: Prisma.ScrumEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ScrumEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>[]
+        }
+        delete: {
+          args: Prisma.ScrumEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>
+        }
+        update: {
+          args: Prisma.ScrumEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.ScrumEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ScrumEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ScrumEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.ScrumEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumEventPayload>
+        }
+        aggregate: {
+          args: Prisma.ScrumEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateScrumEvent>
+        }
+        groupBy: {
+          args: Prisma.ScrumEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ScrumEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumEventCountAggregateOutputType> | number
         }
       }
     }
@@ -866,6 +1316,96 @@ export const ProjectMemberScalarFieldEnum = {
 export type ProjectMemberScalarFieldEnum = (typeof ProjectMemberScalarFieldEnum)[keyof typeof ProjectMemberScalarFieldEnum]
 
 
+export const ScrumScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  color: 'color',
+  isActive: 'isActive',
+  ownerId: 'ownerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ScrumScalarFieldEnum = (typeof ScrumScalarFieldEnum)[keyof typeof ScrumScalarFieldEnum]
+
+
+export const ScrumMemberScalarFieldEnum = {
+  scrumId: 'scrumId',
+  userId: 'userId',
+  label: 'label'
+} as const
+
+export type ScrumMemberScalarFieldEnum = (typeof ScrumMemberScalarFieldEnum)[keyof typeof ScrumMemberScalarFieldEnum]
+
+
+export const SprintScalarFieldEnum = {
+  id: 'id',
+  scrumId: 'scrumId',
+  number: 'number',
+  title: 'title',
+  description: 'description',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  status: 'status',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SprintScalarFieldEnum = (typeof SprintScalarFieldEnum)[keyof typeof SprintScalarFieldEnum]
+
+
+export const SprintProjectScalarFieldEnum = {
+  id: 'id',
+  sprintId: 'sprintId',
+  name: 'name',
+  points: 'points',
+  assigneeId: 'assigneeId',
+  status: 'status',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SprintProjectScalarFieldEnum = (typeof SprintProjectScalarFieldEnum)[keyof typeof SprintProjectScalarFieldEnum]
+
+
+export const ScrumKpiScalarFieldEnum = {
+  id: 'id',
+  scrumId: 'scrumId',
+  indicator: 'indicator',
+  formula: 'formula',
+  strategicGoal: 'strategicGoal',
+  unit: 'unit',
+  target: 'target',
+  firstMonthTarget: 'firstMonthTarget',
+  actualValue: 'actualValue',
+  minExpected: 'minExpected',
+  sortOrder: 'sortOrder',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ScrumKpiScalarFieldEnum = (typeof ScrumKpiScalarFieldEnum)[keyof typeof ScrumKpiScalarFieldEnum]
+
+
+export const ScrumEventScalarFieldEnum = {
+  id: 'id',
+  scrumId: 'scrumId',
+  name: 'name',
+  scheduleType: 'scheduleType',
+  dayOfWeek: 'dayOfWeek',
+  date: 'date',
+  startTime: 'startTime',
+  durationMinutes: 'durationMinutes',
+  inputs: 'inputs',
+  outputs: 'outputs',
+  sortOrder: 'sortOrder'
+} as const
+
+export type ScrumEventScalarFieldEnum = (typeof ScrumEventScalarFieldEnum)[keyof typeof ScrumEventScalarFieldEnum]
+
+
 export const AttendanceScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -887,6 +1427,7 @@ export const WorkSessionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   projectId: 'projectId',
+  sprintProjectId: 'sprintProjectId',
   attendanceId: 'attendanceId',
   durationSeconds: 'durationSeconds',
   clientRequestId: 'clientRequestId',
@@ -992,6 +1533,76 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ScrumColor'
+ */
+export type EnumScrumColorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScrumColor'>
+    
+
+
+/**
+ * Reference to a field of type 'ScrumColor[]'
+ */
+export type ListEnumScrumColorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScrumColor[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SprintStatus'
+ */
+export type EnumSprintStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SprintStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'SprintStatus[]'
+ */
+export type ListEnumSprintStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SprintStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'ItemStatus'
+ */
+export type EnumItemStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ItemStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ItemStatus[]'
+ */
+export type ListEnumItemStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ItemStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal'
+ */
+export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal[]'
+ */
+export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+/**
+ * Reference to a field of type 'EventScheduleType'
+ */
+export type EnumEventScheduleTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventScheduleType'>
+    
+
+
+/**
+ * Reference to a field of type 'EventScheduleType[]'
+ */
+export type ListEnumEventScheduleTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventScheduleType[]'>
     
 
 
@@ -1204,6 +1815,12 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   project?: Prisma.ProjectOmit
   projectMember?: Prisma.ProjectMemberOmit
+  scrum?: Prisma.ScrumOmit
+  scrumMember?: Prisma.ScrumMemberOmit
+  sprint?: Prisma.SprintOmit
+  sprintProject?: Prisma.SprintProjectOmit
+  scrumKpi?: Prisma.ScrumKpiOmit
+  scrumEvent?: Prisma.ScrumEventOmit
   attendance?: Prisma.AttendanceOmit
   workSession?: Prisma.WorkSessionOmit
 }

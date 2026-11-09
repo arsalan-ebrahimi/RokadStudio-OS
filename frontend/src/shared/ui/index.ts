@@ -11,4 +11,5 @@ export * from './ConfirmDialog';
 export * from './Toast';
 export * from './ErrorBoundary';
 export * from './PersianDatePicker';
+export * from './EditableTable';
 

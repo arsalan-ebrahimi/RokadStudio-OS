@@ -7,6 +7,16 @@ import {
 export type TimerStatus = 'IDLE' | 'RUNNING' | 'PAUSED';
 export type PomodoroMode = 'FOCUS' | 'BREAK';
 
+export type TimerTargetKind = 'STUDIO' | 'SPRINT';
+
+export interface TimerTarget {
+  kind: TimerTargetKind;
+  id: number;
+  label: string;
+  points?: number;
+  scrumColor?: string;
+}
+
 export interface WorkState {
   accumulatedMs: number;
   runningSince: number | null;
@@ -21,7 +31,9 @@ export interface PomodoroState {
 
 export interface TimerEngineState {
   status: TimerStatus;
-  projectId: number | null;
+  target: TimerTarget | null;
+  /** Legacy alias for compatibility */
+  projectId?: number | null;
   work: WorkState;
   pomodoro: PomodoroState;
   lastHeartbeat: number | null;
@@ -29,6 +41,8 @@ export interface TimerEngineState {
 
 export interface DerivedTimerState {
   status: TimerStatus;
+  target: TimerTarget | null;
+  /** Legacy alias for compatibility */
   projectId: number | null;
   workMs: number;
   workSeconds: number;
@@ -46,10 +60,16 @@ export interface DerivedTimerState {
   projectSelectLocked: boolean;
 }
 
-export function createInitialTimerState(projectId: number | null = null): TimerEngineState {
+export function createInitialTimerState(initial: TimerTarget | number | null = null): TimerEngineState {
+  const target: TimerTarget | null =
+    typeof initial === 'number'
+      ? { kind: 'STUDIO', id: initial, label: '' }
+      : initial || null;
+
   return {
     status: 'IDLE',
-    projectId,
+    target,
+    projectId: target?.kind === 'STUDIO' ? target.id : null,
     work: {
       accumulatedMs: 0,
       runningSince: null,
@@ -107,7 +127,7 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
   let mainButtonDisabled = false;
   let mainButtonDisabledReason: string | null = null;
 
-  if (state.status === 'IDLE' && !state.projectId) {
+  if (state.status === 'IDLE' && !state.target && !state.projectId) {
     mainButtonDisabled = true;
     mainButtonDisabledReason = 'ابتدا یک پروژه انتخاب کنید.';
   } else if (isBreakActive) {
@@ -136,7 +156,8 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
 
   return {
     status: state.status,
-    projectId: state.projectId,
+    target: state.target || null,
+    projectId: state.target?.kind === 'STUDIO' ? state.target.id : (typeof state.projectId === 'number' ? state.projectId : null),
     workMs: currentWorkMs,
     workSeconds,
     pomodoroMode: isBreakActive ? 'BREAK' : 'FOCUS',
@@ -156,7 +177,7 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
 
 export function startTimer(state: TimerEngineState, now = Date.now()): TimerEngineState {
   if (state.status === 'RUNNING') return state;
-  if (!state.projectId) return state;
+  if (!state.target && !state.projectId) return state;
 
   // Cannot start during active break
   if (state.pomodoro.mode === 'BREAK' && state.pomodoro.breakEndsAt && now < state.pomodoro.breakEndsAt) {
@@ -301,6 +322,7 @@ export function registerContinue(state: TimerEngineState): TimerEngineState {
   return {
     ...state,
     status: 'IDLE',
+    target: null,
     projectId: null,
     work: {
       accumulatedMs: 0,
@@ -315,6 +337,7 @@ export function registerFinish(state: TimerEngineState): TimerEngineState {
   return {
     ...state,
     status: 'IDLE',
+    target: null,
     projectId: null,
     work: {
       accumulatedMs: 0,
@@ -329,15 +352,16 @@ export function registerFinish(state: TimerEngineState): TimerEngineState {
   };
 }
 
-export function changeProject(
+export function changeTarget(
   state: TimerEngineState,
-  newProjectId: number,
+  newTarget: TimerTarget,
   mode: 'continue' | 'finish' = 'continue'
 ): TimerEngineState {
   return {
     ...state,
     status: 'PAUSED',
-    projectId: newProjectId,
+    target: newTarget,
+    projectId: newTarget.kind === 'STUDIO' ? newTarget.id : null,
     work: {
       accumulatedMs: 0,
       runningSince: null,
@@ -354,21 +378,53 @@ export function changeProject(
   };
 }
 
+export function changeProject(
+  state: TimerEngineState,
+  newProjectId: number,
+  mode: 'continue' | 'finish' = 'continue'
+): TimerEngineState {
+  return changeTarget(state, { kind: 'STUDIO', id: newProjectId, label: '' }, mode);
+}
+
 export function restoreTimerState(
   raw: unknown,
-  fallbackProjectId: number | null = null,
+  fallbackTarget: TimerTarget | number | null = null,
   now = Date.now()
 ): { state: TimerEngineState; wasRecovered: boolean } {
+  const normalizedFallback: TimerTarget | null =
+    typeof fallbackTarget === 'number'
+      ? { kind: 'STUDIO', id: fallbackTarget, label: '' }
+      : fallbackTarget || null;
+
   if (!raw || typeof raw !== 'object') {
-    return { state: createInitialTimerState(fallbackProjectId), wasRecovered: false };
+    return { state: createInitialTimerState(normalizedFallback), wasRecovered: false };
   }
 
   try {
-    const data = raw as Partial<TimerEngineState>;
+    const data = raw as Record<string, any>;
     let wasRecovered = false;
 
     let status: TimerStatus = data.status === 'RUNNING' || data.status === 'PAUSED' ? data.status : 'IDLE';
-    const projectId = typeof data.projectId === 'number' ? data.projectId : fallbackProjectId;
+
+    // Target migration
+    let target: TimerTarget | null = null;
+    if (data.target && typeof data.target === 'object' && data.target.id && data.target.kind) {
+      target = {
+        kind: data.target.kind === 'SPRINT' ? 'SPRINT' : 'STUDIO',
+        id: Number(data.target.id),
+        label: String(data.target.label || ''),
+        points: typeof data.target.points === 'number' ? data.target.points : undefined,
+        scrumColor: data.target.scrumColor,
+      };
+    } else if (typeof data.projectId === 'number') {
+      target = { kind: 'STUDIO', id: data.projectId, label: '' };
+    } else if (typeof data.selectedProjectId === 'number') {
+      target = { kind: 'STUDIO', id: data.selectedProjectId, label: '' };
+    } else if (normalizedFallback) {
+      target = normalizedFallback;
+    }
+
+    const projectId = target?.kind === 'STUDIO' ? target.id : null;
 
     let accumulatedMs = Number(data.work?.accumulatedMs) || 0;
     const runningSince = typeof data.work?.runningSince === 'number' ? data.work.runningSince : null;
@@ -420,6 +476,7 @@ export function restoreTimerState(
     return {
       state: {
         status,
+        target,
         projectId,
         work: {
           accumulatedMs,
@@ -436,7 +493,7 @@ export function restoreTimerState(
       wasRecovered,
     };
   } catch {
-    return { state: createInitialTimerState(fallbackProjectId), wasRecovered: false };
+    return { state: createInitialTimerState(normalizedFallback), wasRecovered: false };
   }
 }
 

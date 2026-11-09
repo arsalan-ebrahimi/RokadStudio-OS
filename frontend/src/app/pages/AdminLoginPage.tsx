@@ -6,6 +6,9 @@ const AdminLoginPage: React.FC = () => {
   const { user, token } = useAuthStore();
 
   if (token && user) {
+    if (user.role === 'SCRUM_ADMIN') {
+      return <Navigate to="/panel/scrums" replace />;
+    }
     return <Navigate to={user.role === 'USER' ? '/' : '/panel/attendance'} replace />;
   }
 

@@ -30,6 +30,7 @@ export type WorkSessionAvgAggregateOutputType = {
   id: number | null
   userId: number | null
   projectId: number | null
+  sprintProjectId: number | null
   attendanceId: number | null
   durationSeconds: number | null
   decidedById: number | null
@@ -39,6 +40,7 @@ export type WorkSessionSumAggregateOutputType = {
   id: number | null
   userId: number | null
   projectId: number | null
+  sprintProjectId: number | null
   attendanceId: number | null
   durationSeconds: number | null
   decidedById: number | null
@@ -48,6 +50,7 @@ export type WorkSessionMinAggregateOutputType = {
   id: number | null
   userId: number | null
   projectId: number | null
+  sprintProjectId: number | null
   attendanceId: number | null
   durationSeconds: number | null
   clientRequestId: string | null
@@ -64,6 +67,7 @@ export type WorkSessionMaxAggregateOutputType = {
   id: number | null
   userId: number | null
   projectId: number | null
+  sprintProjectId: number | null
   attendanceId: number | null
   durationSeconds: number | null
   clientRequestId: string | null
@@ -80,6 +84,7 @@ export type WorkSessionCountAggregateOutputType = {
   id: number
   userId: number
   projectId: number
+  sprintProjectId: number
   attendanceId: number
   durationSeconds: number
   clientRequestId: number
@@ -98,6 +103,7 @@ export type WorkSessionAvgAggregateInputType = {
   id?: true
   userId?: true
   projectId?: true
+  sprintProjectId?: true
   attendanceId?: true
   durationSeconds?: true
   decidedById?: true
@@ -107,6 +113,7 @@ export type WorkSessionSumAggregateInputType = {
   id?: true
   userId?: true
   projectId?: true
+  sprintProjectId?: true
   attendanceId?: true
   durationSeconds?: true
   decidedById?: true
@@ -116,6 +123,7 @@ export type WorkSessionMinAggregateInputType = {
   id?: true
   userId?: true
   projectId?: true
+  sprintProjectId?: true
   attendanceId?: true
   durationSeconds?: true
   clientRequestId?: true
@@ -132,6 +140,7 @@ export type WorkSessionMaxAggregateInputType = {
   id?: true
   userId?: true
   projectId?: true
+  sprintProjectId?: true
   attendanceId?: true
   durationSeconds?: true
   clientRequestId?: true
@@ -148,6 +157,7 @@ export type WorkSessionCountAggregateInputType = {
   id?: true
   userId?: true
   projectId?: true
+  sprintProjectId?: true
   attendanceId?: true
   durationSeconds?: true
   clientRequestId?: true
@@ -250,7 +260,8 @@ export type WorkSessionGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type WorkSessionGroupByOutputType = {
   id: number
   userId: number
-  projectId: number
+  projectId: number | null
+  sprintProjectId: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId: string | null
@@ -289,7 +300,8 @@ export type WorkSessionWhereInput = {
   NOT?: Prisma.WorkSessionWhereInput | Prisma.WorkSessionWhereInput[]
   id?: Prisma.IntFilter<"WorkSession"> | number
   userId?: Prisma.IntFilter<"WorkSession"> | number
-  projectId?: Prisma.IntFilter<"WorkSession"> | number
+  projectId?: Prisma.IntNullableFilter<"WorkSession"> | number | null
+  sprintProjectId?: Prisma.IntNullableFilter<"WorkSession"> | number | null
   attendanceId?: Prisma.IntFilter<"WorkSession"> | number
   durationSeconds?: Prisma.IntFilter<"WorkSession"> | number
   clientRequestId?: Prisma.StringNullableFilter<"WorkSession"> | string | null
@@ -301,7 +313,8 @@ export type WorkSessionWhereInput = {
   startedAt?: Prisma.DateTimeNullableFilter<"WorkSession"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"WorkSession"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
+  project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
+  sprintProject?: Prisma.XOR<Prisma.SprintProjectNullableScalarRelationFilter, Prisma.SprintProjectWhereInput> | null
   attendance?: Prisma.XOR<Prisma.AttendanceScalarRelationFilter, Prisma.AttendanceWhereInput>
   decidedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }
@@ -309,7 +322,8 @@ export type WorkSessionWhereInput = {
 export type WorkSessionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  projectId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sprintProjectId?: Prisma.SortOrderInput | Prisma.SortOrder
   attendanceId?: Prisma.SortOrder
   durationSeconds?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -322,6 +336,7 @@ export type WorkSessionOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   project?: Prisma.ProjectOrderByWithRelationInput
+  sprintProject?: Prisma.SprintProjectOrderByWithRelationInput
   attendance?: Prisma.AttendanceOrderByWithRelationInput
   decidedBy?: Prisma.UserOrderByWithRelationInput
 }
@@ -333,7 +348,8 @@ export type WorkSessionWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.WorkSessionWhereInput[]
   NOT?: Prisma.WorkSessionWhereInput | Prisma.WorkSessionWhereInput[]
   userId?: Prisma.IntFilter<"WorkSession"> | number
-  projectId?: Prisma.IntFilter<"WorkSession"> | number
+  projectId?: Prisma.IntNullableFilter<"WorkSession"> | number | null
+  sprintProjectId?: Prisma.IntNullableFilter<"WorkSession"> | number | null
   attendanceId?: Prisma.IntFilter<"WorkSession"> | number
   durationSeconds?: Prisma.IntFilter<"WorkSession"> | number
   clientRequestId?: Prisma.StringNullableFilter<"WorkSession"> | string | null
@@ -345,7 +361,8 @@ export type WorkSessionWhereUniqueInput = Prisma.AtLeast<{
   startedAt?: Prisma.DateTimeNullableFilter<"WorkSession"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"WorkSession"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
+  project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
+  sprintProject?: Prisma.XOR<Prisma.SprintProjectNullableScalarRelationFilter, Prisma.SprintProjectWhereInput> | null
   attendance?: Prisma.XOR<Prisma.AttendanceScalarRelationFilter, Prisma.AttendanceWhereInput>
   decidedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }, "id" | "userId_clientRequestId">
@@ -353,7 +370,8 @@ export type WorkSessionWhereUniqueInput = Prisma.AtLeast<{
 export type WorkSessionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  projectId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sprintProjectId?: Prisma.SortOrderInput | Prisma.SortOrder
   attendanceId?: Prisma.SortOrder
   durationSeconds?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -377,7 +395,8 @@ export type WorkSessionScalarWhereWithAggregatesInput = {
   NOT?: Prisma.WorkSessionScalarWhereWithAggregatesInput | Prisma.WorkSessionScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"WorkSession"> | number
   userId?: Prisma.IntWithAggregatesFilter<"WorkSession"> | number
-  projectId?: Prisma.IntWithAggregatesFilter<"WorkSession"> | number
+  projectId?: Prisma.IntNullableWithAggregatesFilter<"WorkSession"> | number | null
+  sprintProjectId?: Prisma.IntNullableWithAggregatesFilter<"WorkSession"> | number | null
   attendanceId?: Prisma.IntWithAggregatesFilter<"WorkSession"> | number
   durationSeconds?: Prisma.IntWithAggregatesFilter<"WorkSession"> | number
   clientRequestId?: Prisma.StringNullableWithAggregatesFilter<"WorkSession"> | string | null
@@ -400,7 +419,8 @@ export type WorkSessionCreateInput = {
   startedAt?: Date | string | null
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutWorkSessionsInput
-  project: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  sprintProject?: Prisma.SprintProjectCreateNestedOneWithoutWorkSessionsInput
   attendance: Prisma.AttendanceCreateNestedOneWithoutWorkSessionsInput
   decidedBy?: Prisma.UserCreateNestedOneWithoutDecidedWorkSessionsInput
 }
@@ -408,7 +428,8 @@ export type WorkSessionCreateInput = {
 export type WorkSessionUncheckedCreateInput = {
   id?: number
   userId: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -431,7 +452,8 @@ export type WorkSessionUpdateInput = {
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutWorkSessionsNestedInput
-  project?: Prisma.ProjectUpdateOneRequiredWithoutWorkSessionsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutWorkSessionsNestedInput
+  sprintProject?: Prisma.SprintProjectUpdateOneWithoutWorkSessionsNestedInput
   attendance?: Prisma.AttendanceUpdateOneRequiredWithoutWorkSessionsNestedInput
   decidedBy?: Prisma.UserUpdateOneWithoutDecidedWorkSessionsNestedInput
 }
@@ -439,7 +461,8 @@ export type WorkSessionUpdateInput = {
 export type WorkSessionUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -455,7 +478,8 @@ export type WorkSessionUncheckedUpdateInput = {
 export type WorkSessionCreateManyInput = {
   id?: number
   userId: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -482,7 +506,8 @@ export type WorkSessionUpdateManyMutationInput = {
 export type WorkSessionUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -514,6 +539,7 @@ export type WorkSessionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  sprintProjectId?: Prisma.SortOrder
   attendanceId?: Prisma.SortOrder
   durationSeconds?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
@@ -530,6 +556,7 @@ export type WorkSessionAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  sprintProjectId?: Prisma.SortOrder
   attendanceId?: Prisma.SortOrder
   durationSeconds?: Prisma.SortOrder
   decidedById?: Prisma.SortOrder
@@ -539,6 +566,7 @@ export type WorkSessionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  sprintProjectId?: Prisma.SortOrder
   attendanceId?: Prisma.SortOrder
   durationSeconds?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
@@ -555,6 +583,7 @@ export type WorkSessionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  sprintProjectId?: Prisma.SortOrder
   attendanceId?: Prisma.SortOrder
   durationSeconds?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
@@ -571,6 +600,7 @@ export type WorkSessionSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  sprintProjectId?: Prisma.SortOrder
   attendanceId?: Prisma.SortOrder
   durationSeconds?: Prisma.SortOrder
   decidedById?: Prisma.SortOrder
@@ -702,6 +732,48 @@ export type WorkSessionUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.WorkSessionScalarWhereInput | Prisma.WorkSessionScalarWhereInput[]
 }
 
+export type WorkSessionCreateNestedManyWithoutSprintProjectInput = {
+  create?: Prisma.XOR<Prisma.WorkSessionCreateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput> | Prisma.WorkSessionCreateWithoutSprintProjectInput[] | Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput[]
+  connectOrCreate?: Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput | Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput[]
+  createMany?: Prisma.WorkSessionCreateManySprintProjectInputEnvelope
+  connect?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+}
+
+export type WorkSessionUncheckedCreateNestedManyWithoutSprintProjectInput = {
+  create?: Prisma.XOR<Prisma.WorkSessionCreateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput> | Prisma.WorkSessionCreateWithoutSprintProjectInput[] | Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput[]
+  connectOrCreate?: Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput | Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput[]
+  createMany?: Prisma.WorkSessionCreateManySprintProjectInputEnvelope
+  connect?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+}
+
+export type WorkSessionUpdateManyWithoutSprintProjectNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkSessionCreateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput> | Prisma.WorkSessionCreateWithoutSprintProjectInput[] | Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput[]
+  connectOrCreate?: Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput | Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput[]
+  upsert?: Prisma.WorkSessionUpsertWithWhereUniqueWithoutSprintProjectInput | Prisma.WorkSessionUpsertWithWhereUniqueWithoutSprintProjectInput[]
+  createMany?: Prisma.WorkSessionCreateManySprintProjectInputEnvelope
+  set?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  disconnect?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  delete?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  connect?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  update?: Prisma.WorkSessionUpdateWithWhereUniqueWithoutSprintProjectInput | Prisma.WorkSessionUpdateWithWhereUniqueWithoutSprintProjectInput[]
+  updateMany?: Prisma.WorkSessionUpdateManyWithWhereWithoutSprintProjectInput | Prisma.WorkSessionUpdateManyWithWhereWithoutSprintProjectInput[]
+  deleteMany?: Prisma.WorkSessionScalarWhereInput | Prisma.WorkSessionScalarWhereInput[]
+}
+
+export type WorkSessionUncheckedUpdateManyWithoutSprintProjectNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkSessionCreateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput> | Prisma.WorkSessionCreateWithoutSprintProjectInput[] | Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput[]
+  connectOrCreate?: Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput | Prisma.WorkSessionCreateOrConnectWithoutSprintProjectInput[]
+  upsert?: Prisma.WorkSessionUpsertWithWhereUniqueWithoutSprintProjectInput | Prisma.WorkSessionUpsertWithWhereUniqueWithoutSprintProjectInput[]
+  createMany?: Prisma.WorkSessionCreateManySprintProjectInputEnvelope
+  set?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  disconnect?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  delete?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  connect?: Prisma.WorkSessionWhereUniqueInput | Prisma.WorkSessionWhereUniqueInput[]
+  update?: Prisma.WorkSessionUpdateWithWhereUniqueWithoutSprintProjectInput | Prisma.WorkSessionUpdateWithWhereUniqueWithoutSprintProjectInput[]
+  updateMany?: Prisma.WorkSessionUpdateManyWithWhereWithoutSprintProjectInput | Prisma.WorkSessionUpdateManyWithWhereWithoutSprintProjectInput[]
+  deleteMany?: Prisma.WorkSessionScalarWhereInput | Prisma.WorkSessionScalarWhereInput[]
+}
+
 export type WorkSessionCreateNestedManyWithoutAttendanceInput = {
   create?: Prisma.XOR<Prisma.WorkSessionCreateWithoutAttendanceInput, Prisma.WorkSessionUncheckedCreateWithoutAttendanceInput> | Prisma.WorkSessionCreateWithoutAttendanceInput[] | Prisma.WorkSessionUncheckedCreateWithoutAttendanceInput[]
   connectOrCreate?: Prisma.WorkSessionCreateOrConnectWithoutAttendanceInput | Prisma.WorkSessionCreateOrConnectWithoutAttendanceInput[]
@@ -753,14 +825,16 @@ export type WorkSessionCreateWithoutUserInput = {
   decidedAt?: Date | string | null
   startedAt?: Date | string | null
   createdAt?: Date | string
-  project: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  sprintProject?: Prisma.SprintProjectCreateNestedOneWithoutWorkSessionsInput
   attendance: Prisma.AttendanceCreateNestedOneWithoutWorkSessionsInput
   decidedBy?: Prisma.UserCreateNestedOneWithoutDecidedWorkSessionsInput
 }
 
 export type WorkSessionUncheckedCreateWithoutUserInput = {
   id?: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -793,14 +867,16 @@ export type WorkSessionCreateWithoutDecidedByInput = {
   startedAt?: Date | string | null
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutWorkSessionsInput
-  project: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  sprintProject?: Prisma.SprintProjectCreateNestedOneWithoutWorkSessionsInput
   attendance: Prisma.AttendanceCreateNestedOneWithoutWorkSessionsInput
 }
 
 export type WorkSessionUncheckedCreateWithoutDecidedByInput = {
   id?: number
   userId: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -844,7 +920,8 @@ export type WorkSessionScalarWhereInput = {
   NOT?: Prisma.WorkSessionScalarWhereInput | Prisma.WorkSessionScalarWhereInput[]
   id?: Prisma.IntFilter<"WorkSession"> | number
   userId?: Prisma.IntFilter<"WorkSession"> | number
-  projectId?: Prisma.IntFilter<"WorkSession"> | number
+  projectId?: Prisma.IntNullableFilter<"WorkSession"> | number | null
+  sprintProjectId?: Prisma.IntNullableFilter<"WorkSession"> | number | null
   attendanceId?: Prisma.IntFilter<"WorkSession"> | number
   durationSeconds?: Prisma.IntFilter<"WorkSession"> | number
   clientRequestId?: Prisma.StringNullableFilter<"WorkSession"> | string | null
@@ -883,6 +960,7 @@ export type WorkSessionCreateWithoutProjectInput = {
   startedAt?: Date | string | null
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutWorkSessionsInput
+  sprintProject?: Prisma.SprintProjectCreateNestedOneWithoutWorkSessionsInput
   attendance: Prisma.AttendanceCreateNestedOneWithoutWorkSessionsInput
   decidedBy?: Prisma.UserCreateNestedOneWithoutDecidedWorkSessionsInput
 }
@@ -890,6 +968,7 @@ export type WorkSessionCreateWithoutProjectInput = {
 export type WorkSessionUncheckedCreateWithoutProjectInput = {
   id?: number
   userId: number
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -928,6 +1007,63 @@ export type WorkSessionUpdateManyWithWhereWithoutProjectInput = {
   data: Prisma.XOR<Prisma.WorkSessionUpdateManyMutationInput, Prisma.WorkSessionUncheckedUpdateManyWithoutProjectInput>
 }
 
+export type WorkSessionCreateWithoutSprintProjectInput = {
+  durationSeconds: number
+  clientRequestId?: string | null
+  workDate?: Date | string
+  approval?: $Enums.ApprovalStatus
+  source?: $Enums.DecisionSource
+  decidedAt?: Date | string | null
+  startedAt?: Date | string | null
+  createdAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutWorkSessionsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  attendance: Prisma.AttendanceCreateNestedOneWithoutWorkSessionsInput
+  decidedBy?: Prisma.UserCreateNestedOneWithoutDecidedWorkSessionsInput
+}
+
+export type WorkSessionUncheckedCreateWithoutSprintProjectInput = {
+  id?: number
+  userId: number
+  projectId?: number | null
+  attendanceId: number
+  durationSeconds: number
+  clientRequestId?: string | null
+  workDate?: Date | string
+  approval?: $Enums.ApprovalStatus
+  source?: $Enums.DecisionSource
+  decidedById?: number | null
+  decidedAt?: Date | string | null
+  startedAt?: Date | string | null
+  createdAt?: Date | string
+}
+
+export type WorkSessionCreateOrConnectWithoutSprintProjectInput = {
+  where: Prisma.WorkSessionWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkSessionCreateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput>
+}
+
+export type WorkSessionCreateManySprintProjectInputEnvelope = {
+  data: Prisma.WorkSessionCreateManySprintProjectInput | Prisma.WorkSessionCreateManySprintProjectInput[]
+  skipDuplicates?: boolean
+}
+
+export type WorkSessionUpsertWithWhereUniqueWithoutSprintProjectInput = {
+  where: Prisma.WorkSessionWhereUniqueInput
+  update: Prisma.XOR<Prisma.WorkSessionUpdateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedUpdateWithoutSprintProjectInput>
+  create: Prisma.XOR<Prisma.WorkSessionCreateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedCreateWithoutSprintProjectInput>
+}
+
+export type WorkSessionUpdateWithWhereUniqueWithoutSprintProjectInput = {
+  where: Prisma.WorkSessionWhereUniqueInput
+  data: Prisma.XOR<Prisma.WorkSessionUpdateWithoutSprintProjectInput, Prisma.WorkSessionUncheckedUpdateWithoutSprintProjectInput>
+}
+
+export type WorkSessionUpdateManyWithWhereWithoutSprintProjectInput = {
+  where: Prisma.WorkSessionScalarWhereInput
+  data: Prisma.XOR<Prisma.WorkSessionUpdateManyMutationInput, Prisma.WorkSessionUncheckedUpdateManyWithoutSprintProjectInput>
+}
+
 export type WorkSessionCreateWithoutAttendanceInput = {
   durationSeconds: number
   clientRequestId?: string | null
@@ -938,14 +1074,16 @@ export type WorkSessionCreateWithoutAttendanceInput = {
   startedAt?: Date | string | null
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutWorkSessionsInput
-  project: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutWorkSessionsInput
+  sprintProject?: Prisma.SprintProjectCreateNestedOneWithoutWorkSessionsInput
   decidedBy?: Prisma.UserCreateNestedOneWithoutDecidedWorkSessionsInput
 }
 
 export type WorkSessionUncheckedCreateWithoutAttendanceInput = {
   id?: number
   userId: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   durationSeconds: number
   clientRequestId?: string | null
   workDate?: Date | string
@@ -985,7 +1123,8 @@ export type WorkSessionUpdateManyWithWhereWithoutAttendanceInput = {
 
 export type WorkSessionCreateManyUserInput = {
   id?: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -1001,7 +1140,8 @@ export type WorkSessionCreateManyUserInput = {
 export type WorkSessionCreateManyDecidedByInput = {
   id?: number
   userId: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -1022,14 +1162,16 @@ export type WorkSessionUpdateWithoutUserInput = {
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  project?: Prisma.ProjectUpdateOneRequiredWithoutWorkSessionsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutWorkSessionsNestedInput
+  sprintProject?: Prisma.SprintProjectUpdateOneWithoutWorkSessionsNestedInput
   attendance?: Prisma.AttendanceUpdateOneRequiredWithoutWorkSessionsNestedInput
   decidedBy?: Prisma.UserUpdateOneWithoutDecidedWorkSessionsNestedInput
 }
 
 export type WorkSessionUncheckedUpdateWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1044,7 +1186,8 @@ export type WorkSessionUncheckedUpdateWithoutUserInput = {
 
 export type WorkSessionUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1067,14 +1210,16 @@ export type WorkSessionUpdateWithoutDecidedByInput = {
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutWorkSessionsNestedInput
-  project?: Prisma.ProjectUpdateOneRequiredWithoutWorkSessionsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutWorkSessionsNestedInput
+  sprintProject?: Prisma.SprintProjectUpdateOneWithoutWorkSessionsNestedInput
   attendance?: Prisma.AttendanceUpdateOneRequiredWithoutWorkSessionsNestedInput
 }
 
 export type WorkSessionUncheckedUpdateWithoutDecidedByInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1089,7 +1234,8 @@ export type WorkSessionUncheckedUpdateWithoutDecidedByInput = {
 export type WorkSessionUncheckedUpdateManyWithoutDecidedByInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1104,6 +1250,7 @@ export type WorkSessionUncheckedUpdateManyWithoutDecidedByInput = {
 export type WorkSessionCreateManyProjectInput = {
   id?: number
   userId: number
+  sprintProjectId?: number | null
   attendanceId: number
   durationSeconds: number
   clientRequestId?: string | null
@@ -1126,6 +1273,7 @@ export type WorkSessionUpdateWithoutProjectInput = {
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutWorkSessionsNestedInput
+  sprintProject?: Prisma.SprintProjectUpdateOneWithoutWorkSessionsNestedInput
   attendance?: Prisma.AttendanceUpdateOneRequiredWithoutWorkSessionsNestedInput
   decidedBy?: Prisma.UserUpdateOneWithoutDecidedWorkSessionsNestedInput
 }
@@ -1133,6 +1281,7 @@ export type WorkSessionUpdateWithoutProjectInput = {
 export type WorkSessionUncheckedUpdateWithoutProjectInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1148,6 +1297,70 @@ export type WorkSessionUncheckedUpdateWithoutProjectInput = {
 export type WorkSessionUncheckedUpdateManyWithoutProjectInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
+  durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  approval?: Prisma.EnumApprovalStatusFieldUpdateOperationsInput | $Enums.ApprovalStatus
+  source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
+  decidedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type WorkSessionCreateManySprintProjectInput = {
+  id?: number
+  userId: number
+  projectId?: number | null
+  attendanceId: number
+  durationSeconds: number
+  clientRequestId?: string | null
+  workDate?: Date | string
+  approval?: $Enums.ApprovalStatus
+  source?: $Enums.DecisionSource
+  decidedById?: number | null
+  decidedAt?: Date | string | null
+  startedAt?: Date | string | null
+  createdAt?: Date | string
+}
+
+export type WorkSessionUpdateWithoutSprintProjectInput = {
+  durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  approval?: Prisma.EnumApprovalStatusFieldUpdateOperationsInput | $Enums.ApprovalStatus
+  source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
+  decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutWorkSessionsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutWorkSessionsNestedInput
+  attendance?: Prisma.AttendanceUpdateOneRequiredWithoutWorkSessionsNestedInput
+  decidedBy?: Prisma.UserUpdateOneWithoutDecidedWorkSessionsNestedInput
+}
+
+export type WorkSessionUncheckedUpdateWithoutSprintProjectInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
+  durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  approval?: Prisma.EnumApprovalStatusFieldUpdateOperationsInput | $Enums.ApprovalStatus
+  source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
+  decidedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type WorkSessionUncheckedUpdateManyWithoutSprintProjectInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   attendanceId?: Prisma.IntFieldUpdateOperationsInput | number
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1163,7 +1376,8 @@ export type WorkSessionUncheckedUpdateManyWithoutProjectInput = {
 export type WorkSessionCreateManyAttendanceInput = {
   id?: number
   userId: number
-  projectId: number
+  projectId?: number | null
+  sprintProjectId?: number | null
   durationSeconds: number
   clientRequestId?: string | null
   workDate?: Date | string
@@ -1185,14 +1399,16 @@ export type WorkSessionUpdateWithoutAttendanceInput = {
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutWorkSessionsNestedInput
-  project?: Prisma.ProjectUpdateOneRequiredWithoutWorkSessionsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutWorkSessionsNestedInput
+  sprintProject?: Prisma.SprintProjectUpdateOneWithoutWorkSessionsNestedInput
   decidedBy?: Prisma.UserUpdateOneWithoutDecidedWorkSessionsNestedInput
 }
 
 export type WorkSessionUncheckedUpdateWithoutAttendanceInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1207,7 +1423,8 @@ export type WorkSessionUncheckedUpdateWithoutAttendanceInput = {
 export type WorkSessionUncheckedUpdateManyWithoutAttendanceInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
-  projectId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sprintProjectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1225,6 +1442,7 @@ export type WorkSessionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   id?: boolean
   userId?: boolean
   projectId?: boolean
+  sprintProjectId?: boolean
   attendanceId?: boolean
   durationSeconds?: boolean
   clientRequestId?: boolean
@@ -1236,7 +1454,8 @@ export type WorkSessionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   startedAt?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.WorkSession$projectArgs<ExtArgs>
+  sprintProject?: boolean | Prisma.WorkSession$sprintProjectArgs<ExtArgs>
   attendance?: boolean | Prisma.AttendanceDefaultArgs<ExtArgs>
   decidedBy?: boolean | Prisma.WorkSession$decidedByArgs<ExtArgs>
 }, ExtArgs["result"]["workSession"]>
@@ -1245,6 +1464,7 @@ export type WorkSessionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   userId?: boolean
   projectId?: boolean
+  sprintProjectId?: boolean
   attendanceId?: boolean
   durationSeconds?: boolean
   clientRequestId?: boolean
@@ -1256,7 +1476,8 @@ export type WorkSessionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   startedAt?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.WorkSession$projectArgs<ExtArgs>
+  sprintProject?: boolean | Prisma.WorkSession$sprintProjectArgs<ExtArgs>
   attendance?: boolean | Prisma.AttendanceDefaultArgs<ExtArgs>
   decidedBy?: boolean | Prisma.WorkSession$decidedByArgs<ExtArgs>
 }, ExtArgs["result"]["workSession"]>
@@ -1265,6 +1486,7 @@ export type WorkSessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   userId?: boolean
   projectId?: boolean
+  sprintProjectId?: boolean
   attendanceId?: boolean
   durationSeconds?: boolean
   clientRequestId?: boolean
@@ -1276,7 +1498,8 @@ export type WorkSessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   startedAt?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.WorkSession$projectArgs<ExtArgs>
+  sprintProject?: boolean | Prisma.WorkSession$sprintProjectArgs<ExtArgs>
   attendance?: boolean | Prisma.AttendanceDefaultArgs<ExtArgs>
   decidedBy?: boolean | Prisma.WorkSession$decidedByArgs<ExtArgs>
 }, ExtArgs["result"]["workSession"]>
@@ -1285,6 +1508,7 @@ export type WorkSessionSelectScalar = {
   id?: boolean
   userId?: boolean
   projectId?: boolean
+  sprintProjectId?: boolean
   attendanceId?: boolean
   durationSeconds?: boolean
   clientRequestId?: boolean
@@ -1297,22 +1521,25 @@ export type WorkSessionSelectScalar = {
   createdAt?: boolean
 }
 
-export type WorkSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "projectId" | "attendanceId" | "durationSeconds" | "clientRequestId" | "workDate" | "approval" | "source" | "decidedById" | "decidedAt" | "startedAt" | "createdAt", ExtArgs["result"]["workSession"]>
+export type WorkSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "projectId" | "sprintProjectId" | "attendanceId" | "durationSeconds" | "clientRequestId" | "workDate" | "approval" | "source" | "decidedById" | "decidedAt" | "startedAt" | "createdAt", ExtArgs["result"]["workSession"]>
 export type WorkSessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.WorkSession$projectArgs<ExtArgs>
+  sprintProject?: boolean | Prisma.WorkSession$sprintProjectArgs<ExtArgs>
   attendance?: boolean | Prisma.AttendanceDefaultArgs<ExtArgs>
   decidedBy?: boolean | Prisma.WorkSession$decidedByArgs<ExtArgs>
 }
 export type WorkSessionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.WorkSession$projectArgs<ExtArgs>
+  sprintProject?: boolean | Prisma.WorkSession$sprintProjectArgs<ExtArgs>
   attendance?: boolean | Prisma.AttendanceDefaultArgs<ExtArgs>
   decidedBy?: boolean | Prisma.WorkSession$decidedByArgs<ExtArgs>
 }
 export type WorkSessionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.WorkSession$projectArgs<ExtArgs>
+  sprintProject?: boolean | Prisma.WorkSession$sprintProjectArgs<ExtArgs>
   attendance?: boolean | Prisma.AttendanceDefaultArgs<ExtArgs>
   decidedBy?: boolean | Prisma.WorkSession$decidedByArgs<ExtArgs>
 }
@@ -1321,14 +1548,16 @@ export type $WorkSessionPayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "WorkSession"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
-    project: Prisma.$ProjectPayload<ExtArgs>
+    project: Prisma.$ProjectPayload<ExtArgs> | null
+    sprintProject: Prisma.$SprintProjectPayload<ExtArgs> | null
     attendance: Prisma.$AttendancePayload<ExtArgs>
     decidedBy: Prisma.$UserPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     userId: number
-    projectId: number
+    projectId: number | null
+    sprintProjectId: number | null
     attendanceId: number
     durationSeconds: number
     clientRequestId: string | null
@@ -1734,7 +1963,8 @@ readonly fields: WorkSessionFieldRefs;
 export interface Prisma__WorkSessionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  project<T extends Prisma.ProjectDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProjectDefaultArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  project<T extends Prisma.WorkSession$projectArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkSession$projectArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  sprintProject<T extends Prisma.WorkSession$sprintProjectArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkSession$sprintProjectArgs<ExtArgs>>): Prisma.Prisma__SprintProjectClient<runtime.Types.Result.GetResult<Prisma.$SprintProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   attendance<T extends Prisma.AttendanceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AttendanceDefaultArgs<ExtArgs>>): Prisma.Prisma__AttendanceClient<runtime.Types.Result.GetResult<Prisma.$AttendancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   decidedBy<T extends Prisma.WorkSession$decidedByArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkSession$decidedByArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
@@ -1769,6 +1999,7 @@ export interface WorkSessionFieldRefs {
   readonly id: Prisma.FieldRef<"WorkSession", 'Int'>
   readonly userId: Prisma.FieldRef<"WorkSession", 'Int'>
   readonly projectId: Prisma.FieldRef<"WorkSession", 'Int'>
+  readonly sprintProjectId: Prisma.FieldRef<"WorkSession", 'Int'>
   readonly attendanceId: Prisma.FieldRef<"WorkSession", 'Int'>
   readonly durationSeconds: Prisma.FieldRef<"WorkSession", 'Int'>
   readonly clientRequestId: Prisma.FieldRef<"WorkSession", 'String'>
@@ -2177,6 +2408,44 @@ export type WorkSessionDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many WorkSessions to delete.
    */
   limit?: number
+}
+
+/**
+ * WorkSession.project
+ */
+export type WorkSession$projectArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Project
+   */
+  select?: Prisma.ProjectSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Project
+   */
+  omit?: Prisma.ProjectOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ProjectInclude<ExtArgs> | null
+  where?: Prisma.ProjectWhereInput
+}
+
+/**
+ * WorkSession.sprintProject
+ */
+export type WorkSession$sprintProjectArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SprintProject
+   */
+  select?: Prisma.SprintProjectSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SprintProject
+   */
+  omit?: Prisma.SprintProjectOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SprintProjectInclude<ExtArgs> | null
+  where?: Prisma.SprintProjectWhereInput
 }
 
 /**
