@@ -193,6 +193,8 @@ export const ScrumDetailPage: React.FC = () => {
   const members = scrum.members || [];
   const myRank = headerLeaderboard?.me?.rank ?? null;
 
+  const effectiveTab: TabKey = !canEditContent && activeTab === 'report' ? 'sprints' : activeTab;
+
   const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
     { key: 'sprints', label: 'اسپرینت‌ها', icon: Layers },
     { key: 'tasks', label: 'تسک‌ها', icon: ListChecks },
@@ -200,7 +202,9 @@ export const ScrumDetailPage: React.FC = () => {
     { key: 'events', label: 'ریتم جلسات', icon: Calendar },
     { key: 'members', label: `اعضا (${toPersianDigits(members.length)})`, icon: Users },
     { key: 'leaderboard', label: 'رتبه‌بندی', icon: Trophy },
-    { key: 'report', label: 'گزارش', icon: FileText },
+    ...(canEditContent
+      ? [{ key: 'report' as const, label: 'گزارش', icon: FileText }]
+      : []),
   ];
 
   return (
@@ -314,7 +318,7 @@ export const ScrumDetailPage: React.FC = () => {
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-0.5 py-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
-                const isActive = activeTab === tab.key;
+                const isActive = effectiveTab === tab.key;
                 return (
                   <button
                     key={tab.key}
@@ -340,13 +344,15 @@ export const ScrumDetailPage: React.FC = () => {
 
       {/* Tab Content */}
       <div className="pt-1">
-        {activeTab === 'sprints' && <SprintsTab scrum={scrum} canEdit={canEditContent} />}
-        {activeTab === 'tasks' && <TasksTab scrum={scrum} canEdit={canEditContent} />}
-        {activeTab === 'kpi' && <KpiTab scrum={scrum} canEdit={canEditContent} />}
-        {activeTab === 'events' && <EventsTab scrum={scrum} canEdit={canEditContent} />}
-        {activeTab === 'members' && <MembersTab scrum={scrum} canEdit={canEditContent} />}
-        {activeTab === 'leaderboard' && <LeaderboardTab scrum={scrum} />}
-        {activeTab === 'report' && <ScrumReportTab scrum={scrum} canEdit={canEditContent} />}
+        {effectiveTab === 'sprints' && <SprintsTab scrum={scrum} canEdit={canEditContent} />}
+        {effectiveTab === 'tasks' && <TasksTab scrum={scrum} canEdit={canEditContent} />}
+        {effectiveTab === 'kpi' && <KpiTab scrum={scrum} canEdit={canEditContent} />}
+        {effectiveTab === 'events' && <EventsTab scrum={scrum} canEdit={canEditContent} />}
+        {effectiveTab === 'members' && <MembersTab scrum={scrum} canEdit={canEditContent} />}
+        {effectiveTab === 'leaderboard' && <LeaderboardTab scrum={scrum} />}
+        {canEditContent && effectiveTab === 'report' && (
+          <ScrumReportTab scrum={scrum} canEdit={canEditContent} />
+        )}
       </div>
 
       {/* Modals */}

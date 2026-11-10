@@ -271,7 +271,7 @@ export const getScrumReport = catchAsync(async (req, res) => {
     req.scrum.id,
     filters,
     req.user,
-    req.canEdit
+    req.canEditContent
   );
   return res.status(200).json({
     success: true,

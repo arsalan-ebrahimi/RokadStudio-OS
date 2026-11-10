@@ -171,6 +171,7 @@ export type SprintScalarFieldEnum = (typeof SprintScalarFieldEnum)[keyof typeof 
 export const TaskScalarFieldEnum = {
   id: 'id',
   scrumId: 'scrumId',
+  sprintId: 'sprintId',
   name: 'name',
   description: 'description',
   points: 'points',

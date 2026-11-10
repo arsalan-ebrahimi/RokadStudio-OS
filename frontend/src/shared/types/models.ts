@@ -35,11 +35,19 @@ export interface Project {
   createdAt?: string;
 }
 
+export interface SprintBrief {
+  id: number;
+  number: number;
+  title: string;
+  status?: 'PLANNED' | 'ACTIVE' | 'COMPLETED';
+}
+
 export interface TaskSummary {
   id: number;
   name: string;
   points?: number;
   scrum?: ScrumBrief | null;
+  sprint?: SprintBrief | null;
 }
 
 export interface Attendance {
@@ -120,6 +128,7 @@ export interface WorkTargetSessionsTarget {
   isActive: boolean;
   points?: number;
   scrum?: ScrumBrief;
+  sprint?: SprintBrief | null;
 }
 
 export interface WorkTargetSessionsPermissions {

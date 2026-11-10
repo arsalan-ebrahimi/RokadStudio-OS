@@ -13,16 +13,22 @@ import { mapPrismaError } from "../../Utils/prismaErrors.js";
 
 export const getMineProjects = catchAsync(async (req, res, next) => {
   const userId = req.userId;
+  const includeInactive = req.query.includeInactive === true || req.query.includeInactive === "true";
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, role: true },
   });
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
-  const cacheKey = `user:${userId}:projects`;
+  const cacheKey = includeInactive ? `user:${userId}:projects:all` : `user:${userId}:projects`;
 
   const cached = await cacheGet(cacheKey);
-  if (cached) {
+  if (
+    cached &&
+    Array.isArray(cached) &&
+    (cached.length === 0 || (cached[0].isActive !== undefined && cached[0].memberCount !== undefined))
+  ) {
     return res.status(200).json({
       success: true,
       message: "Projects fetched successfully",
@@ -31,7 +37,7 @@ export const getMineProjects = catchAsync(async (req, res, next) => {
   }
 
   const where = {
-    isActive: true,
+    ...(includeInactive ? {} : { isActive: true }),
     ...(isSuperAdmin ? {} : { members: { some: { userId } } }),
   };
 
@@ -41,17 +47,30 @@ export const getMineProjects = catchAsync(async (req, res, next) => {
       id: true,
       name: true,
       description: true,
+      isActive: true,
       createdAt: true,
+      _count: {
+        select: { members: true },
+      },
     },
-    orderBy: { name: "asc" },
+    orderBy: [{ isActive: "desc" }, { name: "asc" }],
   });
 
-  await cacheSet(cacheKey, projects, 3600);
+  const formatted = projects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    isActive: p.isActive,
+    memberCount: p._count.members,
+    createdAt: p.createdAt,
+  }));
+
+  await cacheSet(cacheKey, formatted, 3600);
 
   return res.status(200).json({
     success: true,
     message: "Projects fetched successfully",
-    data: projects,
+    data: formatted,
   });
 });
 

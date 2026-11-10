@@ -311,7 +311,7 @@ export const runSeed = async () => {
   console.log("   ✓ 7 sample attendances seeded (4 today, 3 yesterday APPROVED).");
 
   // 8. Seed Simplified Sprints, Scrum Tasks, KPIs & Ceremonies
-  await prisma.sprint.create({
+  const scrum1Sprint1 = await prisma.sprint.create({
     data: {
       scrumId: sampleScrum.id,
       number: 1,
@@ -337,7 +337,7 @@ export const runSeed = async () => {
     },
   });
 
-  await prisma.sprint.create({
+  const scrum2Sprint1 = await prisma.sprint.create({
     data: {
       scrumId: sampleScrum2.id,
       number: 1,
@@ -350,10 +350,11 @@ export const runSeed = async () => {
     },
   });
 
-  // Scrum Tasks (decoupled from sprints, with multi-member TaskMember assignments)
+  // Scrum Tasks (optionally linked to a Sprint time-window, with multi-member TaskMember assignments)
   const task1 = await prisma.task.create({
     data: {
       scrumId: sampleScrum.id,
+      sprintId: scrum1Sprint1.id,
       name: "طراحی مدل داده و APIهای اسکرام",
       description: "طراحی و پیاده‌سازی مدل تسک‌ها، گزارش‌های تجمیعی و سطوح دسترسی",
       points: 5,
@@ -370,6 +371,7 @@ export const runSeed = async () => {
   const task2 = await prisma.task.create({
     data: {
       scrumId: sampleScrum.id,
+      sprintId: scrum1Sprint1.id,
       name: "پیاده‌سازی کامپوننت‌های فرانت‌اند اسکرام",
       description: "پیاده‌سازی تب تسک‌ها، اسپرینت‌های ساده و مودال مشاهده جزئیات کارکرد",
       points: 8,
@@ -399,6 +401,7 @@ export const runSeed = async () => {
   const scrum2Task1 = await prisma.task.create({
     data: {
       scrumId: sampleScrum2.id,
+      sprintId: scrum2Sprint1.id,
       name: "طراحی لندینگ و قیف جذب بوت‌کمپ",
       description: "طراحی صفحه فرود کمپین پاییز کالج و پیگیری تبدیل لیدها",
       points: 5,

@@ -283,6 +283,11 @@ export const WorkTargetSessionsModal: React.FC<WorkTargetSessionsModalProps> = (
                 {targetKind === 'TASK' && typeof effectivePoints === 'number' && (
                   <Badge variant="college">{toPersianDigits(effectivePoints)} پوینت</Badge>
                 )}
+                {targetKind === 'TASK' && targetInfo?.sprint && (
+                  <Badge variant="neutral" className="tabular-nums">
+                    {`S${toPersianDigits(targetInfo.sprint.number)} · ${targetInfo.sprint.title}`}
+                  </Badge>
+                )}
               </div>
 
               {targetInfo && (

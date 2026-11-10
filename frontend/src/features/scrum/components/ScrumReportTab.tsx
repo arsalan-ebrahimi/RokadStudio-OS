@@ -107,10 +107,17 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
         isSticky: true,
         mobileFullWidth: true,
         cell: (row) => (
-          <ExpandableTextCell
-            text={row.task.name}
-            className="font-bold text-sec dark:text-white"
-          />
+          <div className="space-y-1">
+            <ExpandableTextCell
+              text={row.task.name}
+              className="font-bold text-sec dark:text-white"
+            />
+            {row.task.sprint && (
+              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-sec/[0.06] dark:bg-gray-800 text-sec/75 dark:text-gray-300 tabular-nums">
+                {`S${toPersianDigits(row.task.sprint.number)} · ${row.task.sprint.title}`}
+              </span>
+            )}
+          </div>
         ),
       },
       {

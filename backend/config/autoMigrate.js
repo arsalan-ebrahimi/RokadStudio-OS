@@ -192,6 +192,7 @@ export const ensureSchemaUpdated = async () => {
           CREATE TABLE IF NOT EXISTS "Task" (
             "id" SERIAL PRIMARY KEY,
             "scrumId" INTEGER NOT NULL REFERENCES "Scrum"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "sprintId" INTEGER REFERENCES "Sprint"("id") ON DELETE SET NULL ON UPDATE CASCADE,
             "name" TEXT NOT NULL,
             "description" TEXT,
             "points" INTEGER NOT NULL DEFAULT 0,
@@ -199,6 +200,21 @@ export const ensureSchemaUpdated = async () => {
             "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
             "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
           );
+
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'Task' AND column_name = 'sprintId'
+          ) THEN
+            ALTER TABLE "Task" ADD COLUMN "sprintId" INTEGER;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'Task_sprintId_fkey'
+          ) THEN
+            ALTER TABLE "Task" ADD CONSTRAINT "Task_sprintId_fkey"
+              FOREIGN KEY ("sprintId") REFERENCES "Sprint"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+          END IF;
 
           CREATE TABLE IF NOT EXISTS "TaskMember" (
             "taskId" INTEGER NOT NULL REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -248,13 +264,10 @@ export const ensureSchemaUpdated = async () => {
             ALTER TABLE "WorkSession" ADD COLUMN "taskId" INTEGER;
           END IF;
 
-          IF NOT EXISTS (
-            SELECT 1 FROM information_schema.table_constraints
-            WHERE constraint_name = 'WorkSession_taskId_fkey'
-          ) THEN
-            ALTER TABLE "WorkSession" ADD CONSTRAINT "WorkSession_taskId_fkey"
-              FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-          END IF;
+          -- Ensure Task FK cascades WorkSession deletes automatically
+          ALTER TABLE "WorkSession" DROP CONSTRAINT IF EXISTS "WorkSession_taskId_fkey";
+          ALTER TABLE "WorkSession" ADD CONSTRAINT "WorkSession_taskId_fkey"
+            FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
           IF EXISTS (
             SELECT 1 FROM information_schema.tables
@@ -319,6 +332,7 @@ export const ensureSchemaUpdated = async () => {
           CREATE INDEX IF NOT EXISTS "ScrumMember_userId_idx" ON "ScrumMember"("userId");
           CREATE INDEX IF NOT EXISTS "Sprint_scrumId_status_idx" ON "Sprint"("scrumId", "status");
           CREATE INDEX IF NOT EXISTS "Task_scrumId_idx" ON "Task"("scrumId");
+          CREATE INDEX IF NOT EXISTS "Task_sprintId_idx" ON "Task"("sprintId");
           CREATE INDEX IF NOT EXISTS "Task_isActive_idx" ON "Task"("isActive");
           CREATE INDEX IF NOT EXISTS "TaskMember_userId_idx" ON "TaskMember"("userId");
           CREATE INDEX IF NOT EXISTS "TaskMember_assignedById_idx" ON "TaskMember"("assignedById");

@@ -436,14 +436,15 @@ export const updateSprintStatusValidator = [
 ];
 
 export const listScrumTasksQueryValidator = [
-  rejectUnknownQueryMiddleware(["isActive", "search"]),
+  rejectUnknownQueryMiddleware(["isActive", "search", "sprintId"]),
   query("isActive").optional().isBoolean().withMessage("isActive باید boolean باشد").toBoolean(),
   query("search").optional().trim(),
+  query("sprintId").optional().isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه اسپرینت نامعتبر است").toInt(),
   handleValidation,
 ];
 
 export const createTaskBodyValidator = [
-  rejectUnknownKeysMiddleware(["name", "description", "points", "isActive", "memberIds"]),
+  rejectUnknownKeysMiddleware(["name", "description", "points", "isActive", "sprintId", "memberIds"]),
   body("name")
     .custom((val) => {
       if (typeof val !== "string") {
@@ -473,12 +474,13 @@ export const createTaskBodyValidator = [
       }
       return true;
     }),
+  strictNullablePositiveIntBody("sprintId", "اسپرینت"),
   strictPositiveIntArrayBody("memberIds", "memberIds", { required: false, max: MAX_BATCH_ROWS }),
   handleValidation,
 ];
 
 export const updateTaskBodyValidator = [
-  rejectUnknownKeysMiddleware(["name", "description", "points", "isActive"], { requireNonEmpty: true }),
+  rejectUnknownKeysMiddleware(["name", "description", "points", "isActive", "sprintId"], { requireNonEmpty: true }),
   strictOptionalString("name", { min: 1, max: 150, messagePrefix: "عنوان تسک" }),
   strictOptionalString("description", { max: 2000, nullable: true, messagePrefix: "توضیحات تسک" }),
   body("points")
@@ -497,6 +499,7 @@ export const updateTaskBodyValidator = [
       }
       return true;
     }),
+  strictNullablePositiveIntBody("sprintId", "اسپرینت"),
   handleValidation,
 ];
 

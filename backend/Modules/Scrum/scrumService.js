@@ -1,4 +1,5 @@
 import { HandleERROR } from "vanta-api";
+import { Prisma } from "../../generated/prisma/client.ts";
 import prisma from "../../config/prisma.js";
 import { todayDate, toDateOnly, formatDate, getTimezoneParts } from "../../Utils/date.js";
 import { getVisibleScrumsWhere } from "./scrumAccess.js";
@@ -129,29 +130,51 @@ export const listScrumsService = async (currentUser) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return scrums.map((s) => {
+  const scrumMetaList = scrums.map((s) => {
     const admins = s.admins.map((a) => ({
       id: a.user.id,
       name: a.user.name,
     }));
     const isAssignedAdmin = admins.some((a) => a.id === currentUser.id);
     const meta = buildScrumAccessMeta(currentUser, isAssignedAdmin);
-
-    return {
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      color: s.color,
-      isActive: s.isActive,
-      admins,
-      memberCount: s._count.members,
-      taskCount: s._count.tasks,
-      ...meta,
-      activeSprint: s.sprints[0] || null,
-      createdAt: s.createdAt,
-      updatedAt: s.updatedAt,
-    };
+    return { s, admins, meta };
   });
+
+  const scopedScrumIds = scrumMetaList
+    .filter(({ meta }) => !meta.permissions.canEditContent)
+    .map(({ s }) => s.id);
+
+  let assignedTaskCountMap = new Map();
+  if (scopedScrumIds.length > 0) {
+    const countRows = await prisma.$queryRaw(Prisma.sql`
+      SELECT t."scrumId"::int AS "scrumId", COUNT(DISTINCT t."id")::int AS "taskCount"
+      FROM "Task" t
+      JOIN "TaskMember" tm ON tm."taskId" = t."id"
+      WHERE t."scrumId" = ANY(${scopedScrumIds}::int[])
+        AND tm."userId" = ${currentUser.id}
+      GROUP BY t."scrumId"
+    `);
+    assignedTaskCountMap = new Map(
+      countRows.map((row) => [Number(row.scrumId), Number(row.taskCount || 0)])
+    );
+  }
+
+  return scrumMetaList.map(({ s, admins, meta }) => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    color: s.color,
+    isActive: s.isActive,
+    admins,
+    memberCount: s._count.members,
+    taskCount: meta.permissions.canEditContent
+      ? s._count.tasks
+      : assignedTaskCountMap.get(s.id) || 0,
+    ...meta,
+    activeSprint: s.sprints[0] || null,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+  }));
 };
 
 export const createScrumService = async ({ name, description, color, adminIds = [] }, currentUser) => {
@@ -249,6 +272,15 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
   const isAssignedAdmin = admins.some((a) => a.id === currentUser.id);
   const meta = buildScrumAccessMeta(currentUser, isAssignedAdmin);
 
+  const visibleTaskCount = meta.permissions.canEditContent
+    ? scrum._count.tasks
+    : await prisma.task.count({
+        where: {
+          scrumId,
+          members: { some: { userId: currentUser.id } },
+        },
+      });
+
   return {
     id: scrum.id,
     name: scrum.name,
@@ -257,7 +289,7 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
     isActive: scrum.isActive,
     admins,
     memberCount: scrum.members.length,
-    taskCount: scrum._count.tasks,
+    taskCount: visibleTaskCount,
     ...meta,
     activeSprint: scrum.sprints[0] || null,
     createdAt: scrum.createdAt,
@@ -963,6 +995,13 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
             name: true,
             description: true,
             points: true,
+            sprint: {
+              select: {
+                id: true,
+                number: true,
+                title: true,
+              },
+            },
           },
           orderBy: [{ name: "asc" }],
         },
@@ -995,6 +1034,13 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
           name: t.name,
           description: t.description,
           points: t.points,
+          sprint: t.sprint
+            ? {
+                id: t.sprint.id,
+                number: t.sprint.number,
+                title: t.sprint.title,
+              }
+            : null,
         })),
       });
     }
@@ -1015,6 +1061,13 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
           name: true,
           points: true,
           isActive: true,
+          sprint: {
+            select: {
+              id: true,
+              number: true,
+              title: true,
+            },
+          },
           scrum: {
             select: {
               id: true,
@@ -1044,6 +1097,13 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
           name: s.task.name,
           points: s.task.points,
           pathLabel: `[${s.task.scrum.name}] ${s.task.name}`,
+          sprint: s.task.sprint
+            ? {
+                id: s.task.sprint.id,
+                number: s.task.sprint.number,
+                title: s.task.sprint.title,
+              }
+            : null,
           scrum: {
             id: s.task.scrum.id,
             name: s.task.scrum.name,
@@ -1078,6 +1138,10 @@ export const getScrumReportService = async (
   currentUser,
   canEdit
 ) => {
+  if (!canEdit) {
+    throw new HandleERROR("شما دسترسی مشاهده گزارش این اسکرام را ندارید", 403);
+  }
+
   const [sprints, tasks] = await Promise.all([
     prisma.sprint.findMany({
       where: { scrumId },
@@ -1106,6 +1170,14 @@ export const getScrumReportService = async (
         description: true,
         points: true,
         isActive: true,
+        sprintId: true,
+        sprint: {
+          select: {
+            id: true,
+            number: true,
+            title: true,
+          },
+        },
         members: {
           select: {
             user: {
@@ -1123,54 +1195,107 @@ export const getScrumReportService = async (
     throw new HandleERROR("تسک یافت نشد", 404);
   }
 
-  let effectiveFrom = from ? toDateOnly(from) : null;
-  let effectiveTo = to ? toDateOnly(to) : null;
+  const explicitFrom = from ? toDateOnly(from) : null;
+  const explicitTo = to ? toDateOnly(to) : null;
+  const buildWorkDateFilter = (rangeFrom, rangeTo) => {
+    if (!rangeFrom && !rangeTo) return undefined;
+    const f = {};
+    if (rangeFrom) f.gte = rangeFrom;
+    if (rangeTo) f.lte = rangeTo;
+    return f;
+  };
 
+  let targetSprint = null;
+  let sprintFrom = null;
+  let sprintTo = null;
   if (sprintId) {
-    const targetSprint = sprints.find((sp) => sp.id === Number(sprintId));
+    targetSprint = sprints.find((sp) => sp.id === Number(sprintId));
     if (!targetSprint) {
       throw new HandleERROR("اسپرینت یافت نشد", 404);
     }
-    const sprintFrom = targetSprint.startDate ? toDateOnly(targetSprint.startDate) : null;
-    const sprintTo = targetSprint.endDate
+    sprintFrom = targetSprint.startDate ? toDateOnly(targetSprint.startDate) : null;
+    sprintTo = targetSprint.endDate
       ? toDateOnly(targetSprint.endDate)
       : targetSprint.completedAt
       ? toDateOnly(targetSprint.completedAt)
       : null;
-
-    if (sprintFrom && (!effectiveFrom || sprintFrom.getTime() > effectiveFrom.getTime())) {
-      effectiveFrom = sprintFrom;
-    }
-    if (sprintTo && (!effectiveTo || sprintTo.getTime() < effectiveTo.getTime())) {
-      effectiveTo = sprintTo;
-    }
   }
 
-  let workDateFilter;
-  if (effectiveFrom || effectiveTo) {
-    workDateFilter = {};
-    if (effectiveFrom) workDateFilter.gte = effectiveFrom;
-    if (effectiveTo) workDateFilter.lte = effectiveTo;
+  let groupedTaskSessions = [];
+  let reportTasks = tasks;
+
+  if (!targetSprint) {
+    const workDateFilter = buildWorkDateFilter(explicitFrom, explicitTo);
+    const taskIds = tasks.map((t) => t.id);
+    groupedTaskSessions =
+      taskIds.length > 0
+        ? await prisma.workSession.groupBy({
+            by: ["taskId", "userId"],
+            where: {
+              approval: { not: "REJECTED" },
+              ...(workDateFilter ? { workDate: workDateFilter } : {}),
+              taskId: { in: taskIds },
+            },
+            _sum: { durationSeconds: true },
+            _count: { id: true },
+          })
+        : [];
+  } else {
+    const linkedTasks = tasks.filter((t) => t.sprintId === targetSprint.id);
+    const unlinkedTasks =
+      sprintFrom || sprintTo ? tasks.filter((t) => t.sprintId === null) : [];
+
+    const linkedTaskIds = linkedTasks.map((t) => t.id);
+    const unlinkedTaskIds = unlinkedTasks.map((t) => t.id);
+
+    const linkedWorkDateFilter = buildWorkDateFilter(explicitFrom, explicitTo);
+
+    let unlinkedFrom = explicitFrom;
+    if (sprintFrom && (!unlinkedFrom || sprintFrom.getTime() > unlinkedFrom.getTime())) {
+      unlinkedFrom = sprintFrom;
+    }
+    let unlinkedTo = explicitTo;
+    if (sprintTo && (!unlinkedTo || sprintTo.getTime() < unlinkedTo.getTime())) {
+      unlinkedTo = sprintTo;
+    }
+    const unlinkedRangeValid =
+      !unlinkedFrom || !unlinkedTo || unlinkedFrom.getTime() <= unlinkedTo.getTime();
+    const unlinkedWorkDateFilter = buildWorkDateFilter(unlinkedFrom, unlinkedTo);
+
+    const [linkedGrouped, unlinkedGrouped] = await Promise.all([
+      linkedTaskIds.length > 0
+        ? prisma.workSession.groupBy({
+            by: ["taskId", "userId"],
+            where: {
+              approval: { not: "REJECTED" },
+              ...(linkedWorkDateFilter ? { workDate: linkedWorkDateFilter } : {}),
+              taskId: { in: linkedTaskIds },
+            },
+            _sum: { durationSeconds: true },
+            _count: { id: true },
+          })
+        : [],
+      unlinkedTaskIds.length > 0 && unlinkedRangeValid && unlinkedWorkDateFilter
+        ? prisma.workSession.groupBy({
+            by: ["taskId", "userId"],
+            where: {
+              approval: { not: "REJECTED" },
+              workDate: unlinkedWorkDateFilter,
+              taskId: { in: unlinkedTaskIds },
+            },
+            _sum: { durationSeconds: true },
+            _count: { id: true },
+          })
+        : [],
+    ]);
+
+    const unlinkedTasksWithSessions = new Set(unlinkedGrouped.map((g) => g.taskId));
+    reportTasks = [
+      ...linkedTasks,
+      ...unlinkedTasks.filter((t) => unlinkedTasksWithSessions.has(t.id)),
+    ];
+    groupedTaskSessions = [...linkedGrouped, ...unlinkedGrouped];
   }
-
-  const taskIds = tasks.map((t) => t.id);
-
-  // DB groupBy aggregations scoped by userId when !canEdit so plain members
-  // never see teammates' tracked seconds or session counts anywhere in the report.
-  const groupedTaskSessions =
-    taskIds.length > 0
-      ? await prisma.workSession.groupBy({
-          by: ["taskId", "userId"],
-          where: {
-            approval: { not: "REJECTED" },
-            ...(canEdit ? {} : { userId: currentUser.id }),
-            ...(workDateFilter ? { workDate: workDateFilter } : {}),
-            taskId: { in: taskIds },
-          },
-          _sum: { durationSeconds: true },
-          _count: { id: true },
-        })
-      : [];
 
   const sessionUserIds = [...new Set(groupedTaskSessions.map((g) => g.userId))];
   const sessionUsers =
@@ -1202,7 +1327,7 @@ export const getScrumReportService = async (
   let grandSessionCount = 0;
   let activeTasksCount = 0;
 
-  for (const task of tasks) {
+  for (const task of reportTasks) {
     const taskPoints = task.points || 0;
     grandTotalPoints += taskPoints;
     if (task.isActive) activeTasksCount += 1;
@@ -1212,11 +1337,17 @@ export const getScrumReportService = async (
       name: m.user.name,
     }));
 
+    const sprintSummary = task.sprint
+      ? { id: task.sprint.id, number: task.sprint.number, title: task.sprint.title }
+      : null;
+
     const taskSummaryBase = {
       id: task.id,
       name: task.name,
       points: taskPoints,
       isActive: task.isActive,
+      sprintId: task.sprintId ?? null,
+      sprint: sprintSummary,
     };
 
     const entries = (taskSessionsMap.get(task.id) || []).sort((a, b) =>
@@ -1227,19 +1358,14 @@ export const getScrumReportService = async (
     let taskSessionCount = 0;
 
     if (entries.length === 0) {
-      const isMyTask = assignedMembers.some((m) => m.id === currentUser.id);
-      if (canEdit || isMyTask) {
-        rows.push({
-          task: taskSummaryBase,
-          member: !canEdit && isMyTask
-            ? { id: currentUser.id, name: currentUser.name }
-            : assignedMembers[0] || null,
-          assignedMembersCount: assignedMembers.length,
-          sessionCount: 0,
-          totalSeconds: 0,
-          secondsPerPoint: null,
-        });
-      }
+      rows.push({
+        task: taskSummaryBase,
+        member: assignedMembers[0] || null,
+        assignedMembersCount: assignedMembers.length,
+        sessionCount: 0,
+        totalSeconds: 0,
+        secondsPerPoint: null,
+      });
     } else {
       for (const entry of entries) {
         taskTotalSeconds += entry.totalSeconds;
@@ -1267,6 +1393,8 @@ export const getScrumReportService = async (
       taskName: task.name,
       points: taskPoints,
       isActive: task.isActive,
+      sprintId: task.sprintId ?? null,
+      sprint: sprintSummary,
       memberCount: assignedMembers.length,
       totalSeconds: taskTotalSeconds,
       sessionCount: taskSessionCount,
@@ -1281,7 +1409,7 @@ export const getScrumReportService = async (
     taskAggregates,
     sprints: sprints.map(formatSprintSummary),
     total: {
-      totalTasks: tasks.length,
+      totalTasks: reportTasks.length,
       activeTasks: activeTasksCount,
       totalPoints: grandTotalPoints,
       totalSeconds: grandTotalSeconds,

@@ -652,15 +652,27 @@
           "Projects"
         ],
         "summary": "پروژه‌های منتسب به کاربر جاری",
-        "description": "دریافت پروژه‌های فعالی که کاربر جاری عضو آن‌هاست. این خروجی در Redis به مدت ۱ ساعت کش می‌شود و با هر تغییر در اعضا یا پروژه‌ها فوراً نامعتبر می‌گردد.",
+        "description": "دریافت پروژه‌های منتسب به کاربر جاری (به طور پیش‌فرض فقط پروژه‌های فعال؛ با ارسال includeInactive=true پروژه‌های غیرفعال نیز بازگردانده می‌شوند). این خروجی در Redis به مدت ۱ ساعت کش می‌شود و با هر تغییر در اعضا یا پروژه‌ها فوراً نامعتبر می‌گردد.",
         "security": [
           {
             "bearerAuth": []
           }
         ],
+        "parameters": [
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "در صورت true بودن، پروژه‌های غیرفعال اختصاص‌یافته نیز برای مشاهده سوابق بازگردانده می‌شوند"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "لیست پروژه‌های فعال کاربر",
+            "description": "لیست پروژه‌های کاربر",
             "content": {
               "application/json": {
                 "schema": {
@@ -1041,8 +1053,8 @@
         "tags": [
           "Projects"
         ],
-        "summary": "مشاهده گزارش کارکرد و سشن‌های پروژه بر اساس تاریخ و وضعیت (مدیران)",
-        "description": "دریافت خلاصه سشن‌های تاییدشده، در انتظار و ردشده به تفکیک کاربر همراه با لیست صفحه‌بندی‌شده سشن‌ها. برای ADMIN و SUPER_ADMIN قابل دسترس است.",
+        "summary": "مشاهده گزارش کارکرد و سشن‌های پروژه بر اساس تاریخ و وضعیت",
+        "description": "دریافت خلاصه سشن‌های تاییدشده، در انتظار و ردشده به تفکیک کاربر همراه با لیست صفحه‌بندی‌شده سشن‌ها. برای ADMIN و SUPER_ADMIN روی همه پروژه‌ها و برای اعضای منتسب به پروژه در حالت فقط‌خواندنی (canModerate=false, canDelete=false) قابل دسترس است.",
         "security": [
           {
             "bearerAuth": []
@@ -1132,18 +1144,8 @@
               }
             }
           },
-          "403": {
-            "description": "فقط ADMIN و SUPER_ADMIN دسترسی دارند",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
-            "description": "پروژه یافت نشد",
+            "description": "پروژه یافت نشد یا به کاربر جاری اختصاص ندارد",
             "content": {
               "application/json": {
                 "schema": {
@@ -3316,8 +3318,8 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "گزارش عملکرد اسکرام",
-        "description": "نمایش سشن‌ها، زمان صرف‌شده و زمان به ازای هر پوینت. اعضای عادی فقط سشن‌ها و مجموع زمان/تعداد سشن شخصی خود را می‌بینند (در rows، sprintAggregates و total).",
+        "summary": "گزارش عملکرد اسکرام (ادمین اسکرام / سوپرادمین)",
+        "description": "نمایش سشن‌ها، زمان صرف‌شده و زمان به ازای هر پوینت برای ادمین منتسب اسکرام یا سوپرادمین. اعضای عادی با خطای 403 مسدود می‌شوند.",
         "security": [
           {
             "bearerAuth": []
@@ -3397,7 +3399,7 @@
             }
           },
           "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "description": "فقط ادمین اسکرام منتسب یا سوپرادمین دسترسی مشاهده گزارش دارند",
             "content": {
               "application/json": {
                 "schema": {
@@ -3425,7 +3427,7 @@
           "Scrum"
         ],
         "summary": "لیست تسک‌های اسکرام",
-        "description": "تمام تسک‌های اسکرام را به همراه افراد منتسب (members) و آمار زمان کارکرد (trackedSeconds) برمی‌گرداند. برای اعضای عادی، trackedSeconds فقط شامل سشن‌های شخصی خود کاربر است.",
+        "description": "تسک‌های اسکرام را به همراه اسپرینت مرتبط، افراد منتسب (members) و آمار زمان کارکرد (trackedSeconds) برمی‌گرداند. برای اعضای عادی، فقط تسک‌های اختصاص‌داده‌شده به خود کاربر و سشن‌های شخصی او بازگردانده می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -3454,6 +3456,15 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "sprintId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
             }
           }
         ],
@@ -3555,6 +3566,12 @@
                     "type": "boolean",
                     "default": true
                   },
+                  "sprintId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "nullable": true,
+                    "description": "شناسه اسپرینت اختیاری متعلق به همین اسکرام"
+                  },
                   "memberIds": {
                     "type": "array",
                     "items": {
@@ -3621,7 +3638,7 @@
             }
           },
           "422": {
-            "description": "اعضای انتخاب‌شده باید عضو فعال همین اسکرام باشند",
+            "description": "اعضای انتخاب‌شده عضو فعال اسکرام نیستند یا اسپرینت متعلق به این اسکرام نیست",
             "content": {
               "application/json": {
                 "schema": {
@@ -3674,6 +3691,16 @@
                       "$ref": "#/components/schemas/ScrumTaskItem"
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "این تسک به کاربر جاری اختصاص ندارد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3734,6 +3761,11 @@
                   },
                   "isActive": {
                     "type": "boolean"
+                  },
+                  "sprintId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "nullable": true
                   }
                 }
               }
@@ -3789,8 +3821,8 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "حذف تسک اسکرام",
-        "description": "در صورت داشتن سشن کاری ثبت‌شده، با خطای 409 مسدود می‌شود.",
+        "summary": "حذف تسک اسکرام و سشن‌های کاری مرتبط",
+        "description": "حذف تسک و پاک‌سازی خودکار تمام سشن‌های کاری مرتبط با آن (Cascade Delete).",
         "security": [
           {
             "bearerAuth": []
@@ -3809,7 +3841,7 @@
         ],
         "responses": {
           "200": {
-            "description": "تسک حذف شد",
+            "description": "تسک و سشن‌های مرتبط حذف شدند",
             "content": {
               "application/json": {
                 "schema": {
@@ -3830,16 +3862,6 @@
           },
           "404": {
             "description": "تسک یافت نشد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "تسک دارای سشن کاری است و قابل حذف نیست",
             "content": {
               "application/json": {
                 "schema": {
@@ -3949,7 +3971,7 @@
           "Scrum"
         ],
         "summary": "مشاهده گزارش کارکرد و سشن‌های تسک بر اساس تاریخ و وضعیت",
-        "description": "عضو عادی فقط سشن‌های شخصی خود را می‌بیند و درخواست userId غیر از خودش 403 می‌دهد. ادمین اسکرام منتسب و سوپرادمین تمام سشن‌ها (تاییدشده، در انتظار، ردشده) به تفکیک کاربر را مشاهده کرده و می‌توانند از طریق PATCH /api/work-sessions/{id}/decision تایید یا رد کنند.",
+        "description": "عضو عادی اسکرام فقط در صورت انتساب به همین تسک دسترسی دارد (در غیر این صورت 403) و فقط سشن‌های شخصی خود را می‌بیند. ادمین اسکرام منتسب و سوپرادمین تمام سشن‌ها (تاییدشده، در انتظار، ردشده) به تفکیک کاربر را مشاهده کرده و می‌توانند از طریق PATCH /api/work-sessions/{id}/decision تایید یا رد کنند.",
         "security": [
           {
             "bearerAuth": []
@@ -4068,7 +4090,7 @@
           "Scrum"
         ],
         "summary": "جدول برترین‌های اسکرام (فقط زمان‌های تاییدشده)",
-        "description": "تجمع تک-کوئری سشن‌های تاییدشده (APPROVED) در اسپرینت انتخابی/فعال، ماه جاری جلالی (MONTH به وقت تهران)، یا کل زمان (ALL). تمام اعضای اسکرام با رتبه‌بندی رقابتی (۱، ۲، ۲، ۴) نمایش داده می‌شوند و فیلد pendingSeconds فقط برای شخص کاربر در شیء me برگردانده می‌شود.",
+        "description": "تجمع تک-کوئری سشن‌های تاییدشده (APPROVED) در اسپرینت انتخابی (بر اساس اتصال Task.sprintId یا بازه تاریخی اسپرینت برای تسک‌های بدون اسپرینت؛ با اولویت انتخاب ACTIVE سپس COMPLETED و سپس PLANNED)، ماه جاری جلالی (MONTH به وقت تهران)، یا کل زمان (ALL). تمام اعضای اسکرام با رتبه‌بندی رقابتی (۱، ۲، ۲، ۴) نمایش داده می‌شوند و فیلد pendingSeconds فقط برای شخص کاربر در شیء me برگردانده می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -5061,6 +5083,14 @@
             "type": "string",
             "nullable": true,
             "example": "3D layout and camera blocking"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "memberCount": {
+            "type": "integer",
+            "example": 5
           },
           "createdAt": {
             "type": "string",
@@ -6411,6 +6441,26 @@
           }
         }
       },
+      "TaskSprintBrief": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "number": {
+            "type": "integer",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "اسپرینت ۱"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SprintStatus"
+          }
+        }
+      },
       "ScrumTaskItem": {
         "type": "object",
         "properties": {
@@ -6421,6 +6471,19 @@
           "scrumId": {
             "type": "integer",
             "example": 1
+          },
+          "sprintId": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          },
+          "sprint": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskSprintBrief"
+              }
+            ],
+            "nullable": true
           },
           "name": {
             "type": "string",
@@ -6671,6 +6734,26 @@
                     "isActive": {
                       "type": "boolean",
                       "example": true
+                    },
+                    "sprintId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": 1
+                    },
+                    "sprint": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "number": {
+                          "type": "integer"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      }
                     }
                   }
                 },
@@ -6722,6 +6805,26 @@
                 "isActive": {
                   "type": "boolean",
                   "example": true
+                },
+                "sprintId": {
+                  "type": "integer",
+                  "nullable": true,
+                  "example": 1
+                },
+                "sprint": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "memberCount": {
                   "type": "integer",
@@ -6973,6 +7076,21 @@
                   }
                 ],
                 "nullable": true
+              },
+              "sprint": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "number": {
+                    "type": "integer"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
               }
             }
           },
@@ -7089,6 +7207,21 @@
                 },
                 "points": {
                   "type": "integer"
+                },
+                "sprint": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -7138,6 +7271,9 @@
               "title": {
                 "type": "string",
                 "example": "اسپرینت ۱"
+              },
+              "status": {
+                "$ref": "#/components/schemas/SprintStatus"
               }
             }
           },

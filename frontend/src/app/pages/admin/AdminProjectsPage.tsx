@@ -16,6 +16,7 @@ import {
   SegmentedControl,
   toast,
 } from '@/shared/ui';
+import { projectKeys } from '@/features/projects';
 import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import {
   createProject,
@@ -87,9 +88,12 @@ export const AdminProjectsPage: React.FC = () => {
 
   const invalidateProjectRelatedQueries = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+    queryClient.invalidateQueries({ queryKey: projectKeys.minePrefix() });
     queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
     queryClient.invalidateQueries({ queryKey: ['work-target-sessions', 'PROJECT'] });
     queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
+    queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
   };
 
   const createMut = useMutation({

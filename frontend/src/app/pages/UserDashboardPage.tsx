@@ -18,8 +18,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth';
 import { useTodayAttendance, useMidnightWatcher, AttendanceBadge, AttendanceModal } from '@/features/attendance';
-import { useMyProjects, WorkTargetSelect } from '@/features/projects';
-import { TodayScrumEventsCard } from '@/features/scrum';
+import { WorkTargetSelect } from '@/features/projects';
+import { TodayScrumEventsCard, useWorkTargetsMine } from '@/features/scrum';
 import {
   useTimer,
   TimerDisplay,
@@ -47,7 +47,11 @@ const UserDashboardPage: React.FC = () => {
   } = useTodayAttendance();
   useMidnightWatcher();
 
-  const { data: projects = [], isLoading: projectsLoading } = useMyProjects();
+  const {
+    data: workTargets,
+    isLoading: targetsLoading,
+    isError: targetsError,
+  } = useWorkTargetsMine();
 
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
   const [isConfirmComeOpen, setIsConfirmComeOpen] = useState(false);
@@ -62,15 +66,42 @@ const UserDashboardPage: React.FC = () => {
   }, [attLoading]);
 
   const timer = useTimer(null);
+  const {
+    target: timerTarget,
+    status: timerStatus,
+    workSeconds: timerWorkSeconds,
+    clearTarget,
+  } = timer;
 
-  // Validate that the timer's selected project actually belongs to the user's assigned projects
+  // Validate that an idle timer's selected PROJECT or TASK still exists and is assigned/active
   useEffect(() => {
-    if (!projectsLoading && projects.length > 0) {
-      if (timer.target?.kind === 'PROJECT' && !projects.some((p) => p.id === timer.target?.id)) {
-        timer.clearTarget();
+    if (targetsLoading || targetsError || !workTargets || !timerTarget) return;
+    if (timerStatus !== 'IDLE' && timerWorkSeconds > 0) return;
+
+    if (timerTarget.kind === 'PROJECT') {
+      const stillValid = (workTargets.studioProjects || []).some(
+        (p) => p.id === timerTarget.id
+      );
+      if (!stillValid) {
+        clearTarget();
+      }
+    } else if (timerTarget.kind === 'TASK') {
+      const stillValid = (workTargets.scrums || []).some((s) =>
+        (s.tasks || []).some((t) => t.id === timerTarget.id)
+      );
+      if (!stillValid) {
+        clearTarget();
       }
     }
-  }, [projectsLoading, projects, timer.target, timer.clearTarget]);
+  }, [
+    targetsLoading,
+    targetsError,
+    workTargets,
+    timerTarget,
+    timerStatus,
+    timerWorkSeconds,
+    clearTarget,
+  ]);
 
   const { isDark, toggleTheme } = useTheme();
 
@@ -348,6 +379,15 @@ const UserDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <Link
+            to="/my-projects"
+            className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
+            title="پروژه‌های من"
+            aria-label="پروژه‌های من"
+          >
+            <FolderKanban className="w-4 h-4 text-primary shrink-0" />
+            <span className="hidden md:inline whitespace-nowrap">پروژه‌های من</span>
+          </Link>
           <Link
             to="/my-scrums"
             className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"

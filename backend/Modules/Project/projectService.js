@@ -104,6 +104,26 @@ export const getProjectWorkSessionsById = async (
     throw new HandleERROR("Project not found", 404);
   }
 
+  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
+  const isAttendanceAdmin = currentUser?.role === "ADMIN";
+  const isPrivileged = isSuperAdmin || isAttendanceAdmin;
+
+  if (!isPrivileged) {
+    const membership = await prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId: currentUser.id,
+        },
+      },
+      select: { userId: true },
+    });
+
+    if (!membership) {
+      throw new HandleERROR("Project not found", 404);
+    }
+  }
+
   const { page, limit, skip } = getPagination(query);
   const { date, dateFrom, dateTo, approval, userId } = query;
 
@@ -213,9 +233,6 @@ export const getProjectWorkSessionsById = async (
     (a, b) => b.totalSeconds - a.totalSeconds || a.user.name.localeCompare(b.user.name)
   );
 
-  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
-  const isAttendanceAdmin = currentUser?.role === "ADMIN";
-
   const formattedSessions = sessions.map((s) => ({
     id: s.id,
     targetType: "PROJECT",
@@ -232,8 +249,8 @@ export const getProjectWorkSessionsById = async (
     source: s.source,
     decidedBy: s.decidedBy || null,
     decidedAt: s.decidedAt || null,
-    canModerate: !(isAttendanceAdmin && s.user.role === "SUPER_ADMIN"),
-    canDelete: isSuperAdmin || isAttendanceAdmin,
+    canModerate: isPrivileged && !(isAttendanceAdmin && s.user.role === "SUPER_ADMIN"),
+    canDelete: isPrivileged,
   }));
 
   return {
@@ -247,8 +264,8 @@ export const getProjectWorkSessionsById = async (
       },
       permissions: {
         canViewAllUsers: true,
-        canModerate: true,
-        canDelete: true,
+        canModerate: isPrivileged,
+        canDelete: isPrivileged,
       },
       summary,
       sessions: formattedSessions,

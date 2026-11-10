@@ -29,18 +29,21 @@ export type AggregateTask = {
 export type TaskAvgAggregateOutputType = {
   id: number | null
   scrumId: number | null
+  sprintId: number | null
   points: number | null
 }
 
 export type TaskSumAggregateOutputType = {
   id: number | null
   scrumId: number | null
+  sprintId: number | null
   points: number | null
 }
 
 export type TaskMinAggregateOutputType = {
   id: number | null
   scrumId: number | null
+  sprintId: number | null
   name: string | null
   description: string | null
   points: number | null
@@ -52,6 +55,7 @@ export type TaskMinAggregateOutputType = {
 export type TaskMaxAggregateOutputType = {
   id: number | null
   scrumId: number | null
+  sprintId: number | null
   name: string | null
   description: string | null
   points: number | null
@@ -63,6 +67,7 @@ export type TaskMaxAggregateOutputType = {
 export type TaskCountAggregateOutputType = {
   id: number
   scrumId: number
+  sprintId: number
   name: number
   description: number
   points: number
@@ -76,18 +81,21 @@ export type TaskCountAggregateOutputType = {
 export type TaskAvgAggregateInputType = {
   id?: true
   scrumId?: true
+  sprintId?: true
   points?: true
 }
 
 export type TaskSumAggregateInputType = {
   id?: true
   scrumId?: true
+  sprintId?: true
   points?: true
 }
 
 export type TaskMinAggregateInputType = {
   id?: true
   scrumId?: true
+  sprintId?: true
   name?: true
   description?: true
   points?: true
@@ -99,6 +107,7 @@ export type TaskMinAggregateInputType = {
 export type TaskMaxAggregateInputType = {
   id?: true
   scrumId?: true
+  sprintId?: true
   name?: true
   description?: true
   points?: true
@@ -110,6 +119,7 @@ export type TaskMaxAggregateInputType = {
 export type TaskCountAggregateInputType = {
   id?: true
   scrumId?: true
+  sprintId?: true
   name?: true
   description?: true
   points?: true
@@ -208,6 +218,7 @@ export type TaskGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type TaskGroupByOutputType = {
   id: number
   scrumId: number
+  sprintId: number | null
   name: string
   description: string | null
   points: number
@@ -242,6 +253,7 @@ export type TaskWhereInput = {
   NOT?: Prisma.TaskWhereInput | Prisma.TaskWhereInput[]
   id?: Prisma.IntFilter<"Task"> | number
   scrumId?: Prisma.IntFilter<"Task"> | number
+  sprintId?: Prisma.IntNullableFilter<"Task"> | number | null
   name?: Prisma.StringFilter<"Task"> | string
   description?: Prisma.StringNullableFilter<"Task"> | string | null
   points?: Prisma.IntFilter<"Task"> | number
@@ -249,6 +261,7 @@ export type TaskWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Task"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Task"> | Date | string
   scrum?: Prisma.XOR<Prisma.ScrumScalarRelationFilter, Prisma.ScrumWhereInput>
+  sprint?: Prisma.XOR<Prisma.SprintNullableScalarRelationFilter, Prisma.SprintWhereInput> | null
   members?: Prisma.TaskMemberListRelationFilter
   workSessions?: Prisma.WorkSessionListRelationFilter
 }
@@ -256,6 +269,7 @@ export type TaskWhereInput = {
 export type TaskOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
+  sprintId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   points?: Prisma.SortOrder
@@ -263,6 +277,7 @@ export type TaskOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   scrum?: Prisma.ScrumOrderByWithRelationInput
+  sprint?: Prisma.SprintOrderByWithRelationInput
   members?: Prisma.TaskMemberOrderByRelationAggregateInput
   workSessions?: Prisma.WorkSessionOrderByRelationAggregateInput
 }
@@ -273,6 +288,7 @@ export type TaskWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.TaskWhereInput[]
   NOT?: Prisma.TaskWhereInput | Prisma.TaskWhereInput[]
   scrumId?: Prisma.IntFilter<"Task"> | number
+  sprintId?: Prisma.IntNullableFilter<"Task"> | number | null
   name?: Prisma.StringFilter<"Task"> | string
   description?: Prisma.StringNullableFilter<"Task"> | string | null
   points?: Prisma.IntFilter<"Task"> | number
@@ -280,6 +296,7 @@ export type TaskWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Task"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Task"> | Date | string
   scrum?: Prisma.XOR<Prisma.ScrumScalarRelationFilter, Prisma.ScrumWhereInput>
+  sprint?: Prisma.XOR<Prisma.SprintNullableScalarRelationFilter, Prisma.SprintWhereInput> | null
   members?: Prisma.TaskMemberListRelationFilter
   workSessions?: Prisma.WorkSessionListRelationFilter
 }, "id">
@@ -287,6 +304,7 @@ export type TaskWhereUniqueInput = Prisma.AtLeast<{
 export type TaskOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
+  sprintId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   points?: Prisma.SortOrder
@@ -306,6 +324,7 @@ export type TaskScalarWhereWithAggregatesInput = {
   NOT?: Prisma.TaskScalarWhereWithAggregatesInput | Prisma.TaskScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Task"> | number
   scrumId?: Prisma.IntWithAggregatesFilter<"Task"> | number
+  sprintId?: Prisma.IntNullableWithAggregatesFilter<"Task"> | number | null
   name?: Prisma.StringWithAggregatesFilter<"Task"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Task"> | string | null
   points?: Prisma.IntWithAggregatesFilter<"Task"> | number
@@ -322,6 +341,7 @@ export type TaskCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   scrum: Prisma.ScrumCreateNestedOneWithoutTasksInput
+  sprint?: Prisma.SprintCreateNestedOneWithoutTasksInput
   members?: Prisma.TaskMemberCreateNestedManyWithoutTaskInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutTaskInput
 }
@@ -329,6 +349,7 @@ export type TaskCreateInput = {
 export type TaskUncheckedCreateInput = {
   id?: number
   scrumId: number
+  sprintId?: number | null
   name: string
   description?: string | null
   points?: number
@@ -347,6 +368,7 @@ export type TaskUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scrum?: Prisma.ScrumUpdateOneRequiredWithoutTasksNestedInput
+  sprint?: Prisma.SprintUpdateOneWithoutTasksNestedInput
   members?: Prisma.TaskMemberUpdateManyWithoutTaskNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutTaskNestedInput
 }
@@ -354,6 +376,7 @@ export type TaskUpdateInput = {
 export type TaskUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   points?: Prisma.IntFieldUpdateOperationsInput | number
@@ -367,6 +390,7 @@ export type TaskUncheckedUpdateInput = {
 export type TaskCreateManyInput = {
   id?: number
   scrumId: number
+  sprintId?: number | null
   name: string
   description?: string | null
   points?: number
@@ -387,6 +411,7 @@ export type TaskUpdateManyMutationInput = {
 export type TaskUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   points?: Prisma.IntFieldUpdateOperationsInput | number
@@ -408,6 +433,7 @@ export type TaskOrderByRelationAggregateInput = {
 export type TaskCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
+  sprintId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   points?: Prisma.SortOrder
@@ -419,12 +445,14 @@ export type TaskCountOrderByAggregateInput = {
 export type TaskAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
+  sprintId?: Prisma.SortOrder
   points?: Prisma.SortOrder
 }
 
 export type TaskMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
+  sprintId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   points?: Prisma.SortOrder
@@ -436,6 +464,7 @@ export type TaskMaxOrderByAggregateInput = {
 export type TaskMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
+  sprintId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   points?: Prisma.SortOrder
@@ -447,6 +476,7 @@ export type TaskMinOrderByAggregateInput = {
 export type TaskSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
+  sprintId?: Prisma.SortOrder
   points?: Prisma.SortOrder
 }
 
@@ -502,6 +532,48 @@ export type TaskUncheckedUpdateManyWithoutScrumNestedInput = {
   deleteMany?: Prisma.TaskScalarWhereInput | Prisma.TaskScalarWhereInput[]
 }
 
+export type TaskCreateNestedManyWithoutSprintInput = {
+  create?: Prisma.XOR<Prisma.TaskCreateWithoutSprintInput, Prisma.TaskUncheckedCreateWithoutSprintInput> | Prisma.TaskCreateWithoutSprintInput[] | Prisma.TaskUncheckedCreateWithoutSprintInput[]
+  connectOrCreate?: Prisma.TaskCreateOrConnectWithoutSprintInput | Prisma.TaskCreateOrConnectWithoutSprintInput[]
+  createMany?: Prisma.TaskCreateManySprintInputEnvelope
+  connect?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+}
+
+export type TaskUncheckedCreateNestedManyWithoutSprintInput = {
+  create?: Prisma.XOR<Prisma.TaskCreateWithoutSprintInput, Prisma.TaskUncheckedCreateWithoutSprintInput> | Prisma.TaskCreateWithoutSprintInput[] | Prisma.TaskUncheckedCreateWithoutSprintInput[]
+  connectOrCreate?: Prisma.TaskCreateOrConnectWithoutSprintInput | Prisma.TaskCreateOrConnectWithoutSprintInput[]
+  createMany?: Prisma.TaskCreateManySprintInputEnvelope
+  connect?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+}
+
+export type TaskUpdateManyWithoutSprintNestedInput = {
+  create?: Prisma.XOR<Prisma.TaskCreateWithoutSprintInput, Prisma.TaskUncheckedCreateWithoutSprintInput> | Prisma.TaskCreateWithoutSprintInput[] | Prisma.TaskUncheckedCreateWithoutSprintInput[]
+  connectOrCreate?: Prisma.TaskCreateOrConnectWithoutSprintInput | Prisma.TaskCreateOrConnectWithoutSprintInput[]
+  upsert?: Prisma.TaskUpsertWithWhereUniqueWithoutSprintInput | Prisma.TaskUpsertWithWhereUniqueWithoutSprintInput[]
+  createMany?: Prisma.TaskCreateManySprintInputEnvelope
+  set?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  disconnect?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  delete?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  connect?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  update?: Prisma.TaskUpdateWithWhereUniqueWithoutSprintInput | Prisma.TaskUpdateWithWhereUniqueWithoutSprintInput[]
+  updateMany?: Prisma.TaskUpdateManyWithWhereWithoutSprintInput | Prisma.TaskUpdateManyWithWhereWithoutSprintInput[]
+  deleteMany?: Prisma.TaskScalarWhereInput | Prisma.TaskScalarWhereInput[]
+}
+
+export type TaskUncheckedUpdateManyWithoutSprintNestedInput = {
+  create?: Prisma.XOR<Prisma.TaskCreateWithoutSprintInput, Prisma.TaskUncheckedCreateWithoutSprintInput> | Prisma.TaskCreateWithoutSprintInput[] | Prisma.TaskUncheckedCreateWithoutSprintInput[]
+  connectOrCreate?: Prisma.TaskCreateOrConnectWithoutSprintInput | Prisma.TaskCreateOrConnectWithoutSprintInput[]
+  upsert?: Prisma.TaskUpsertWithWhereUniqueWithoutSprintInput | Prisma.TaskUpsertWithWhereUniqueWithoutSprintInput[]
+  createMany?: Prisma.TaskCreateManySprintInputEnvelope
+  set?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  disconnect?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  delete?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  connect?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
+  update?: Prisma.TaskUpdateWithWhereUniqueWithoutSprintInput | Prisma.TaskUpdateWithWhereUniqueWithoutSprintInput[]
+  updateMany?: Prisma.TaskUpdateManyWithWhereWithoutSprintInput | Prisma.TaskUpdateManyWithWhereWithoutSprintInput[]
+  deleteMany?: Prisma.TaskScalarWhereInput | Prisma.TaskScalarWhereInput[]
+}
+
 export type TaskCreateNestedOneWithoutMembersInput = {
   create?: Prisma.XOR<Prisma.TaskCreateWithoutMembersInput, Prisma.TaskUncheckedCreateWithoutMembersInput>
   connectOrCreate?: Prisma.TaskCreateOrConnectWithoutMembersInput
@@ -539,12 +611,14 @@ export type TaskCreateWithoutScrumInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  sprint?: Prisma.SprintCreateNestedOneWithoutTasksInput
   members?: Prisma.TaskMemberCreateNestedManyWithoutTaskInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutTaskInput
 }
 
 export type TaskUncheckedCreateWithoutScrumInput = {
   id?: number
+  sprintId?: number | null
   name: string
   description?: string | null
   points?: number
@@ -587,12 +661,64 @@ export type TaskScalarWhereInput = {
   NOT?: Prisma.TaskScalarWhereInput | Prisma.TaskScalarWhereInput[]
   id?: Prisma.IntFilter<"Task"> | number
   scrumId?: Prisma.IntFilter<"Task"> | number
+  sprintId?: Prisma.IntNullableFilter<"Task"> | number | null
   name?: Prisma.StringFilter<"Task"> | string
   description?: Prisma.StringNullableFilter<"Task"> | string | null
   points?: Prisma.IntFilter<"Task"> | number
   isActive?: Prisma.BoolFilter<"Task"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Task"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Task"> | Date | string
+}
+
+export type TaskCreateWithoutSprintInput = {
+  name: string
+  description?: string | null
+  points?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  scrum: Prisma.ScrumCreateNestedOneWithoutTasksInput
+  members?: Prisma.TaskMemberCreateNestedManyWithoutTaskInput
+  workSessions?: Prisma.WorkSessionCreateNestedManyWithoutTaskInput
+}
+
+export type TaskUncheckedCreateWithoutSprintInput = {
+  id?: number
+  scrumId: number
+  name: string
+  description?: string | null
+  points?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.TaskMemberUncheckedCreateNestedManyWithoutTaskInput
+  workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutTaskInput
+}
+
+export type TaskCreateOrConnectWithoutSprintInput = {
+  where: Prisma.TaskWhereUniqueInput
+  create: Prisma.XOR<Prisma.TaskCreateWithoutSprintInput, Prisma.TaskUncheckedCreateWithoutSprintInput>
+}
+
+export type TaskCreateManySprintInputEnvelope = {
+  data: Prisma.TaskCreateManySprintInput | Prisma.TaskCreateManySprintInput[]
+  skipDuplicates?: boolean
+}
+
+export type TaskUpsertWithWhereUniqueWithoutSprintInput = {
+  where: Prisma.TaskWhereUniqueInput
+  update: Prisma.XOR<Prisma.TaskUpdateWithoutSprintInput, Prisma.TaskUncheckedUpdateWithoutSprintInput>
+  create: Prisma.XOR<Prisma.TaskCreateWithoutSprintInput, Prisma.TaskUncheckedCreateWithoutSprintInput>
+}
+
+export type TaskUpdateWithWhereUniqueWithoutSprintInput = {
+  where: Prisma.TaskWhereUniqueInput
+  data: Prisma.XOR<Prisma.TaskUpdateWithoutSprintInput, Prisma.TaskUncheckedUpdateWithoutSprintInput>
+}
+
+export type TaskUpdateManyWithWhereWithoutSprintInput = {
+  where: Prisma.TaskScalarWhereInput
+  data: Prisma.XOR<Prisma.TaskUpdateManyMutationInput, Prisma.TaskUncheckedUpdateManyWithoutSprintInput>
 }
 
 export type TaskCreateWithoutMembersInput = {
@@ -603,12 +729,14 @@ export type TaskCreateWithoutMembersInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   scrum: Prisma.ScrumCreateNestedOneWithoutTasksInput
+  sprint?: Prisma.SprintCreateNestedOneWithoutTasksInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutTaskInput
 }
 
 export type TaskUncheckedCreateWithoutMembersInput = {
   id?: number
   scrumId: number
+  sprintId?: number | null
   name: string
   description?: string | null
   points?: number
@@ -642,12 +770,14 @@ export type TaskUpdateWithoutMembersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scrum?: Prisma.ScrumUpdateOneRequiredWithoutTasksNestedInput
+  sprint?: Prisma.SprintUpdateOneWithoutTasksNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutTaskNestedInput
 }
 
 export type TaskUncheckedUpdateWithoutMembersInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   points?: Prisma.IntFieldUpdateOperationsInput | number
@@ -665,12 +795,14 @@ export type TaskCreateWithoutWorkSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   scrum: Prisma.ScrumCreateNestedOneWithoutTasksInput
+  sprint?: Prisma.SprintCreateNestedOneWithoutTasksInput
   members?: Prisma.TaskMemberCreateNestedManyWithoutTaskInput
 }
 
 export type TaskUncheckedCreateWithoutWorkSessionsInput = {
   id?: number
   scrumId: number
+  sprintId?: number | null
   name: string
   description?: string | null
   points?: number
@@ -704,12 +836,14 @@ export type TaskUpdateWithoutWorkSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scrum?: Prisma.ScrumUpdateOneRequiredWithoutTasksNestedInput
+  sprint?: Prisma.SprintUpdateOneWithoutTasksNestedInput
   members?: Prisma.TaskMemberUpdateManyWithoutTaskNestedInput
 }
 
 export type TaskUncheckedUpdateWithoutWorkSessionsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   points?: Prisma.IntFieldUpdateOperationsInput | number
@@ -721,6 +855,7 @@ export type TaskUncheckedUpdateWithoutWorkSessionsInput = {
 
 export type TaskCreateManyScrumInput = {
   id?: number
+  sprintId?: number | null
   name: string
   description?: string | null
   points?: number
@@ -736,12 +871,14 @@ export type TaskUpdateWithoutScrumInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sprint?: Prisma.SprintUpdateOneWithoutTasksNestedInput
   members?: Prisma.TaskMemberUpdateManyWithoutTaskNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutTaskNestedInput
 }
 
 export type TaskUncheckedUpdateWithoutScrumInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   points?: Prisma.IntFieldUpdateOperationsInput | number
@@ -754,6 +891,54 @@ export type TaskUncheckedUpdateWithoutScrumInput = {
 
 export type TaskUncheckedUpdateManyWithoutScrumInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  points?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type TaskCreateManySprintInput = {
+  id?: number
+  scrumId: number
+  name: string
+  description?: string | null
+  points?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type TaskUpdateWithoutSprintInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  points?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scrum?: Prisma.ScrumUpdateOneRequiredWithoutTasksNestedInput
+  members?: Prisma.TaskMemberUpdateManyWithoutTaskNestedInput
+  workSessions?: Prisma.WorkSessionUpdateManyWithoutTaskNestedInput
+}
+
+export type TaskUncheckedUpdateWithoutSprintInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  scrumId?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  points?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.TaskMemberUncheckedUpdateManyWithoutTaskNestedInput
+  workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutTaskNestedInput
+}
+
+export type TaskUncheckedUpdateManyWithoutSprintInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  scrumId?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   points?: Prisma.IntFieldUpdateOperationsInput | number
@@ -805,6 +990,7 @@ export type TaskCountOutputTypeCountWorkSessionsArgs<ExtArgs extends runtime.Typ
 export type TaskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   scrumId?: boolean
+  sprintId?: boolean
   name?: boolean
   description?: boolean
   points?: boolean
@@ -812,6 +998,7 @@ export type TaskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAt?: boolean
   updatedAt?: boolean
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
+  sprint?: boolean | Prisma.Task$sprintArgs<ExtArgs>
   members?: boolean | Prisma.Task$membersArgs<ExtArgs>
   workSessions?: boolean | Prisma.Task$workSessionsArgs<ExtArgs>
   _count?: boolean | Prisma.TaskCountOutputTypeDefaultArgs<ExtArgs>
@@ -820,6 +1007,7 @@ export type TaskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 export type TaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   scrumId?: boolean
+  sprintId?: boolean
   name?: boolean
   description?: boolean
   points?: boolean
@@ -827,11 +1015,13 @@ export type TaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
+  sprint?: boolean | Prisma.Task$sprintArgs<ExtArgs>
 }, ExtArgs["result"]["task"]>
 
 export type TaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   scrumId?: boolean
+  sprintId?: boolean
   name?: boolean
   description?: boolean
   points?: boolean
@@ -839,11 +1029,13 @@ export type TaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
+  sprint?: boolean | Prisma.Task$sprintArgs<ExtArgs>
 }, ExtArgs["result"]["task"]>
 
 export type TaskSelectScalar = {
   id?: boolean
   scrumId?: boolean
+  sprintId?: boolean
   name?: boolean
   description?: boolean
   points?: boolean
@@ -852,30 +1044,35 @@ export type TaskSelectScalar = {
   updatedAt?: boolean
 }
 
-export type TaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scrumId" | "name" | "description" | "points" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["task"]>
+export type TaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scrumId" | "sprintId" | "name" | "description" | "points" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["task"]>
 export type TaskInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
+  sprint?: boolean | Prisma.Task$sprintArgs<ExtArgs>
   members?: boolean | Prisma.Task$membersArgs<ExtArgs>
   workSessions?: boolean | Prisma.Task$workSessionsArgs<ExtArgs>
   _count?: boolean | Prisma.TaskCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TaskIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
+  sprint?: boolean | Prisma.Task$sprintArgs<ExtArgs>
 }
 export type TaskIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
+  sprint?: boolean | Prisma.Task$sprintArgs<ExtArgs>
 }
 
 export type $TaskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Task"
   objects: {
     scrum: Prisma.$ScrumPayload<ExtArgs>
+    sprint: Prisma.$SprintPayload<ExtArgs> | null
     members: Prisma.$TaskMemberPayload<ExtArgs>[]
     workSessions: Prisma.$WorkSessionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     scrumId: number
+    sprintId: number | null
     name: string
     description: string | null
     points: number
@@ -1277,6 +1474,7 @@ readonly fields: TaskFieldRefs;
 export interface Prisma__TaskClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   scrum<T extends Prisma.ScrumDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScrumDefaultArgs<ExtArgs>>): Prisma.Prisma__ScrumClient<runtime.Types.Result.GetResult<Prisma.$ScrumPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  sprint<T extends Prisma.Task$sprintArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Task$sprintArgs<ExtArgs>>): Prisma.Prisma__SprintClient<runtime.Types.Result.GetResult<Prisma.$SprintPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   members<T extends Prisma.Task$membersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Task$membersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   workSessions<T extends Prisma.Task$workSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Task$workSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1310,6 +1508,7 @@ export interface Prisma__TaskClient<T, Null = never, ExtArgs extends runtime.Typ
 export interface TaskFieldRefs {
   readonly id: Prisma.FieldRef<"Task", 'Int'>
   readonly scrumId: Prisma.FieldRef<"Task", 'Int'>
+  readonly sprintId: Prisma.FieldRef<"Task", 'Int'>
   readonly name: Prisma.FieldRef<"Task", 'String'>
   readonly description: Prisma.FieldRef<"Task", 'String'>
   readonly points: Prisma.FieldRef<"Task", 'Int'>
@@ -1714,6 +1913,25 @@ export type TaskDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Limit how many Tasks to delete.
    */
   limit?: number
+}
+
+/**
+ * Task.sprint
+ */
+export type Task$sprintArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Sprint
+   */
+  select?: Prisma.SprintSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Sprint
+   */
+  omit?: Prisma.SprintOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SprintInclude<ExtArgs> | null
+  where?: Prisma.SprintWhereInput
 }
 
 /**

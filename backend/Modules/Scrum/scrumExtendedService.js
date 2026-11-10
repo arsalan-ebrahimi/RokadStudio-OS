@@ -22,6 +22,15 @@ const formatScrumTask = (task, trackedMap = null, currentUserId = null) => {
   return {
     id: task.id,
     scrumId: task.scrumId,
+    sprintId: task.sprintId ?? null,
+    sprint: task.sprint
+      ? {
+          id: task.sprint.id,
+          number: task.sprint.number,
+          title: task.sprint.title,
+          status: task.sprint.status,
+        }
+      : null,
     name: task.name,
     description: task.description,
     points: task.points,
@@ -99,9 +108,37 @@ const assertValidTaskAssignees = async (db, scrumId, userIds = []) => {
   return uniqueIds;
 };
 
+const assertValidScrumSprint = async (db, scrumId, sprintId) => {
+  if (sprintId === undefined || sprintId === null) return null;
+
+  const numericSprintId = Number(sprintId);
+  const sprint = await db.sprint.findFirst({
+    where: {
+      id: numericSprintId,
+      scrumId,
+    },
+    select: { id: true },
+  });
+
+  if (!sprint) {
+    throw new HandleERROR("اسپرینت انتخاب‌شده متعلق به این اسکرام نیست", 422);
+  }
+
+  return sprint.id;
+};
+
 const taskSelectFields = {
   id: true,
   scrumId: true,
+  sprintId: true,
+  sprint: {
+    select: {
+      id: true,
+      number: true,
+      title: true,
+      status: true,
+    },
+  },
   name: true,
   description: true,
   points: true,
@@ -123,7 +160,7 @@ const taskSelectFields = {
 
 export const listScrumTasksService = async (
   scrumId,
-  { isActive, search } = {},
+  { isActive, search, sprintId } = {},
   currentUser,
   canEditContent
 ) => {
@@ -131,8 +168,14 @@ export const listScrumTasksService = async (
   if (isActive !== undefined) {
     where.isActive = isActive;
   }
+  if (sprintId !== undefined && sprintId !== null && sprintId !== "") {
+    where.sprintId = Number(sprintId);
+  }
   if (search) {
     where.name = { contains: search.trim(), mode: "insensitive" };
+  }
+  if (!canEditContent) {
+    where.members = { some: { userId: currentUser.id } };
   }
 
   const tasks = await prisma.task.findMany({
@@ -165,6 +208,10 @@ export const getTaskByIdService = async (taskId, currentUser, canEditContent) =>
     throw new HandleERROR("تسک یافت نشد", 404);
   }
 
+  if (!canEditContent && !task.members.some((m) => m.user.id === currentUser.id)) {
+    throw new HandleERROR("این تسک به شما اختصاص ندارد", 403);
+  }
+
   const scopedUserId = canEditContent ? null : currentUser.id;
   const trackedMap = await fetchTaskTrackedMap(prisma, [task.id], scopedUserId);
   return formatScrumTask(task, trackedMap, currentUser.id);
@@ -172,15 +219,19 @@ export const getTaskByIdService = async (taskId, currentUser, canEditContent) =>
 
 export const createScrumTaskService = async (
   scrumId,
-  { name, description, points = 0, isActive = true, memberIds = [] },
+  { name, description, points = 0, isActive = true, sprintId = null, memberIds = [] },
   actorUser
 ) => {
-  const uniqueMemberIds = await assertValidTaskAssignees(prisma, scrumId, memberIds || []);
+  const [uniqueMemberIds, resolvedSprintId] = await Promise.all([
+    assertValidTaskAssignees(prisma, scrumId, memberIds || []),
+    assertValidScrumSprint(prisma, scrumId, sprintId),
+  ]);
 
   const created = await prisma.$transaction(async (tx) => {
     const task = await tx.task.create({
       data: {
         scrumId,
+        sprintId: resolvedSprintId,
         name: name.trim(),
         description: description ? description.trim() || null : null,
         points: points != null ? Number(points) : 0,
@@ -210,7 +261,7 @@ export const createScrumTaskService = async (
 
 export const updateScrumTaskService = async (
   taskId,
-  { name, description, points, isActive },
+  { name, description, points, isActive, sprintId },
   currentUser,
   canEditContent
 ) => {
@@ -221,6 +272,21 @@ export const updateScrumTaskService = async (
   }
   if (points !== undefined) data.points = Number(points);
   if (isActive !== undefined) data.isActive = Boolean(isActive);
+
+  if (sprintId !== undefined) {
+    if (sprintId === null) {
+      data.sprintId = null;
+    } else {
+      const existingTask = await prisma.task.findUnique({
+        where: { id: taskId },
+        select: { scrumId: true },
+      });
+      if (!existingTask) {
+        throw new HandleERROR("تسک یافت نشد", 404);
+      }
+      data.sprintId = await assertValidScrumSprint(prisma, existingTask.scrumId, sprintId);
+    }
+  }
 
   const updated = await prisma.task.update({
     where: { id: taskId },
@@ -292,21 +358,8 @@ export const syncTaskMembersService = async (taskId, userIds = [], actorUser) =>
 };
 
 export const deleteScrumTaskService = async (taskId) => {
-  await prisma.$transaction(async (tx) => {
-    const sessionCount = await tx.workSession.count({
-      where: { taskId },
-    });
-
-    if (sessionCount > 0) {
-      throw new HandleERROR(
-        "امکان حذف این تسک به دلیل وجود سشن‌های کاری ثبت‌شده روی آن وجود ندارد. می‌توانید آن را غیرفعال کنید.",
-        409
-      );
-    }
-
-    await tx.task.delete({
-      where: { id: taskId },
-    });
+  await prisma.task.delete({
+    where: { id: taskId },
   });
 };
 
@@ -321,10 +374,18 @@ export const getTaskWorkSessionsService = async (
     select: {
       id: true,
       scrumId: true,
+      sprintId: true,
       name: true,
       description: true,
       points: true,
       isActive: true,
+      sprint: {
+        select: { id: true, number: true, title: true },
+      },
+      members: {
+        where: { userId: currentUser.id },
+        select: { userId: true },
+      },
       scrum: {
         select: { id: true, name: true, color: true, isActive: true },
       },
@@ -333,6 +394,10 @@ export const getTaskWorkSessionsService = async (
 
   if (!task) {
     throw new HandleERROR("تسک یافت نشد", 404);
+  }
+
+  if (!canEditContent && task.members.length === 0) {
+    throw new HandleERROR("این تسک به شما اختصاص ندارد", 403);
   }
 
   const { page, limit, skip } = getPagination(query);
@@ -454,6 +519,10 @@ export const getTaskWorkSessionsService = async (
 
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
 
+  const sprintSummary = task.sprint
+    ? { id: task.sprint.id, number: task.sprint.number, title: task.sprint.title }
+    : null;
+
   const formattedSessions = sessions.map((s) => ({
     id: s.id,
     targetType: "TASK",
@@ -465,6 +534,7 @@ export const getTaskWorkSessionsService = async (
       name: task.name,
       points: task.points,
       scrum: task.scrum,
+      sprint: sprintSummary,
     },
     user: { id: s.user.id, name: s.user.name },
     durationSeconds: s.durationSeconds,
@@ -489,6 +559,7 @@ export const getTaskWorkSessionsService = async (
         points: task.points,
         isActive: task.isActive,
         scrum: task.scrum,
+        sprint: sprintSummary,
       },
       permissions: {
         canViewAllUsers: canEditContent,
@@ -516,18 +587,21 @@ export const getScrumLeaderboardService = async (
   let periodFilterSql = Prisma.sql`TRUE`;
 
   if (resolvedPeriod === "SPRINT") {
+    const sprintSelect = {
+      id: true,
+      number: true,
+      title: true,
+      status: true,
+      startDate: true,
+      endDate: true,
+      completedAt: true,
+    };
+
     let targetSprint = null;
     if (sprintId) {
       targetSprint = await prisma.sprint.findFirst({
         where: { id: Number(sprintId), scrumId },
-        select: {
-          id: true,
-          number: true,
-          title: true,
-          startDate: true,
-          endDate: true,
-          completedAt: true,
-        },
+        select: sprintSelect,
       });
       if (!targetSprint) {
         throw new HandleERROR("اسپرینت یافت نشد", 404);
@@ -535,28 +609,22 @@ export const getScrumLeaderboardService = async (
     } else {
       targetSprint = await prisma.sprint.findFirst({
         where: { scrumId, status: "ACTIVE" },
-        select: {
-          id: true,
-          number: true,
-          title: true,
-          startDate: true,
-          endDate: true,
-          completedAt: true,
-        },
+        select: sprintSelect,
       });
 
       if (!targetSprint) {
         targetSprint = await prisma.sprint.findFirst({
           where: { scrumId, status: "COMPLETED" },
           orderBy: { number: "desc" },
-          select: {
-            id: true,
-            number: true,
-            title: true,
-            startDate: true,
-            endDate: true,
-            completedAt: true,
-          },
+          select: sprintSelect,
+        });
+      }
+
+      if (!targetSprint) {
+        targetSprint = await prisma.sprint.findFirst({
+          where: { scrumId, status: "PLANNED" },
+          orderBy: { number: "desc" },
+          select: sprintSelect,
         });
       }
     }
@@ -568,6 +636,7 @@ export const getScrumLeaderboardService = async (
         id: targetSprint.id,
         number: targetSprint.number,
         title: targetSprint.title,
+        status: targetSprint.status,
       };
 
       const startStr = targetSprint.startDate ? formatDate(targetSprint.startDate) : null;
@@ -587,15 +656,29 @@ export const getScrumLeaderboardService = async (
         range = { from: projFrom, to: projTo };
       }
 
-      const conds = [Prisma.sql`t."scrumId" = ${scrumId}`];
+      const dateConds = [];
       if (projFrom) {
-        conds.push(Prisma.sql`ws."workDate" >= ${projFrom}::date`);
+        dateConds.push(Prisma.sql`ws."workDate" >= ${projFrom}::date`);
       }
       if (projTo) {
-        conds.push(Prisma.sql`ws."workDate" <= ${projTo}::date`);
+        dateConds.push(Prisma.sql`ws."workDate" <= ${projTo}::date`);
       }
 
-      periodFilterSql = Prisma.join(conds, " AND ");
+      if (dateConds.length > 0) {
+        const dateRangeSql = Prisma.join(dateConds, " AND ");
+        periodFilterSql = Prisma.sql`
+          t."scrumId" = ${scrumId}
+          AND (
+            t."sprintId" = ${targetSprint.id}
+            OR (t."sprintId" IS NULL AND (${dateRangeSql}))
+          )
+        `;
+      } else {
+        periodFilterSql = Prisma.sql`
+          t."scrumId" = ${scrumId}
+          AND t."sprintId" = ${targetSprint.id}
+        `;
+      }
     }
   } else if (resolvedPeriod === "MONTH") {
     const { from, to } = getTehranJalaliMonthRange(now);

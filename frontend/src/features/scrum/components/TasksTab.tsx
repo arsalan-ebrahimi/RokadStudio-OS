@@ -5,6 +5,7 @@ import {
   Clock,
   Edit2,
   Eye,
+  Layers,
   ListChecks,
   Plus,
   Search,
@@ -24,6 +25,7 @@ import {
   Input,
   Modal,
   SegmentedControl,
+  Select,
   Skeleton,
 } from '@/shared/ui';
 import { WorkTargetSessionsModal } from '@/features/timer';
@@ -33,6 +35,7 @@ import {
   useCreateScrumTask,
   useDeleteScrumTask,
   useScrumTasks,
+  useSprints,
   useSyncTaskMembers,
   useUpdateScrumTask,
 } from '../hooks/use-scrum';
@@ -51,7 +54,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
   const colorMeta = SCRUM_COLOR_MAP[scrum.color] || SCRUM_COLOR_MAP.ECOSYSTEM;
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [sprintFilter, setSprintFilter] = useState<number | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const { data: sprints = [] } = useSprints(scrum.id);
 
   const {
     data: tasks = [],
@@ -62,6 +68,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
   } = useScrumTasks(scrum.id, {
     isActive:
       statusFilter === 'ALL' ? undefined : statusFilter === 'ACTIVE',
+    sprintId: sprintFilter,
     search: searchTerm.trim() || undefined,
   });
 
@@ -90,6 +97,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
   const [createName, setCreateName] = useState('');
   const [createDesc, setCreateDesc] = useState('');
   const [createPoints, setCreatePoints] = useState<number>(3);
+  const [createSprintId, setCreateSprintId] = useState<number | ''>('');
   const [createMemberIds, setCreateMemberIds] = useState<number[]>([]);
 
   // Edit modal state
@@ -97,6 +105,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editPoints, setEditPoints] = useState<number>(0);
+  const [editSprintId, setEditSprintId] = useState<number | ''>('');
   const [editActive, setEditActive] = useState<boolean>(true);
 
   // Members modal state
@@ -111,6 +120,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
     setCreateName('');
     setCreateDesc('');
     setCreatePoints(3);
+    setCreateSprintId('');
     setCreateMemberIds([]);
     setIsCreateOpen(true);
   };
@@ -124,6 +134,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
       description: createDesc.trim() || undefined,
       points: safePoints,
       isActive: true,
+      sprintId: createSprintId ? Number(createSprintId) : undefined,
       memberIds: createMemberIds.length > 0 ? createMemberIds : undefined,
     });
     setIsCreateOpen(false);
@@ -134,6 +145,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
     setEditName(task.name);
     setEditDesc(task.description || '');
     setEditPoints(task.points);
+    setEditSprintId(task.sprintId ?? task.sprint?.id ?? '');
     setEditActive(task.isActive);
   };
 
@@ -147,6 +159,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
         name: editName.trim(),
         description: editDesc.trim() ? editDesc.trim() : null,
         points: safePoints,
+        sprintId: editSprintId ? Number(editSprintId) : null,
         isActive: editActive,
       },
     });
@@ -189,7 +202,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
             تسک‌های اسکرام ({toPersianDigits(tasks.length)})
           </h3>
           <p className="text-xs text-ink-normal/65 dark:text-gray-400 mt-0.5 leading-relaxed">
-            تسک‌های این اسکرام با امتیاز و اعضای مشخص؛ روی هر تسک کلیک کنید تا گزارش کارکرد افراد را بر اساس تاریخ مشاهده و بررسی کنید.
+            {canEdit
+              ? 'تسک‌های این اسکرام با امتیاز، اسپرینت مرتبط و اعضای مشخص؛ روی هر تسک کلیک کنید تا گزارش کارکرد افراد را بر اساس تاریخ مشاهده و بررسی کنید.'
+              : 'تسک‌های اختصاص‌یافته به شما در این اسکرام؛ روی هر تسک کلیک کنید تا جزئیات کارکرد خود را مشاهده کنید.'}
           </p>
         </div>
 
@@ -208,25 +223,46 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
       </div>
 
       {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="relative flex items-center w-full sm:max-w-xs">
-          <Search className="w-4 h-4 text-sec/45 dark:text-gray-400 absolute start-3 pointer-events-none" />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="جستجوی عنوان یا توضیحات تسک..."
-            className="ps-9 pe-8 text-xs"
-            containerClassName="w-full"
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm('')}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-sec/50 hover:text-sec dark:hover:text-white absolute end-2 cursor-pointer"
-              aria-label="پاک کردن جستجو"
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1">
+          <div className="relative flex items-center w-full sm:max-w-xs">
+            <Search className="w-4 h-4 text-sec/45 dark:text-gray-400 absolute start-3 pointer-events-none" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="جستجوی عنوان یا توضیحات تسک..."
+              className="ps-9 pe-8 text-xs"
+              containerClassName="w-full"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-sec/50 hover:text-sec dark:hover:text-white absolute end-2 cursor-pointer"
+                aria-label="پاک کردن جستجو"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {sprints.length > 0 && (
+            <Select
+              selectSize="sm"
+              containerClassName="w-full sm:w-52"
+              aria-label="فیلتر اسپرینت تسک‌ها"
+              value={sprintFilter ? String(sprintFilter) : ''}
+              onChange={(e) =>
+                setSprintFilter(e.target.value ? Number(e.target.value) : undefined)
+              }
             >
-              <X className="w-3.5 h-3.5" />
-            </button>
+              <option value="">همه اسپرینت‌ها</option>
+              {sprints.map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {`S${toPersianDigits(sp.number)} · ${sp.title}`}
+                </option>
+              ))}
+            </Select>
           )}
         </div>
 
@@ -260,14 +296,14 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
         <EmptyState
           title="تسکی یافت نشد"
           description={
-            searchTerm || statusFilter !== 'ALL'
-              ? 'فیلتر جستجو یا وضعیت را تغییر دهید تا تسک‌های دیگر نمایش داده شوند.'
+            searchTerm || statusFilter !== 'ALL' || sprintFilter !== undefined
+              ? 'فیلتر جستجو، اسپرینت یا وضعیت را تغییر دهید تا تسک‌های دیگر نمایش داده شوند.'
               : canEdit
               ? 'برای تعریف اولین تسک در این اسکرام روی دکمه «تسک جدید» کلیک کنید.'
-              : 'هنوز تسکی در این اسکرام تعریف نشده است.'
+              : 'هنوز تسکی در این اسکرام به شما اختصاص داده نشده است.'
           }
           action={
-            canEdit && !searchTerm && statusFilter === 'ALL' ? (
+            canEdit && !searchTerm && statusFilter === 'ALL' && sprintFilter === undefined ? (
               <Button
                 type="button"
                 variant="primary"
@@ -330,6 +366,12 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
                           <Badge dot variant={task.isActive ? 'ecosystem' : 'neutral'}>
                             {task.isActive ? 'فعال' : 'غیرفعال'}
                           </Badge>
+                          {task.sprint && (
+                            <Badge variant="neutral" className="tabular-nums gap-1">
+                              <Layers className="w-3 h-3 shrink-0 text-sec/70 dark:text-primary" />
+                              <span>{`S${toPersianDigits(task.sprint.number)} · ${task.sprint.title}`}</span>
+                            </Badge>
+                          )}
                           {task.isAssignedToMe && (
                             <Badge variant="male">
                               <UserCheck className="w-3 h-3 me-1" />
@@ -523,6 +565,21 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
               </div>
             </div>
 
+            <Select
+              label="اسپرینت مرتبط (اختیاری)"
+              value={createSprintId ? String(createSprintId) : ''}
+              onChange={(e) =>
+                setCreateSprintId(e.target.value ? Number(e.target.value) : '')
+              }
+            >
+              <option value="">بدون اسپرینت</option>
+              {sprints.map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {`S${toPersianDigits(sp.number)} · ${sp.title}`}
+                </option>
+              ))}
+            </Select>
+
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-sec/80 dark:text-gray-300">
@@ -652,6 +709,21 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
               </div>
             </div>
 
+            <Select
+              label="اسپرینت مرتبط (اختیاری)"
+              value={editSprintId ? String(editSprintId) : ''}
+              onChange={(e) =>
+                setEditSprintId(e.target.value ? Number(e.target.value) : '')
+              }
+            >
+              <option value="">بدون اسپرینت</option>
+              {sprints.map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {`S${toPersianDigits(sp.number)} · ${sp.title}`}
+                </option>
+              ))}
+            </Select>
+
             <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border-[1.5px] border-sec/20 dark:border-gray-700 bg-[#F8FAFC] dark:bg-[#182030] cursor-pointer">
               <span className="text-xs font-bold text-sec dark:text-white">
                 تسک فعال است (قابل انتخاب در تایمر)
@@ -753,7 +825,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
         </Modal>
       )}
 
-      {/* Delete Task Modal (shows 409 error nicely if sessions exist) */}
+      {/* Delete Task Modal (cascade-deletes related work sessions) */}
       <Modal
         isOpen={Boolean(deletingTask)}
         onClose={() => {
@@ -766,7 +838,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
       >
         <div className="space-y-4">
           <p className="text-xs sm:text-sm text-sec/80 dark:text-gray-300 leading-relaxed">
-            آیا از حذف تسک «<strong className="text-sec dark:text-white">{deletingTask?.name}</strong>» اطمینان دارید؟ در صورت ثبت سشن کاری روی این تسک، به جای حذف می‌توانید آن را غیرفعال کنید.
+            آیا از حذف تسک «<strong className="text-sec dark:text-white">{deletingTask?.name}</strong>» اطمینان دارید؟ با حذف این تسک، تمامی سشن‌های کاری ثبت‌شده روی آن نیز به‌صورت خودکار حذف خواهند شد و قابل بازگردانی نیستند.
           </p>
 
           {deleteErrMsg && (
@@ -791,23 +863,6 @@ export const TasksTab: React.FC<TasksTabProps> = ({ scrum, canEdit }) => {
             >
               انصراف
             </Button>
-            {deleteErrMsg && deletingTask?.isActive && (
-              <Button
-                type="button"
-                variant="primary"
-                onClick={async () => {
-                  if (!deletingTask) return;
-                  await updateMut.mutateAsync({
-                    taskId: deletingTask.id,
-                    payload: { isActive: false },
-                  });
-                  setDeletingTask(null);
-                  setDeleteErrMsg(null);
-                }}
-              >
-                غیرفعال کردن تسک
-              </Button>
-            )}
             <Button
               type="button"
               variant="danger"

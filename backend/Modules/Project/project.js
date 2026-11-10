@@ -15,6 +15,7 @@ import {
   updateProjectValidator,
   updateMembersValidator,
   getProjectsValidator,
+  getMineProjectsValidator,
   getProjectWorkSessionsValidator,
 } from "./projectValidator.js";
 import { isLogin } from "../../Middlewares/isLogin.js";
@@ -25,7 +26,7 @@ const projectRouter = express.Router();
 projectRouter.use(isLogin);
 
 // Current user's projects
-projectRouter.get("/mine", getMineProjects);
+projectRouter.get("/mine", getMineProjectsValidator, getMineProjects);
 
 // Project list for admins (with memberCount)
 projectRouter.get(
@@ -45,7 +46,6 @@ projectRouter.post(
 
 projectRouter.get(
   "/:id/work-sessions",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
   getProjectWorkSessionsValidator,
   getProjectWorkSessions
 );

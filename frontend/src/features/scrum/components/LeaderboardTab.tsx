@@ -110,7 +110,7 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ scrum }) => {
             }}
           />
 
-          {period === 'SPRINT' && sprints.length > 1 && (
+          {period === 'SPRINT' && sprints.length > 0 && (
             <Select
               value={selectedSprintId || ''}
               onChange={(e) =>

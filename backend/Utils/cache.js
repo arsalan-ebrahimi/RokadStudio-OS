@@ -49,14 +49,14 @@ export const cacheDel = async (keyOrKeys) => {
  * Invalidate user project list cache
  */
 export const invalidateUserProjectsCache = async (userId) => {
-  await cacheDel(`user:${userId}:projects`);
+  await cacheDel([`user:${userId}:projects`, `user:${userId}:projects:all`]);
 };
 
 /**
  * Invalidate all user project caches (e.g. on project create/update/delete)
  */
 export const invalidateAllProjectsCache = async () => {
-  await deleteKeysByPattern("user:*:projects");
+  await deleteKeysByPattern("user:*:projects*");
 };
 
 /**

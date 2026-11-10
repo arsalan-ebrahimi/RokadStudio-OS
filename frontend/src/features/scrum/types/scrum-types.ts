@@ -137,9 +137,23 @@ export interface Sprint {
   updatedAt?: string;
 }
 
+export interface ScrumSprintRef {
+  id: number;
+  number: number;
+  title: string;
+  status?: SprintStatus;
+}
+
 export interface ScrumTask {
   id: number;
   scrumId: number;
+  sprintId?: number | null;
+  sprint?: {
+    id: number;
+    number: number;
+    title: string;
+    status: SprintStatus;
+  } | null;
   name: string;
   description?: string | null;
   points: number;
@@ -209,6 +223,7 @@ export interface WorkTarget {
   pathLabel?: string;
   points?: number;
   scrum?: { id: number; name: string; color: ScrumColor };
+  sprint?: { id: number; number: number; title: string } | null;
 }
 
 export interface WorkTargetsScrumGroup {
@@ -219,6 +234,7 @@ export interface WorkTargetsScrumGroup {
     name: string;
     description?: string | null;
     points: number;
+    sprint?: { id: number; number: number; title: string } | null;
   }[];
 }
 
@@ -234,6 +250,8 @@ export interface ScrumReportRow {
     name: string;
     points: number;
     isActive: boolean;
+    sprintId?: number | null;
+    sprint?: { id: number; number: number; title: string } | null;
   };
   member: ScrumUserRef | null;
   assignedMembersCount: number;
@@ -249,6 +267,8 @@ export interface ScrumReportData {
     taskName: string;
     points: number;
     isActive: boolean;
+    sprintId?: number | null;
+    sprint?: { id: number; number: number; title: string } | null;
     memberCount: number;
     totalSeconds: number;
     sessionCount: number;
@@ -274,7 +294,7 @@ export interface ScrumLeaderboardRow {
 export interface ScrumLeaderboardData {
   period: LeaderboardPeriod;
   range: { from: string; to: string } | null;
-  sprint: { id: number; number: number; title: string } | null;
+  sprint: { id: number; number: number; title: string; status?: SprintStatus } | null;
   rows: ScrumLeaderboardRow[];
   me: {
     rank: number | null;

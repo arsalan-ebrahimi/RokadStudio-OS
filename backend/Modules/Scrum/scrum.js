@@ -202,11 +202,11 @@ scrumRouter.put(
   batchUpdateEvents
 );
 
-// Scrum report
+// Scrum report (assigned SCRUM_ADMIN / SUPER_ADMIN only)
 scrumRouter.get(
   "/:id/report",
   scrumIdValidator,
-  requireScrumAccess("member"),
+  requireScrumAccess("editor"),
   scrumReportQueryValidator,
   getScrumReport
 );

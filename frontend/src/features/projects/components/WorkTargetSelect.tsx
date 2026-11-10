@@ -62,7 +62,92 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
     };
   }, [isOpen]);
 
+  const activeTargetMap = useMemo(() => {
+    if (!targetsData) return null;
+    const activeMap = new Map<string, TimerTarget>();
+
+    for (const p of targetsData.studioProjects || []) {
+      activeMap.set(`PROJECT_${p.id}`, {
+        kind: 'PROJECT',
+        id: p.id,
+        label: p.name,
+      });
+    }
+
+    for (const s of targetsData.scrums || []) {
+      for (const t of s.tasks || []) {
+        activeMap.set(`TASK_${t.id}`, {
+          kind: 'TASK',
+          id: t.id,
+          label: `[${s.scrum.name}] ${t.name}`,
+          points: t.points,
+          scrumColor: s.scrum.color,
+        });
+      }
+    }
+
+    return activeMap;
+  }, [targetsData]);
+
+  // Prune stale / deleted / inactive / unassigned recent targets from localStorage whenever active targets are known
+  useEffect(() => {
+    if (isLoading || isError || !targetsData || !activeTargetMap) return;
+    try {
+      const storageKey = `rokad_recent_targets_${userId}`;
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+
+      const pruned: TimerTarget[] = [];
+      let changed = false;
+
+      for (const item of parsed) {
+        if (!item || typeof item !== 'object') {
+          changed = true;
+          continue;
+        }
+        const obj = item as Record<string, unknown>;
+        const normalizedKind = obj.kind === 'STUDIO' ? 'PROJECT' : obj.kind;
+        if ((normalizedKind !== 'PROJECT' && normalizedKind !== 'TASK') || typeof obj.id !== 'number') {
+          changed = true;
+          continue;
+        }
+        const key = `${normalizedKind}_${obj.id}`;
+        const fresh = activeTargetMap.get(key);
+        if (!fresh) {
+          changed = true;
+          continue;
+        }
+        if (
+          obj.kind !== normalizedKind ||
+          obj.label !== fresh.label ||
+          obj.points !== fresh.points ||
+          obj.scrumColor !== fresh.scrumColor
+        ) {
+          changed = true;
+        }
+        pruned.push(fresh);
+      }
+
+      if (changed) {
+        if (pruned.length === 0) {
+          localStorage.removeItem(storageKey);
+        } else {
+          localStorage.setItem(storageKey, JSON.stringify(pruned.slice(0, 3)));
+        }
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, [isLoading, isError, targetsData, activeTargetMap, userId]);
+
   const recentTargets = useMemo<TimerTarget[]>(() => {
+    if (!targetsData || !activeTargetMap) {
+      return [];
+    }
+
     const map = new Map<string, TimerTarget>();
 
     try {
@@ -74,13 +159,11 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
           const obj = item as Record<string, unknown>;
           const normalizedKind = obj.kind === 'STUDIO' ? 'PROJECT' : obj.kind;
           if ((normalizedKind === 'PROJECT' || normalizedKind === 'TASK') && typeof obj.id === 'number') {
-            map.set(`${normalizedKind}_${obj.id}`, {
-              kind: normalizedKind,
-              id: obj.id,
-              label: String(obj.label || ''),
-              points: typeof obj.points === 'number' ? obj.points : undefined,
-              scrumColor: typeof obj.scrumColor === 'string' ? obj.scrumColor : undefined,
-            });
+            const key = `${normalizedKind}_${obj.id}`;
+            const fresh = activeTargetMap.get(key);
+            if (fresh) {
+              map.set(key, fresh);
+            }
           }
         }
       }
@@ -88,24 +171,19 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
       // Ignore invalid localStorage payload
     }
 
-    if (targetsData?.recent) {
+    if (targetsData.recent) {
       for (const r of targetsData.recent) {
         if (r.kind !== 'PROJECT' && r.kind !== 'TASK') continue;
         const key = `${r.kind}_${r.id}`;
-        if (!map.has(key)) {
-          map.set(key, {
-            kind: r.kind,
-            id: r.id,
-            label: r.pathLabel || r.name,
-            points: r.points,
-            scrumColor: r.scrum?.color,
-          });
+        const fresh = activeTargetMap.get(key);
+        if (fresh && !map.has(key)) {
+          map.set(key, fresh);
         }
       }
     }
 
     return Array.from(map.values()).slice(0, 3);
-  }, [userId, targetsData]);
+  }, [userId, targetsData, activeTargetMap]);
 
   const filteredActiveScrums = useMemo(() => {
     if (!targetsData?.scrums) return [];
@@ -148,6 +226,16 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
     onSelect(target);
     setIsOpen(false);
     setSearchTerm('');
+  };
+
+  const toggleOpen = () => {
+    if (isLocked || isLoading) return;
+    setIsOpen((prev) => {
+      if (!prev) {
+        void refetch();
+      }
+      return !prev;
+    });
   };
 
   const renderSelectedDisplay = (isChipMode: boolean) => {
@@ -354,6 +442,18 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                                 >
                                   <span className="truncate min-w-0">{task.name}</span>
                                   <div className="flex items-center gap-1.5 shrink-0">
+                                    {task.sprint && (
+                                      <span
+                                        className={cn(
+                                          'text-[10px] px-1.5 py-0.5 rounded font-bold tabular-nums',
+                                          isSelected
+                                            ? 'bg-sec/15 text-sec'
+                                            : 'bg-primary/15 text-sec dark:text-primary'
+                                        )}
+                                      >
+                                        S{toPersianDigits(task.sprint.number)}
+                                      </span>
+                                    )}
                                     <span
                                       className={cn(
                                         'text-[10px] px-1.5 py-0.5 rounded font-bold tabular-nums',
@@ -441,7 +541,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
               ? `${selectedTarget?.label || 'هدف کاری'} (در زمان اجرای تایمر قفل است)`
               : selectedTarget?.label || 'انتخاب پروژه / هدف کاری'
           }
-          onClick={() => !isLocked && !isLoading && setIsOpen((prev) => !prev)}
+          onClick={toggleOpen}
           className={cn(
             'min-h-[44px] max-w-full sm:max-w-[420px] inline-flex items-center justify-between gap-2.5 px-4 py-2 rounded-full border-[1.5px] transition-all select-none',
             isLocked
@@ -491,7 +591,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
         disabled={isLocked || isLoading}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleOpen}
         className={cn(
           'w-full min-h-[44px] flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border-[1.5px] transition-all text-start',
           isLocked

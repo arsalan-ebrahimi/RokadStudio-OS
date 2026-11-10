@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import UserDashboardPage from './pages/UserDashboardPage';
+import UserProjectsPage from './pages/UserProjectsPage';
 import { AdminLayout } from './layout/AdminLayout';
 import { ScrumAdminLayout } from './layout/ScrumAdminLayout';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
@@ -37,6 +38,16 @@ export const router = createBrowserRouter([
     element: (
       <RequireRole roles={['USER', 'SCRUM_ADMIN', 'ADMIN', 'SUPER_ADMIN']}>
         <UserDashboardPage />
+      </RequireRole>
+    ),
+  },
+  {
+    path: '/my-projects',
+    element: (
+      <RequireRole roles={['USER', 'SCRUM_ADMIN', 'ADMIN', 'SUPER_ADMIN']}>
+        <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B0F17] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+          <UserProjectsPage />
+        </div>
       </RequireRole>
     ),
   },

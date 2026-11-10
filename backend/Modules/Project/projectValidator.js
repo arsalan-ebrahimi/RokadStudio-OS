@@ -107,6 +107,15 @@ export const getProjectsValidator = [
   handleValidation,
 ];
 
+export const getMineProjectsValidator = [
+  query("includeInactive")
+    .optional()
+    .isBoolean()
+    .withMessage("includeInactive must be a boolean")
+    .toBoolean(),
+  handleValidation,
+];
+
 export const getProjectWorkSessionsValidator = [
   param("id")
     .isInt({ min: 1 })

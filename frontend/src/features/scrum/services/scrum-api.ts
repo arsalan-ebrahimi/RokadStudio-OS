@@ -83,11 +83,12 @@ export async function syncScrumMembers(
 
 export async function fetchScrumTasks(
   scrumId: number,
-  params?: { isActive?: boolean; search?: string }
+  params?: { isActive?: boolean; search?: string; sprintId?: number }
 ): Promise<ScrumTask[]> {
-  const cleanParams: Record<string, string | boolean> = {};
+  const cleanParams: Record<string, string | number | boolean> = {};
   if (typeof params?.isActive === 'boolean') cleanParams.isActive = params.isActive;
   if (params?.search && params.search.trim()) cleanParams.search = params.search.trim();
+  if (params?.sprintId) cleanParams.sprintId = params.sprintId;
 
   const res = await apiClient<ScrumTask[]>(`/api/scrums/${scrumId}/tasks`, {
     params: cleanParams,
@@ -102,6 +103,7 @@ export async function createScrumTask(
     description?: string | null;
     points?: number;
     isActive?: boolean;
+    sprintId?: number | null;
     memberIds?: number[];
   }
 ): Promise<ScrumTask> {
@@ -119,6 +121,7 @@ export async function updateScrumTask(
     description?: string | null;
     points?: number;
     isActive?: boolean;
+    sprintId?: number | null;
   }
 ): Promise<ScrumTask> {
   const res = await apiClient<ScrumTask>(`/api/tasks/${taskId}`, {

@@ -567,4 +567,56 @@ describe("WorkSession Business Rules & Database Integrity Tests", () => {
 
     await prisma.attendance.delete({ where: { id: att.id } });
   });
+
+  test("Deleting a Task cascade-deletes its WorkSessions without deleting Attendance", async () => {
+    const testNow = new Date("2026-09-04T10:00:00.000Z");
+    const att = await prisma.attendance.create({
+      data: {
+        userId: memberUser.id,
+        date: todayDate(testNow),
+        status: "PRESENT",
+        approval: "PENDING",
+        source: "USER",
+      },
+    });
+
+    const tempTask = await prisma.task.create({
+      data: {
+        scrumId: testScrum.id,
+        name: "Cascade Delete Task",
+        points: 2,
+        isActive: true,
+        members: {
+          create: [{ userId: memberUser.id, assignedById: superAdminUser.id }],
+        },
+      },
+    });
+
+    const session = await logWorkSession(
+      {
+        userId: memberUser.id,
+        taskId: tempTask.id,
+        durationSeconds: 900,
+        startedAt: testNow.toISOString(),
+        clientRequestId: "12345678-1234-4234-8234-1234567890ab",
+      },
+      testNow
+    );
+
+    assert.ok(session.id);
+
+    await prisma.task.delete({ where: { id: tempTask.id } });
+
+    const remainingSessions = await prisma.workSession.count({
+      where: { id: session.id },
+    });
+    const remainingAttendance = await prisma.attendance.findUnique({
+      where: { id: att.id },
+    });
+
+    assert.equal(remainingSessions, 0, "WorkSession must be cascade-deleted when Task is deleted");
+    assert.ok(remainingAttendance, "Attendance must remain intact after Task deletion");
+
+    await prisma.attendance.delete({ where: { id: att.id } });
+  });
 });
