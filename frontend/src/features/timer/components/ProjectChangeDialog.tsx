@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Modal, Button } from '@/shared/ui';
 import { formatDurationToHumanPersian } from '@/shared/lib/formatters';
 
@@ -9,6 +10,9 @@ interface ProjectChangeDialogProps {
   newProjectName: string;
   durationSeconds: number;
   isLoading: boolean;
+  errorMessage?: string | null;
+  canDiscard?: boolean;
+  onDiscard?: () => void;
   onConfirmContinue: () => void;
   onConfirmFinish: () => void;
 }
@@ -20,6 +24,9 @@ export const ProjectChangeDialog: React.FC<ProjectChangeDialogProps> = ({
   newProjectName,
   durationSeconds,
   isLoading,
+  errorMessage,
+  canDiscard = false,
+  onDiscard,
   onConfirmContinue,
   onConfirmFinish,
 }) => {
@@ -52,6 +59,16 @@ export const ProjectChangeDialog: React.FC<ProjectChangeDialogProps> = ({
           با تغییر پروژه، {durationText} زمان کار روی {renderTargetName(currentProjectName)} ثبت می‌شود و هدف کاری به {renderTargetName(newProjectName)} تغییر می‌یابد.
         </p>
 
+        {errorMessage && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 p-3 rounded-2xl border-[1.5px] border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-[#C60036] dark:text-rose-300 text-xs font-bold leading-relaxed"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2.5 pt-2">
           <Button
             variant="primary"
@@ -71,6 +88,17 @@ export const ProjectChangeDialog: React.FC<ProjectChangeDialogProps> = ({
           >
             ثبت و پایان کار (ریست پومودورو)
           </Button>
+
+          {canDiscard && onDiscard && (
+            <Button
+              variant="danger"
+              onClick={onDiscard}
+              disabled={isLoading}
+              className="w-full text-xs sm:text-sm"
+            >
+              صرف‌نظر از زمان ثبت‌نشده و تغییر به هدف جدید
+            </Button>
+          )}
 
           <Button
             variant="ghost"

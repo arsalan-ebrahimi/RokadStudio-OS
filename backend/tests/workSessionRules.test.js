@@ -164,7 +164,24 @@ describe("WorkSession Business Rules & Database Integrity Tests", () => {
       },
       (err) => {
         assert.equal(err.statusCode, 400);
-        assert.match(err.message, /Project not found or inactive/);
+        assert.match(err.message, /Project is inactive/);
+        return true;
+      }
+    );
+  });
+
+  test("Refuses logging when project does not exist (404)", async () => {
+    await assert.rejects(
+      async () => {
+        await logWorkSession({
+          userId: memberUser.id,
+          projectId: 999999999,
+          durationSeconds: 800,
+        });
+      },
+      (err) => {
+        assert.equal(err.statusCode, 404);
+        assert.match(err.message, /Project not found/);
         return true;
       }
     );

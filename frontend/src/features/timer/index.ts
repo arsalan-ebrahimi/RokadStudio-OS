@@ -10,3 +10,4 @@ export * from './components/DeleteSessionDialog';
 export * from './components/WorkTargetSessionsModal';
 export * from './config/timer-constants';
 export * from './lib/timer-engine';
+export * from './lib/work-session-error';

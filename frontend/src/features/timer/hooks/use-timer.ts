@@ -10,9 +10,11 @@ import {
   registerContinue,
   registerFinish,
   changeTarget,
+  discardTarget,
   restoreTimerState,
   PomodoroMode,
 } from '../lib/timer-engine';
+import { mapWorkSessionError } from '../lib/work-session-error';
 import {
   HEARTBEAT_MS,
   TAB_LOCK_TIMEOUT_MS,
@@ -63,6 +65,31 @@ function saveRecentTarget(userId: number | string, target: TimerTarget) {
     const filtered = normalized.filter((t) => !(t.kind === target.kind && t.id === target.id));
     const next = [target, ...filtered].slice(0, 3);
     localStorage.setItem(key, JSON.stringify(next));
+  } catch {
+    // Ignore
+  }
+}
+
+function removeRecentTarget(userId: number | string, target: TimerTarget) {
+  try {
+    const key = getRecentStorageKey(userId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return;
+
+    const filtered = parsed.filter((item) => {
+      if (!item || typeof item !== 'object') return false;
+      const obj = item as Record<string, unknown>;
+      const kind = obj.kind === 'STUDIO' ? 'PROJECT' : obj.kind;
+      return !(kind === target.kind && Number(obj.id) === target.id);
+    });
+
+    if (filtered.length === 0) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, JSON.stringify(filtered));
+    }
   } catch {
     // Ignore
   }
@@ -130,6 +157,10 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
   // Dialog states
   const [isRegisterDialogOpen, setIsRegisterDialogOpen] = useState(false);
   const [pendingTargetChange, setPendingTargetChange] = useState<TimerTarget | null>(null);
+  const [submissionError, setSubmissionError] = useState<{
+    message: string;
+    canDiscardTarget: boolean;
+  } | null>(null);
 
   const engineStateRef = useRef(engineState);
   useEffect(() => {
@@ -339,10 +370,15 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
   // Clear target / project selection
   const clearTarget = useCallback(() => {
     setEngineState((prev) => {
-      const next = { ...prev, target: null, projectId: null };
+      const derivedState = getDerivedTimerState(prev);
+      const next =
+        derivedState.workSeconds < 1
+          ? discardTarget(prev, null)
+          : { ...prev, target: null, projectId: null };
       persistState(next);
       return next;
     });
+    setSubmissionError(null);
   }, [persistState]);
 
   const clearProject = clearTarget;
@@ -353,6 +389,8 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
       const current = engineStateRef.current;
       const derivedState = getDerivedTimerState(current);
       if (derivedState.projectSelectLocked) return;
+
+      setSubmissionError(null);
 
       // If timer hasn't recorded time or had no previous target, switch immediately without dialog!
       if (derivedState.workSeconds < 1 || !current.target) {
@@ -398,6 +436,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
       const clientReqId = activeClientRequestId || safeUUID();
       setActiveClientRequestId(clientReqId);
+      setSubmissionError(null);
       setIsSubmitting(true);
 
       try {
@@ -456,6 +495,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
         setActiveClientRequestId(null);
         setPendingTargetChange(null);
+        setSubmissionError(null);
         queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
         queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
@@ -465,21 +505,17 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان هدف کاری ثبت و تغییر یافت');
       } catch (err: unknown) {
-        let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
-        if (err instanceof Error && err.message) {
-          if (err.message.includes('not an assigned member')) {
-            errorMsg = 'شما عضو این پروژه نیستید.';
-          } else if (err.message.includes('attendance')) {
-            errorMsg = 'حضور شما برای امروز ثبت نشده است.';
-          } else if (err.message.includes('inactive')) {
-            errorMsg = 'این پروژه غیرفعال است.';
-          } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-            errorMsg = 'عدم اتصال به سرور. لطفا اتصال اینترنت یا سرور را بررسی کنید.';
-          } else {
-            errorMsg = err.message;
-          }
+        const mapped = mapWorkSessionError(err, current.target.kind);
+        if (mapped.canDiscardTarget) {
+          removeRecentTarget(userId, current.target);
+          queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+          queryClient.invalidateQueries({ queryKey: ['projects', 'mine'] });
         }
-        toast.error(errorMsg);
+        setSubmissionError({
+          message: mapped.message,
+          canDiscardTarget: mapped.canDiscardTarget,
+        });
+        toast.error(mapped.message);
       } finally {
         setIsSubmitting(false);
       }
@@ -487,15 +523,35 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
     [pendingTargetChange, activeClientRequestId, persistState, userId]
   );
 
+  // Discard unloggable target time and switch directly to pendingTargetChange
+  const discardTargetAndSwitch = useCallback(() => {
+    const current = engineStateRef.current;
+    if (current.target) {
+      removeRecentTarget(userId, current.target);
+    }
+    setEngineState((prev) => {
+      const next = discardTarget(prev, pendingTargetChange || null);
+      persistState(next);
+      return next;
+    });
+    setActiveClientRequestId(null);
+    setPendingTargetChange(null);
+    setSubmissionError(null);
+    setShowFocusBanner(false);
+    toast.success(pendingTargetChange ? 'هدف کاری بدون ثبت زمان قبلی تغییر یافت' : 'تایمر ریست شد');
+  }, [pendingTargetChange, persistState, userId]);
+
   // Cancel target change
   const cancelTargetChange = useCallback(() => {
     setPendingTargetChange(null);
+    setSubmissionError(null);
   }, []);
 
   // Open register dialog
   const openRegisterDialog = useCallback(() => {
     const derivedState = getDerivedTimerState(engineStateRef.current);
     if (derivedState.canRegister) {
+      setSubmissionError(null);
       setIsRegisterDialogOpen(true);
     }
   }, []);
@@ -503,6 +559,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
   // Close register dialog
   const closeRegisterDialog = useCallback(() => {
     setIsRegisterDialogOpen(false);
+    setSubmissionError(null);
   }, []);
 
   // Confirm registration
@@ -518,6 +575,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
       const clientReqId = activeClientRequestId || safeUUID();
       setActiveClientRequestId(clientReqId);
+      setSubmissionError(null);
       setIsSubmitting(true);
 
       try {
@@ -576,6 +634,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
         setActiveClientRequestId(null);
         setIsRegisterDialogOpen(false);
+        setSubmissionError(null);
         setShowFocusBanner(false);
         queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
         queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
@@ -587,27 +646,41 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان کار با موفقیت ثبت شد');
       } catch (err: unknown) {
-        let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
-        if (err instanceof Error && err.message) {
-          if (err.message.includes('not an assigned member')) {
-            errorMsg = 'شما عضو این پروژه نیستید.';
-          } else if (err.message.includes('attendance')) {
-            errorMsg = 'حضور شما برای امروز ثبت نشده است.';
-          } else if (err.message.includes('inactive')) {
-            errorMsg = 'این پروژه غیرفعال است.';
-          } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-            errorMsg = 'عدم اتصال به سرور. لطفا اتصال اینترنت یا سرور را بررسی کنید.';
-          } else {
-            errorMsg = err.message;
-          }
+        const mapped = mapWorkSessionError(err, current.target.kind);
+        if (mapped.canDiscardTarget) {
+          removeRecentTarget(userId, current.target);
+          queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+          queryClient.invalidateQueries({ queryKey: ['projects', 'mine'] });
         }
-        toast.error(errorMsg);
+        setSubmissionError({
+          message: mapped.message,
+          canDiscardTarget: mapped.canDiscardTarget,
+        });
+        toast.error(mapped.message);
       } finally {
         setIsSubmitting(false);
       }
     },
     [activeClientRequestId, persistState, userId]
   );
+
+  // Discard unloggable target time and reset timer so user can select an active target
+  const discardTargetAndReset = useCallback(() => {
+    const current = engineStateRef.current;
+    if (current.target) {
+      removeRecentTarget(userId, current.target);
+    }
+    setEngineState((prev) => {
+      const next = discardTarget(prev, null);
+      persistState(next);
+      return next;
+    });
+    setActiveClientRequestId(null);
+    setIsRegisterDialogOpen(false);
+    setSubmissionError(null);
+    setShowFocusBanner(false);
+    toast.success('زمان ثبت‌نشده پاک شد. اکنون می‌توانید هدف جدیدی انتخاب کنید.');
+  }, [persistState, userId]);
 
   const derived = getDerivedTimerState(engineState, now);
 
@@ -653,6 +726,9 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
     isOtherTabActive,
     dismissOtherTabLock,
     isSubmitting,
+    submissionError,
+    discardTargetAndSwitch,
+    discardTargetAndReset,
     showRecoveredNotice,
     dismissRecoveredNotice: () => setShowRecoveredNotice(false),
     showFocusBanner,

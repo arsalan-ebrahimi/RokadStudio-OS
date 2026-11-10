@@ -217,8 +217,11 @@ export const updateUser = catchAsync(async (req, res, next) => {
       return updated;
     });
 
-    // Invalidate auth cache so role/active changes take effect immediately
+    // Invalidate auth cache (and project visibility cache on role/active changes)
     await invalidateUserAuthCache(id);
+    if (role !== undefined || isActive !== undefined) {
+      await invalidateUserProjectsCache(id);
+    }
 
     return res.status(200).json({
       success: true,

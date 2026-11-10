@@ -352,6 +352,28 @@ export function registerFinish(state: TimerEngineState): TimerEngineState {
   };
 }
 
+export function discardTarget(
+  state: TimerEngineState,
+  nextTarget: TimerTarget | null = null
+): TimerEngineState {
+  return {
+    ...state,
+    status: 'IDLE',
+    target: nextTarget,
+    projectId: nextTarget?.kind === 'PROJECT' ? nextTarget.id : null,
+    work: {
+      accumulatedMs: 0,
+      runningSince: null,
+      segmentStartedAt: null,
+    },
+    pomodoro: {
+      mode: 'FOCUS',
+      focusRemainingMs: FOCUS_MS,
+      breakEndsAt: null,
+    },
+  };
+}
+
 export function changeTarget(
   state: TimerEngineState,
   newTarget: TimerTarget,
@@ -414,17 +436,20 @@ export function restoreTimerState(
         droppedLegacySprint = true;
         target = normalizedFallback;
       } else {
-        target = {
-          kind: data.target.kind === 'TASK' ? 'TASK' : 'PROJECT',
-          id: Number(data.target.id),
-          label: String(data.target.label || ''),
-          points: typeof data.target.points === 'number' ? data.target.points : undefined,
-          scrumColor: data.target.scrumColor,
-        };
+        const parsedId = Number(data.target.id);
+        if (Number.isInteger(parsedId) && parsedId > 0) {
+          target = {
+            kind: data.target.kind === 'TASK' ? 'TASK' : 'PROJECT',
+            id: parsedId,
+            label: String(data.target.label || ''),
+            points: typeof data.target.points === 'number' ? data.target.points : undefined,
+            scrumColor: data.target.scrumColor,
+          };
+        }
       }
-    } else if (typeof data.projectId === 'number') {
+    } else if (typeof data.projectId === 'number' && Number.isInteger(data.projectId) && data.projectId > 0) {
       target = { kind: 'PROJECT', id: data.projectId, label: '' };
-    } else if (typeof data.selectedProjectId === 'number') {
+    } else if (typeof data.selectedProjectId === 'number' && Number.isInteger(data.selectedProjectId) && data.selectedProjectId > 0) {
       target = { kind: 'PROJECT', id: data.selectedProjectId, label: '' };
     } else if (normalizedFallback) {
       target = normalizedFallback;

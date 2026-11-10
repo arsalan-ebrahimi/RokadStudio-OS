@@ -68,15 +68,14 @@ const UserDashboardPage: React.FC = () => {
   const timer = useTimer(null);
   const {
     target: timerTarget,
-    status: timerStatus,
     workSeconds: timerWorkSeconds,
     clearTarget,
   } = timer;
 
-  // Validate that an idle timer's selected PROJECT or TASK still exists and is assigned/active
+  // Validate that an idle / empty timer's selected PROJECT or TASK still exists and is assigned/active
   useEffect(() => {
     if (targetsLoading || targetsError || !workTargets || !timerTarget) return;
-    if (timerStatus !== 'IDLE' && timerWorkSeconds > 0) return;
+    if (timerWorkSeconds > 0) return;
 
     if (timerTarget.kind === 'PROJECT') {
       const stillValid = (workTargets.studioProjects || []).some(
@@ -98,7 +97,6 @@ const UserDashboardPage: React.FC = () => {
     targetsError,
     workTargets,
     timerTarget,
-    timerStatus,
     timerWorkSeconds,
     clearTarget,
   ]);
@@ -613,6 +611,9 @@ const UserDashboardPage: React.FC = () => {
         projectName={timer.target?.label || 'هدف کاری جاری'}
         durationSeconds={timer.workSeconds}
         isLoading={timer.isSubmitting}
+        errorMessage={timer.submissionError?.message}
+        canDiscard={timer.submissionError?.canDiscardTarget}
+        onDiscard={timer.discardTargetAndReset}
         onConfirmContinue={() => timer.confirmRegister('continue')}
         onConfirmFinish={() => timer.confirmRegister('finish')}
       />
@@ -625,6 +626,9 @@ const UserDashboardPage: React.FC = () => {
         newProjectName={timer.pendingTargetChange?.label || timer.pendingProjectChange?.newProjectName || ''}
         durationSeconds={timer.workSeconds}
         isLoading={timer.isSubmitting}
+        errorMessage={timer.submissionError?.message}
+        canDiscard={timer.submissionError?.canDiscardTarget}
+        onDiscard={timer.discardTargetAndSwitch}
         onConfirmContinue={() => timer.confirmTargetChange('continue')}
         onConfirmFinish={() => timer.confirmTargetChange('finish')}
       />

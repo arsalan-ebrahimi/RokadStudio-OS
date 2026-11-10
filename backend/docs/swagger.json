@@ -1524,12 +1524,32 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateWorkSessionRequest"
+              },
+              "examples": {
+                "projectSession": {
+                  "summary": "ثبت زمان روی پروژه استودیو",
+                  "value": {
+                    "projectId": 1,
+                    "durationSeconds": 1500,
+                    "startedAt": "2026-11-09T10:00:00.000Z",
+                    "clientRequestId": "c73a812b-2321-4d33-bc87-9d7a224a1bfa"
+                  }
+                },
+                "taskSession": {
+                  "summary": "ثبت زمان روی تسک اسکرام",
+                  "value": {
+                    "taskId": 1,
+                    "durationSeconds": 1500,
+                    "startedAt": "2026-11-09T10:00:00.000Z",
+                    "clientRequestId": "d84b923c-3432-4e44-ad98-0e8b335b2ceb"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
-          "201": {
+          "200": {
             "description": "سشن کاری با موفقیت ثبت شد",
             "content": {
               "application/json": {
@@ -1540,7 +1560,7 @@
             }
           },
           "400": {
-            "description": "خطای اعتبارسنجی (مدت نامعتبر، پروژه غیرفعال، یا عدم ثبت حضور برای امروز)",
+            "description": "خطای اعتبارسنجی (مدت نامعتبر، پروژه/تسک/اسکرام غیرفعال، یا عدم ثبت حضور برای امروز)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1550,7 +1570,27 @@
             }
           },
           "403": {
-            "description": "کاربر عضو این پروژه نیست",
+            "description": "کاربر عضو این پروژه یا منتسب به این تسک نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "پروژه یا تسک یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "باید دقیقاً یکی از projectId یا taskId ارسال شود",
             "content": {
               "application/json": {
                 "schema": {
@@ -5749,21 +5789,25 @@
       "CreateWorkSessionRequest": {
         "type": "object",
         "required": [
-          "durationSeconds"
+          "durationSeconds",
+          "startedAt",
+          "clientRequestId"
         ],
         "description": "ثبت سشن کاری. بر اساس قوانین، باید دقیقاً یکی از projectId یا taskId ارسال شود (در غیر این صورت خطای 422 بازگردانده می‌شود).",
         "properties": {
           "projectId": {
             "type": "integer",
             "minimum": 1,
+            "nullable": true,
             "description": "شناسه پروژه استودیو (اختیاری در صورت ارسال taskId)",
-            "example": 10
+            "example": 1
           },
           "taskId": {
             "type": "integer",
             "minimum": 1,
+            "nullable": true,
             "description": "شناسه تسک اسکرام (اختیاری در صورت ارسال projectId). کاربر باید عضو این تسک و تسک فعال باشد.",
-            "example": 25
+            "example": null
           },
           "durationSeconds": {
             "type": "integer",

@@ -79,8 +79,12 @@ export const logWorkSession = async (
       select: { id: true, name: true, isActive: true },
     });
 
-    if (!project || !project.isActive) {
-      throw new HandleERROR("Project not found or inactive", 400);
+    if (!project) {
+      throw new HandleERROR("Project not found", 404);
+    }
+
+    if (!project.isActive) {
+      throw new HandleERROR("Project is inactive", 400);
     }
 
     const user = await prisma.user.findUnique({
