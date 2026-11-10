@@ -3,6 +3,7 @@ import prisma from "../../config/prisma.js";
 import { getPagination, formatPaginationMeta } from "../../Utils/pagination.js";
 import { invalidateUserAuthCache, invalidateUserProjectsCache } from "../../Utils/cache.js";
 import { mapPrismaError } from "../../Utils/prismaErrors.js";
+import { buildScrumAdminManagedMemberUserWhere } from "../Scrum/scrumScope.js";
 
 export const createUser = catchAsync(async (req, res, next) => {
   const { code, name, role = "USER" } = req.body;
@@ -70,16 +71,19 @@ export const getUsers = catchAsync(async (req, res, next) => {
 
 export const searchUsers = catchAsync(async (req, res, next) => {
   const q = req.query.q ? req.query.q.trim() : "";
+  const scope = req.query.scope === "managed" ? "managed" : "all";
+  const isScrumAdminCaller = req.user?.role === "SCRUM_ADMIN";
 
   const where = {
     isActive: true,
+    ...(isScrumAdminCaller && scope === "managed"
+      ? buildScrumAdminManagedMemberUserWhere(req.user.id)
+      : {}),
   };
 
   if (q) {
     where.name = { contains: q, mode: "insensitive" };
   }
-
-  const isScrumAdminCaller = req.user?.role === "SCRUM_ADMIN";
 
   const users = await prisma.user.findMany({
     where,

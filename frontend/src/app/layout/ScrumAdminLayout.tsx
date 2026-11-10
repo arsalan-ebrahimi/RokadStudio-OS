@@ -3,6 +3,8 @@ import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-do
 import {
   LayoutDashboard,
   Layers,
+  CheckSquare,
+  BarChart3,
   Timer,
   LogOut,
   Sun,
@@ -26,7 +28,11 @@ export const ScrumAdminLayout: React.FC = () => {
 
   const currentLabel = location.pathname.startsWith('/scrum-admin/scrums')
     ? 'اسکرام‌های من'
-    : 'داشبورد';
+    : location.pathname.startsWith('/scrum-admin/attendance')
+      ? 'حضور و غیاب'
+      : location.pathname.startsWith('/scrum-admin/reports')
+        ? 'گزارش عملکرد'
+        : 'داشبورد';
 
   return (
     <div className="min-h-screen flex bg-[#F8F9FA] dark:bg-[#0B0F17] overflow-x-clip">
@@ -109,6 +115,38 @@ export const ScrumAdminLayout: React.FC = () => {
             >
               <Layers className="w-4 h-4 text-primary shrink-0" />
               <span>اسکرام‌های من</span>
+            </NavLink>
+
+            <NavLink
+              to="/scrum-admin/attendance"
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                  isActive
+                    ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
+                    : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                )
+              }
+            >
+              <CheckSquare className="w-4 h-4 text-primary shrink-0" />
+              <span>حضور و غیاب</span>
+            </NavLink>
+
+            <NavLink
+              to="/scrum-admin/reports"
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                  isActive
+                    ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
+                    : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                )
+              }
+            >
+              <BarChart3 className="w-4 h-4 text-primary shrink-0" />
+              <span>گزارش عملکرد</span>
             </NavLink>
 
             <div className="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-1.5">

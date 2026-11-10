@@ -197,15 +197,45 @@ export const decideAttendanceRecord = async (attendanceId, decision, adminUser, 
     throw new HandleERROR("You cannot review your own attendance record", 403);
   }
 
-  // Guard: ADMIN may not decide a SUPER_ADMIN's record
-  if (adminUser.role === "ADMIN" && attendance.user.role === "SUPER_ADMIN") {
+  // Guard: Non-SUPER_ADMIN may not decide a SUPER_ADMIN's record
+  if (adminUser.role !== "SUPER_ADMIN" && attendance.user.role === "SUPER_ADMIN") {
     throw new HandleERROR("Admins cannot review a Super Admin's attendance", 403);
+  }
+
+  if (adminUser.role === "SCRUM_ADMIN") {
+    if (attendance.user.role === "ADMIN") {
+      throw new HandleERROR("ادمین اسکرام مجاز به بررسی حضور و غیاب مدیر حضور و غیاب نیست", 403);
+    }
+
+    const managedMembership = await prisma.scrumMember.findFirst({
+      where: {
+        userId: attendance.userId,
+        scrum: {
+          admins: {
+            some: { userId: adminUser.id },
+          },
+        },
+      },
+      select: { scrumId: true },
+    });
+
+    if (!managedMembership) {
+      throw new HandleERROR(
+        "شما فقط مجاز به بررسی حضور و غیاب اعضای اسکرام‌های تحت مدیریت خود هستید",
+        403
+      );
+    }
   }
 
   // Guard: Decisions on ABSENT records are forbidden
   if (attendance.status === "ABSENT") {
     throw new HandleERROR("Decisions cannot be made on ABSENT attendance records", 409);
   }
+
+  const userSelect =
+    adminUser.role === "SCRUM_ADMIN"
+      ? { id: true, name: true }
+      : { id: true, name: true, role: true };
 
   // Admin can decide or change status to APPROVED or REJECTED at any time
   if (decision === "APPROVED") {
@@ -218,7 +248,7 @@ export const decideAttendanceRecord = async (attendanceId, decision, adminUser, 
         decidedAt: now,
       },
       include: {
-        user: { select: { id: true, name: true, role: true } },
+        user: { select: userSelect },
         decidedBy: { select: { id: true, name: true } },
       },
     });
@@ -241,7 +271,7 @@ export const decideAttendanceRecord = async (attendanceId, decision, adminUser, 
           decidedAt: now,
         },
         include: {
-          user: { select: { id: true, name: true, role: true } },
+          user: { select: userSelect },
           decidedBy: { select: { id: true, name: true } },
         },
       });

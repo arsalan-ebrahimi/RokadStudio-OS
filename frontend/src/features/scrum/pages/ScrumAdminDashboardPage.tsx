@@ -9,6 +9,8 @@ import {
   Calendar,
   Clock,
   ArrowLeft,
+  CheckSquare,
+  BarChart3,
 } from 'lucide-react';
 import {
   Badge,
@@ -84,13 +86,27 @@ export const ScrumAdminDashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <Link to="/scrum-admin/scrums" className="self-start sm:self-auto">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
-            <Layers className="w-4 h-4 text-primary" />
-            <span>همه اسکرام‌های من</span>
-            <ArrowLeft className="w-3.5 h-3.5" />
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <Link to="/scrum-admin/attendance">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
+              <CheckSquare className="w-4 h-4 text-primary" />
+              <span>حضور و غیاب</span>
+            </Button>
+          </Link>
+          <Link to="/scrum-admin/reports">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <span>گزارش عملکرد</span>
+            </Button>
+          </Link>
+          <Link to="/scrum-admin/scrums">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
+              <Layers className="w-4 h-4 text-primary" />
+              <span>همه اسکرام‌های من</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* 4 Stat Cards */}

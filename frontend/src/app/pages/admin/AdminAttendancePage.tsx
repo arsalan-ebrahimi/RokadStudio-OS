@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X } from 'lucide-react';
-import { Card, Button, Skeleton, EmptyState, toast, PersianDatePicker, Select } from '@/shared/ui';
+import { Badge, Card, Button, Skeleton, EmptyState, toast, PersianDatePicker, Select } from '@/shared/ui';
+import { useAuthStore } from '@/features/auth';
 import { AttendanceBadge } from '@/features/attendance/components/AttendanceBadge';
 import { AttendanceDecisionDialog } from '@/features/attendance/components/AttendanceDecisionDialog';
 import { AttendanceSessionsModal } from '@/features/timer/components/AttendanceSessionsModal';
@@ -11,6 +12,8 @@ import { toPersianDigits, formatDurationToHoursMins, calculateCompletedRounds } 
 import type { Attendance } from '@/shared/types/models';
 
 export const AdminAttendancePage: React.FC = () => {
+  const { user } = useAuthStore();
+  const isScrumAdmin = user?.role === 'SCRUM_ADMIN';
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState<string>(getTehranTodayString());
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -18,7 +21,7 @@ export const AdminAttendancePage: React.FC = () => {
   const [sessionsModalUser, setSessionsModalUser] = useState<{ userId: number; userName: string; date: string } | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-attendance', selectedDate, statusFilter],
+    queryKey: ['admin-attendance', user?.id, user?.role, selectedDate, statusFilter],
     queryFn: () => fetchAdminAttendance({
       date: selectedDate,
       approval: statusFilter === 'ALL' ? undefined : (statusFilter as 'PENDING' | 'APPROVED' | 'REJECTED'),
@@ -56,7 +59,14 @@ export const AdminAttendancePage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="text-lg sm:text-xl font-black text-sec dark:text-white">کارتابل حضور و غیاب</h1>
+        <div>
+          <h1 className="text-lg sm:text-xl font-black text-sec dark:text-white">کارتابل حضور و غیاب</h1>
+          {isScrumAdmin && (
+            <p className="text-xs font-bold text-ink-normal/60 dark:text-gray-400 mt-0.5">
+              نمایش و بررسی حضور اعضای اسکرام‌های تحت مدیریت شما
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <div className="shrink-0">
             <PersianDatePicker value={selectedDate} onChange={setSelectedDate} />
@@ -130,73 +140,86 @@ export const AdminAttendancePage: React.FC = () => {
         <EmptyState title="هیچ رکوردی برای این تاریخ یافت نشد" />
       ) : (
         <div className="space-y-3">
-          {records.map((r: Attendance) => (
-            <Card
-              key={r.id}
-              className="p-4 sm:p-5 rounded-3xl border-[1.5px] border-sec/20 dark:border-primary/25 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 transition-all"
-            >
-              <div className="md:col-span-5 flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-sm shrink-0 border border-sec/15 dark:border-gray-700">
-                  {r.user?.name?.slice(0, 1) || 'ک'}
-                </div>
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <p className="text-sm font-black text-sec dark:text-white truncate" title={r.user?.name}>
-                    {r.user?.name || 'کاربر'}
-                  </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <AttendanceBadge attendance={r} />
-                    <span className="text-[10px] text-ink-normal/30 dark:text-gray-600 font-bold">•</span>
-                    <span className="text-xs text-ink-normal/65 dark:text-gray-400 font-medium tabular-nums">
-                      {formatToJalali(r.date)}
-                    </span>
-                    {r.reason && (
-                      <span className="text-[11px] font-bold text-[#704A0D] dark:text-amber-200 bg-college-light dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-college-normal/45">
-                        علت: {r.reason}
+          {records.map((r: Attendance) => {
+            const isOwnRecord = r.user?.id === user?.id;
+            const canDecideRow =
+              r.canDecide ??
+              (!isOwnRecord && !(user?.role !== 'SUPER_ADMIN' && r.user?.role === 'SUPER_ADMIN'));
+
+            return (
+              <Card
+                key={r.id}
+                className="p-4 sm:p-5 rounded-3xl border-[1.5px] border-sec/20 dark:border-primary/25 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 transition-all"
+              >
+                <div className="md:col-span-5 flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-sm shrink-0 border border-sec/15 dark:border-gray-700">
+                    {r.user?.name?.slice(0, 1) || 'ک'}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <p className="text-sm font-black text-sec dark:text-white truncate" title={r.user?.name}>
+                      {r.user?.name || 'کاربر'}
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <AttendanceBadge attendance={r} />
+                      <span className="text-[10px] text-ink-normal/30 dark:text-gray-600 font-bold">•</span>
+                      <span className="text-xs text-ink-normal/65 dark:text-gray-400 font-medium tabular-nums">
+                        {formatToJalali(r.date)}
                       </span>
+                      {r.reason && (
+                        <span className="text-[11px] font-bold text-[#704A0D] dark:text-amber-200 bg-college-light dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-college-normal/45">
+                          علت: {r.reason}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-3 md:pt-0 border-t border-sec/10 dark:border-gray-800 md:border-0 md:col-span-7">
+                  <button
+                    type="button"
+                    onClick={() => r.user?.id && setSessionsModalUser({ userId: r.user.id, userName: r.user.name || '', date: r.date })}
+                    className="min-h-[40px] inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3.5 py-1.5 rounded-2xl border-[1.5px] border-sec/20 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0 hover:border-sec/50 hover:bg-gray-100 dark:hover:bg-[#1f293d] transition-all cursor-pointer tabular-nums"
+                    title={isScrumAdmin ? 'مشاهده، تایید یا رد سشن‌های تسک' : 'مشاهده، تایید، رد یا حذف سشن‌های کاری'}
+                  >
+                    <span className="text-sec dark:text-white font-black">{toPersianDigits(calculateCompletedRounds(r.totalSeconds || 0))}</span> دور
+                    <span className="mx-1 opacity-40">•</span>
+                    <span className="text-sec dark:text-primary font-black">{formatDurationToHoursMins(r.totalSeconds || 0)}</span>
+                  </button>
+
+                  <div className="flex items-center justify-end gap-2 shrink-0">
+                    {canDecideRow ? (
+                      <div className="flex items-center gap-1.5">
+                        {r.approval !== 'APPROVED' && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => setActiveDecision({ id: r.id, decision: 'APPROVED', name: r.user?.name || '' })}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            {r.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
+                          </Button>
+                        )}
+                        {r.approval !== 'REJECTED' && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => setActiveDecision({ id: r.id, decision: 'REJECTED', name: r.user?.name || '' })}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            {r.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <Badge variant="neutral" className="text-[11px]">
+                        {isOwnRecord ? 'حضور خود شما' : 'غیرقابل بررسی'}
+                      </Badge>
                     )}
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 pt-3 md:pt-0 border-t border-sec/10 dark:border-gray-800 md:border-0 md:col-span-7">
-                <button
-                  type="button"
-                  onClick={() => r.user?.id && setSessionsModalUser({ userId: r.user.id, userName: r.user.name || '', date: r.date })}
-                  className="min-h-[40px] inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3.5 py-1.5 rounded-2xl border-[1.5px] border-sec/20 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0 hover:border-sec/50 hover:bg-gray-100 dark:hover:bg-[#1f293d] transition-all cursor-pointer tabular-nums"
-                  title="مشاهده، تایید، رد یا حذف سشن‌های کاری"
-                >
-                  <span className="text-sec dark:text-white font-black">{toPersianDigits(calculateCompletedRounds(r.totalSeconds || 0))}</span> دور
-                  <span className="mx-1 opacity-40">•</span>
-                  <span className="text-sec dark:text-primary font-black">{formatDurationToHoursMins(r.totalSeconds || 0)}</span>
-                </button>
-
-                <div className="flex items-center justify-end gap-2 shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    {r.approval !== 'APPROVED' && (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => setActiveDecision({ id: r.id, decision: 'APPROVED', name: r.user?.name || '' })}
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        {r.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
-                      </Button>
-                    )}
-                    {r.approval !== 'REJECTED' && (
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => setActiveDecision({ id: r.id, decision: 'REJECTED', name: r.user?.name || '' })}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        {r.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 

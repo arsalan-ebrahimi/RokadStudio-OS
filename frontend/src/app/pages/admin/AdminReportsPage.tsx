@@ -40,9 +40,12 @@ import { DeleteSessionDialog } from '@/features/timer/components/DeleteSessionDi
 import { toPersianDigits, formatDurationToHoursMins, calculateCompletedRounds } from '@/shared/lib/formatters';
 import { getTehranTodayString, getJalaliWeekRange, getJalaliMonthRange, formatToJalali } from '@/shared/lib/date';
 import { cn } from '@/shared/lib/utils';
+import { useAuthStore } from '@/features/auth';
 import type { WorkSession, WorkSessionSummaryRow } from '@/shared/types/models';
 
 export const AdminReportsPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const isScrumAdmin = user?.role === 'SCRUM_ADMIN';
   const queryClient = useQueryClient();
   const today = getTehranTodayString();
   const [activeTab, setActiveTab] = useState<'sessions' | 'summary'>('sessions');
@@ -60,52 +63,57 @@ export const AdminReportsPage: React.FC = () => {
 
   // Unified projects + Scrum tasks targets list for filter
   const { data: targetsData } = useQuery({
-    queryKey: ['work-session-targets'],
+    queryKey: ['work-session-targets', user?.id, user?.role],
     queryFn: fetchWorkSessionTargets,
+    enabled: Boolean(user),
     staleTime: 30_000,
   });
-  const targetProjects = targetsData?.projects || [];
+  const targetProjects = isScrumAdmin ? [] : targetsData?.projects || [];
   const targetTasks = targetsData?.tasks || [];
 
   // Users list for filter
   const { data: activeUsers = [] } = useQuery({
-    queryKey: ['admin-users-active-list'],
-    queryFn: () => searchActiveUsers(),
+    queryKey: ['admin-users-active-list', user?.id, user?.role],
+    queryFn: () => searchActiveUsers(undefined, isScrumAdmin ? 'managed' : 'all'),
+    enabled: Boolean(user),
     staleTime: 30_000,
   });
 
-  const effectiveTargetType = targetType === 'ALL' ? undefined : targetType;
+  const effectiveTargetType = isScrumAdmin ? 'TASK' : targetType === 'ALL' ? undefined : targetType;
+  const effectiveProjectId = isScrumAdmin ? undefined : projectId;
 
   // Summary aggregation query (always loaded for instant KPI overview and fast tab switching)
   const { data: rows = [], isLoading: isSummaryLoading } = useQuery({
-    queryKey: ['reports-summary', dateFrom, dateTo, groupBy, targetType, projectId, taskId, userId],
+    queryKey: ['reports-summary', user?.id, user?.role, dateFrom, dateTo, groupBy, effectiveTargetType, effectiveProjectId, taskId, userId],
     queryFn: () =>
       fetchWorkSessionsSummary({
         dateFrom,
         dateTo,
         groupBy,
         targetType: effectiveTargetType,
-        projectId,
+        projectId: effectiveProjectId,
         taskId,
         userId,
       }),
+    enabled: Boolean(user),
     staleTime: 30_000,
   });
 
   // Individual work sessions query
   const { data: sessionsRes, isLoading: isSessionsLoading } = useQuery({
-    queryKey: ['admin-work-sessions', dateFrom, dateTo, targetType, projectId, taskId, userId, sessionStatusFilter],
+    queryKey: ['admin-work-sessions', user?.id, user?.role, dateFrom, dateTo, effectiveTargetType, effectiveProjectId, taskId, userId, sessionStatusFilter],
     queryFn: () =>
       fetchAdminWorkSessions({
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         targetType: effectiveTargetType,
-        projectId: projectId || undefined,
+        projectId: effectiveProjectId || undefined,
         taskId: taskId || undefined,
         userId: userId || undefined,
         approval: sessionStatusFilter === 'ALL' ? undefined : sessionStatusFilter,
         limit: 100,
       }),
+    enabled: Boolean(user),
     staleTime: 30_000,
   });
 
@@ -280,7 +288,7 @@ export const AdminReportsPage: React.FC = () => {
       setTargetType('TASK');
       setTaskId(row.task.id);
       setProjectId(undefined);
-    } else if (row.project?.id) {
+    } else if (!isScrumAdmin && row.project?.id) {
       setTargetType('PROJECT');
       setProjectId(row.project.id);
       setTaskId(undefined);
@@ -289,8 +297,8 @@ export const AdminReportsPage: React.FC = () => {
     setActiveTab('sessions');
   };
 
-  const selectedTargetValue = projectId
-    ? `P:${projectId}`
+  const selectedTargetValue = effectiveProjectId
+    ? `P:${effectiveProjectId}`
     : taskId
       ? `T:${taskId}`
       : '';
@@ -315,7 +323,14 @@ export const AdminReportsPage: React.FC = () => {
       {/* Header and View Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-lg font-black text-sec dark:text-white">گزارش و مدیریت سشن‌ها</h1>
+          <div>
+            <h1 className="text-lg font-black text-sec dark:text-white">گزارش و مدیریت سشن‌ها</h1>
+            {isScrumAdmin && (
+              <p className="text-xs font-bold text-ink-normal/60 dark:text-gray-400 mt-0.5">
+                فقط تسک‌های اسکرام‌های تحت مدیریت شما
+              </p>
+            )}
+          </div>
           <SegmentedControl<'sessions' | 'summary'>
             aria-label="نمای گزارش"
             value={activeTab}
@@ -457,22 +472,24 @@ export const AdminReportsPage: React.FC = () => {
             </div>
 
             {/* Target Type Filter */}
-            <div className="w-full sm:w-40">
-              <Select
-                aria-label="فیلتر نوع"
-                value={targetType}
-                onChange={(e) => {
-                  const nextType = e.target.value as 'ALL' | 'PROJECT' | 'TASK';
-                  setTargetType(nextType);
-                  setProjectId(undefined);
-                  setTaskId(undefined);
-                }}
-              >
-                <option value="ALL">همه انواع</option>
-                <option value="PROJECT">پروژه‌های استودیو</option>
-                <option value="TASK">تسک‌های اسکرام</option>
-              </Select>
-            </div>
+            {!isScrumAdmin && (
+              <div className="w-full sm:w-40">
+                <Select
+                  aria-label="فیلتر نوع"
+                  value={targetType}
+                  onChange={(e) => {
+                    const nextType = e.target.value as 'ALL' | 'PROJECT' | 'TASK';
+                    setTargetType(nextType);
+                    setProjectId(undefined);
+                    setTaskId(undefined);
+                  }}
+                >
+                  <option value="ALL">همه انواع</option>
+                  <option value="PROJECT">پروژه‌های استودیو</option>
+                  <option value="TASK">تسک‌های اسکرام</option>
+                </Select>
+              </div>
+            )}
 
             {/* Project / Task Filter */}
             <div className="w-full sm:w-52">
@@ -482,13 +499,15 @@ export const AdminReportsPage: React.FC = () => {
                 onChange={(e) => handleTargetSelectionChange(e.target.value)}
               >
                 <option value="">
-                  {targetType === 'PROJECT'
-                    ? 'همه پروژه‌ها'
-                    : targetType === 'TASK'
-                      ? 'همه تسک‌ها'
-                      : 'همه پروژه‌ها و تسک‌ها'}
+                  {isScrumAdmin
+                    ? 'همه تسک‌های اسکرام‌های من'
+                    : targetType === 'PROJECT'
+                      ? 'همه پروژه‌ها'
+                      : targetType === 'TASK'
+                        ? 'همه تسک‌ها'
+                        : 'همه پروژه‌ها و تسک‌ها'}
                 </option>
-                {targetType !== 'TASK' && targetProjects.length > 0 && (
+                {!isScrumAdmin && targetType !== 'TASK' && targetProjects.length > 0 && (
                   targetType === 'ALL' ? (
                     <optgroup label="پروژه‌های استودیو">
                       {targetProjects.map((p) => (
@@ -507,8 +526,8 @@ export const AdminReportsPage: React.FC = () => {
                     ))
                   )
                 )}
-                {targetType !== 'PROJECT' && targetTasks.length > 0 && (
-                  targetType === 'ALL' ? (
+                {(isScrumAdmin || targetType !== 'PROJECT') && targetTasks.length > 0 && (
+                  !isScrumAdmin && targetType === 'ALL' ? (
                     <optgroup label="تسک‌های اسکرام">
                       {targetTasks.map((t) => (
                         <option key={`T:${t.id}`} value={`T:${t.id}`}>
@@ -536,9 +555,9 @@ export const AdminReportsPage: React.FC = () => {
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
                 >
-                  <option value="user_project">کاربر و پروژه/تسک</option>
+                  <option value="user_project">{isScrumAdmin ? 'کاربر و تسک' : 'کاربر و پروژه/تسک'}</option>
                   <option value="user">تفکیک کاربر</option>
-                  <option value="project">تفکیک پروژه/تسک</option>
+                  <option value="project">{isScrumAdmin ? 'تفکیک تسک' : 'تفکیک پروژه/تسک'}</option>
                 </Select>
               </div>
             )}
@@ -675,6 +694,9 @@ export const AdminReportsPage: React.FC = () => {
                     : s.project?.name || s.projectName || 'پروژه';
                 const sessionDate = s.workDate || s.attendanceDate || s.createdAt;
                 const sessionInfo = `${userName} - ${targetName} (${formatDurationToHoursMins(s.durationSeconds)})`;
+                const canModerateSession = s.canModerate !== false;
+                const canDeleteSession =
+                  s.canDelete ?? (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN');
 
                 return (
                   <Card
@@ -735,41 +757,45 @@ export const AdminReportsPage: React.FC = () => {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                        {s.approval !== 'APPROVED' && (
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
-                            className="text-xs font-black"
-                          >
-                            <Check className="w-3.5 h-3.5 me-1" />
-                            {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
-                          </Button>
-                        )}
-                        {s.approval !== 'REJECTED' && (
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
-                            className="text-xs font-bold"
-                          >
-                            <X className="w-3.5 h-3.5 me-1" />
-                            {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-[#C60036] dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-300 dark:border-rose-900/60 font-bold"
-                          onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
-                          aria-label="حذف سشن"
-                          title="حذف سشن کاری"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 me-1" />
-                          <span>حذف</span>
-                        </Button>
-                      </div>
+                      {(canModerateSession || canDeleteSession) && (
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          {canModerateSession && s.approval !== 'APPROVED' && (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
+                              className="text-xs font-black"
+                            >
+                              <Check className="w-3.5 h-3.5 me-1" />
+                              {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
+                            </Button>
+                          )}
+                          {canModerateSession && s.approval !== 'REJECTED' && (
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
+                              className="text-xs font-bold"
+                            >
+                              <X className="w-3.5 h-3.5 me-1" />
+                              {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
+                            </Button>
+                          )}
+                          {canDeleteSession && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-[#C60036] dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-300 dark:border-rose-900/60 font-bold"
+                              onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
+                              aria-label="حذف سشن"
+                              title="حذف سشن کاری"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 me-1" />
+                              <span>حذف</span>
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </Card>
                 );
@@ -841,7 +867,7 @@ export const AdminReportsPage: React.FC = () => {
                 variant="outline"
                 onClick={() => inspectSummaryRow(row)}
                 className="text-xs font-bold gap-1.5"
-                title="بررسی، تایید، رد یا حذف سشن‌ها"
+                title={isScrumAdmin ? 'بررسی، تایید یا رد سشن‌ها' : 'بررسی، تایید، رد یا حذف سشن‌ها'}
               >
                 <span>بررسی سشن‌ها</span>
                 <ArrowLeft className="w-3.5 h-3.5 text-primary" />

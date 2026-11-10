@@ -27,14 +27,14 @@ attendanceRouter.get("/me", getAttendanceMeValidator, getMeAttendance);
 // Admin side
 attendanceRouter.get(
   "/admin",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"),
   getAttendanceAdminValidator,
   getAdminAttendance
 );
 
 attendanceRouter.patch(
   "/admin/:id/decision",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"),
   attendanceDecisionValidator,
   patchAttendanceDecision
 );

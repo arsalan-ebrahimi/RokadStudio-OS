@@ -38,14 +38,14 @@ workSessionRouter.get("/me", getMeWorkSessionsValidator, getMeWorkSessions);
 // Target selector options (projects + scrum tasks) for report filters
 workSessionRouter.get(
   "/targets",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"),
   getWorkSessionTargets
 );
 
 // Summary aggregation for admins (registered before root GET /)
 workSessionRouter.get(
   "/summary",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"),
   getWorkSessionsSummaryValidator,
   getWorkSessionsSummary
 );
@@ -53,7 +53,7 @@ workSessionRouter.get(
 // All work sessions list for admins
 workSessionRouter.get(
   "/",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"),
   getAdminWorkSessionsValidator,
   getAdminWorkSessions
 );

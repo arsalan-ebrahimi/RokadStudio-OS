@@ -12,6 +12,12 @@ import {
   MAX_LIST_LIMIT,
   getTehranPersianDayOfWeek,
 } from "./scrumService.js";
+import {
+  LEADERBOARD_EXCLUDED_ROLES,
+  isLeaderboardEligibleMember,
+} from "./scrumScope.js";
+
+export { LEADERBOARD_EXCLUDED_ROLES, isLeaderboardEligibleMember };
 
 const formatScrumTask = (task, trackedMap = null, currentUserId = null) => {
   const members = (task.members || []).map((m) => ({
@@ -889,6 +895,7 @@ export const getScrumLeaderboardService = async (
     SELECT
       u."id"::int AS "id",
       u."name" AS "name",
+      u."role"::text AS "role",
       su."isScrumMember" AS "isScrumMember",
       COALESCE(sa."approvedSeconds", 0)::bigint AS "approvedSeconds",
       COALESCE(sa."sessionCount", 0)::int AS "sessionCount",
@@ -899,7 +906,7 @@ export const getScrumLeaderboardService = async (
     ORDER BY COALESCE(sa."approvedSeconds", 0) DESC, u."name" ASC
   `);
 
-  const memberRows = rawRows.filter((r) => Boolean(r.isScrumMember));
+  const memberRows = rawRows.filter(isLeaderboardEligibleMember);
 
   let prevRank = 0;
   let prevSeconds = null;
@@ -922,14 +929,21 @@ export const getScrumLeaderboardService = async (
     };
   });
 
+  const isCallerExcluded = LEADERBOARD_EXCLUDED_ROLES.has(currentUser?.role);
   const meInRows = rows.find((r) => r.isMe);
   const meRaw = rawRows.find((r) => Number(r.id) === currentUser.id);
 
-  const me = {
-    rank: meInRows ? meInRows.rank : null,
-    approvedSeconds: meInRows ? meInRows.approvedSeconds : Number(meRaw?.approvedSeconds || 0),
-    pendingSeconds: Number(meRaw?.pendingSeconds || 0),
-  };
+  const me = isCallerExcluded
+    ? {
+        rank: null,
+        approvedSeconds: 0,
+        pendingSeconds: 0,
+      }
+    : {
+        rank: meInRows ? meInRows.rank : null,
+        approvedSeconds: meInRows ? meInRows.approvedSeconds : Number(meRaw?.approvedSeconds || 0),
+        pendingSeconds: Number(meRaw?.pendingSeconds || 0),
+      };
 
   return {
     period: resolvedPeriod,

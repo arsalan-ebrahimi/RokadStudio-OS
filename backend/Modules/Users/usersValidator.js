@@ -86,5 +86,9 @@ export const getUsersValidator = [
 
 export const searchUsersValidator = [
   query("q").optional().trim(),
+  query("scope")
+    .optional()
+    .isIn(["all", "managed"])
+    .withMessage("scope must be all or managed"),
   handleValidation,
 ];

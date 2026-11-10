@@ -8,6 +8,11 @@ import {
   declareTodayAttendance,
   decideAttendanceRecord,
 } from "./attendanceService.js";
+import {
+  buildAttendanceAdminWhere,
+  buildAttendanceSessionAggWhere,
+  computeAttendanceCanDecide,
+} from "../Scrum/scrumScope.js";
 
 export const getTodayAttendance = catchAsync(async (req, res, next) => {
   const userId = req.userId;
@@ -169,21 +174,12 @@ export const getMeAttendance = catchAsync(async (req, res, next) => {
 export const getAdminAttendance = catchAsync(async (req, res, next) => {
   const { page, limit, skip } = getPagination(req.query);
   const { date, dateFrom, dateTo, approval, status, userId, source } = req.query;
+  const isScrumAdminCaller = req.user?.role === "SCRUM_ADMIN";
 
-  const where = {};
-
-  if (userId) where.userId = Number(userId);
-  if (approval) where.approval = approval;
-  if (status) where.status = status;
-  if (source) where.source = source;
-
-  if (date) {
-    where.date = toDateOnly(date);
-  } else if (dateFrom || dateTo) {
-    where.date = {};
-    if (dateFrom) where.date.gte = toDateOnly(dateFrom);
-    if (dateTo) where.date.lte = toDateOnly(dateTo);
-  }
+  const where = buildAttendanceAdminWhere(
+    { date, dateFrom, dateTo, approval, status, userId, source },
+    req.user
+  );
 
   const [total, records] = await Promise.all([
     prisma.attendance.count({ where }),
@@ -210,16 +206,13 @@ export const getAdminAttendance = catchAsync(async (req, res, next) => {
     }),
   ]);
 
-  // Avoid N+1: compute session aggregates with ONE grouped query
+  // Avoid N+1: compute session aggregates with ONE grouped query (scoped for SCRUM_ADMIN)
   const attendanceIds = records.map((r) => r.id);
   const sessionAggs =
     attendanceIds.length > 0
       ? await prisma.workSession.groupBy({
           by: ["attendanceId"],
-          where: {
-            attendanceId: { in: attendanceIds },
-            approval: { not: "REJECTED" },
-          },
+          where: buildAttendanceSessionAggWhere(attendanceIds, req.user),
           _count: { id: true },
           _sum: { durationSeconds: true },
         })
@@ -238,7 +231,7 @@ export const getAdminAttendance = catchAsync(async (req, res, next) => {
     return {
       id: r.id,
       date: formatDate(r.date),
-      user: r.user,
+      user: isScrumAdminCaller ? { id: r.user.id, name: r.user.name } : r.user,
       status: r.status,
       effectiveStatus: computeEffectiveStatus(r.status, r.approval),
       approval: r.approval,
@@ -248,6 +241,7 @@ export const getAdminAttendance = catchAsync(async (req, res, next) => {
       decidedAt: r.decidedAt,
       sessionsCount: agg.sessionsCount,
       totalSeconds: agg.totalSeconds,
+      canDecide: computeAttendanceCanDecide({ userId: r.userId, user: r.user }, req.user),
     };
   });
 

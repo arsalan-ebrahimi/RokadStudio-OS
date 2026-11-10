@@ -4,8 +4,8 @@ import {
   todayDate,
   addDays,
   minutesSinceMidnight,
-  toDateOnly,
 } from "../../Utils/date.js";
+import { buildWorkSessionReportWhere } from "../Scrum/scrumScope.js";
 
 const taskInclude = {
   select: {
@@ -289,46 +289,25 @@ export const logWorkSession = async (
   }
 };
 
-export const getWorkSessionsSummaryAgg = async ({
-  userId,
-  projectId,
-  taskId,
-  targetType,
-  date,
-  dateFrom,
-  dateTo,
-  groupBy = "user_project",
-  approval,
-}) => {
-  const where = {};
-
-  if (userId) where.userId = Number(userId);
-  if (projectId) {
-    where.projectId = Number(projectId);
-  } else if (taskId) {
-    where.taskId = Number(taskId);
-  } else if (targetType === "PROJECT") {
-    where.projectId = { not: null };
-  } else if (targetType === "TASK") {
-    where.taskId = { not: null };
-  }
-
-  if (approval) {
-    where.approval = approval;
-  } else {
-    // By default, exclude REJECTED sessions from summary aggregation
-    where.approval = { not: "REJECTED" };
-  }
-
-  if (date || dateFrom || dateTo) {
-    if (date) {
-      where.workDate = toDateOnly(date);
-    } else {
-      where.workDate = {};
-      if (dateFrom) where.workDate.gte = toDateOnly(dateFrom);
-      if (dateTo) where.workDate.lte = toDateOnly(dateTo);
-    }
-  }
+export const getWorkSessionsSummaryAgg = async (
+  {
+    userId,
+    projectId,
+    taskId,
+    targetType,
+    date,
+    dateFrom,
+    dateTo,
+    groupBy = "user_project",
+    approval,
+  },
+  actorUser = null
+) => {
+  const where = buildWorkSessionReportWhere(
+    { userId, projectId, taskId, targetType, date, dateFrom, dateTo, approval },
+    actorUser,
+    { defaultExcludeRejected: true }
+  );
 
   let byFields;
   if (groupBy === "user") {

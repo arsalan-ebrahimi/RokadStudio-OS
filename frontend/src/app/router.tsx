@@ -102,6 +102,14 @@ export const router = createBrowserRouter([
         path: 'scrums/:id',
         element: <ScrumDetailPage />,
       },
+      {
+        path: 'attendance',
+        element: <AdminAttendancePage />,
+      },
+      {
+        path: 'reports',
+        element: <AdminReportsPage />,
+      },
     ],
   },
   {

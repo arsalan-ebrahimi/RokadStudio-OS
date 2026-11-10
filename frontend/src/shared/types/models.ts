@@ -63,7 +63,8 @@ export interface Attendance {
   reason?: string | null;
   sessionsCount?: number;
   totalSeconds?: number;
-  user?: Pick<User, 'id' | 'name' | 'role'>;
+  canDecide?: boolean;
+  user?: { id: number; name: string; role?: Role };
 }
 
 export interface WorkSession {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X, Trash2, Clock, FolderKanban } from 'lucide-react';
 import { Modal, Button, Skeleton, EmptyState, toast } from '@/shared/ui';
+import { useAuthStore } from '@/features/auth';
 import { SessionBadge } from './SessionBadge';
 import { SessionDecisionDialog } from './SessionDecisionDialog';
 import { DeleteSessionDialog } from './DeleteSessionDialog';
@@ -25,12 +26,13 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
   userName,
   date,
 }) => {
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; info: string } | null>(null);
   const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-work-sessions', userId, date],
+    queryKey: ['admin-work-sessions', user?.id, user?.role, userId, date],
     queryFn: () => fetchAdminWorkSessions({ userId: userId || undefined, date }),
     enabled: isOpen && Boolean(userId) && Boolean(date),
   });
@@ -132,6 +134,9 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                       : s.task.name
                     : s.project?.name || s.projectName || 'پروژه';
                 const sessionInfo = `${projectTitle} (${formatDurationToHoursMins(s.durationSeconds)})`;
+                const canModerateSession = s.canModerate !== false;
+                const canDeleteSession =
+                  s.canDelete ?? (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN');
 
                 return (
                   <div
@@ -154,40 +159,44 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t border-sec/10 dark:border-gray-700 sm:border-0">
-                      {s.approval !== 'APPROVED' && (
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
-                          className="text-xs font-bold"
-                        >
-                          <Check className="w-3.5 h-3.5 me-1" />
-                          {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
-                        </Button>
-                      )}
-                      {s.approval !== 'REJECTED' && (
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
-                          className="text-xs font-bold"
-                        >
-                          <X className="w-3.5 h-3.5 me-1" />
-                          {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-[#C60036] dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-300 dark:border-rose-900/50 text-xs font-bold"
-                        onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
-                        aria-label="حذف سشن"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 me-1" />
-                        <span>حذف</span>
-                      </Button>
-                    </div>
+                    {(canModerateSession || canDeleteSession) && (
+                      <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t border-sec/10 dark:border-gray-700 sm:border-0">
+                        {canModerateSession && s.approval !== 'APPROVED' && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
+                            className="text-xs font-bold"
+                          >
+                            <Check className="w-3.5 h-3.5 me-1" />
+                            {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
+                          </Button>
+                        )}
+                        {canModerateSession && s.approval !== 'REJECTED' && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
+                            className="text-xs font-bold"
+                          >
+                            <X className="w-3.5 h-3.5 me-1" />
+                            {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
+                          </Button>
+                        )}
+                        {canDeleteSession && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[#C60036] dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-300 dark:border-rose-900/50 text-xs font-bold"
+                            onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
+                            aria-label="حذف سشن"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 me-1" />
+                            <span>حذف</span>
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

@@ -44,8 +44,16 @@ export async function deleteUser(id: number): Promise<void> {
   await apiClient(`/api/users/${id}`, { method: 'DELETE' });
 }
 
-export async function searchActiveUsers(q?: string): Promise<User[]> {
-  const res = await apiClient<User[]>('/api/users/search', { params: { q } });
+export async function searchActiveUsers(
+  q?: string,
+  scope?: 'all' | 'managed'
+): Promise<User[]> {
+  const params: Record<string, string> = {};
+  if (q && q.trim()) params.q = q.trim();
+  if (scope && scope !== 'all') params.scope = scope;
+  const res = await apiClient<User[]>('/api/users/search', {
+    params: Object.keys(params).length > 0 ? params : undefined,
+  });
   return res.data;
 }
 

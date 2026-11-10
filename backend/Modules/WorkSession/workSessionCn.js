@@ -8,6 +8,10 @@ import {
   decideWorkSessionRecord,
   deleteWorkSession,
 } from "./workSessionService.js";
+import {
+  buildWorkSessionReportWhere,
+  computeWorkSessionPermissions,
+} from "../Scrum/scrumScope.js";
 
 export const postWorkSession = catchAsync(async (req, res, next) => {
   const { projectId, taskId, durationSeconds, startedAt, clientRequestId } = req.body;
@@ -109,28 +113,12 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
 export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
   const { page, limit, skip } = getPagination(req.query);
   const { userId, projectId, taskId, targetType, date, dateFrom, dateTo, approval } = req.query;
+  const isScrumAdminCaller = req.user?.role === "SCRUM_ADMIN";
 
-  const where = {};
-
-  if (userId) where.userId = Number(userId);
-  if (projectId) {
-    where.projectId = Number(projectId);
-  } else if (taskId) {
-    where.taskId = Number(taskId);
-  } else if (targetType === "PROJECT") {
-    where.projectId = { not: null };
-  } else if (targetType === "TASK") {
-    where.taskId = { not: null };
-  }
-  if (approval) where.approval = approval;
-
-  if (date) {
-    where.workDate = toDateOnly(date);
-  } else if (dateFrom || dateTo) {
-    where.workDate = {};
-    if (dateFrom) where.workDate.gte = toDateOnly(dateFrom);
-    if (dateTo) where.workDate.lte = toDateOnly(dateTo);
-  }
+  const where = buildWorkSessionReportWhere(
+    { userId, projectId, taskId, targetType, date, dateFrom, dateTo, approval },
+    req.user
+  );
 
   const [total, totalAgg, sessions] = await Promise.all([
     prisma.workSession.count({ where }),
@@ -168,24 +156,31 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
     }),
   ]);
 
-  const formatted = sessions.map((s) => ({
-    id: s.id,
-    user: s.user,
-    targetType: s.projectId ? "PROJECT" : "TASK",
-    projectId: s.projectId,
-    project: s.project || null,
-    taskId: s.taskId,
-    task: s.task || null,
-    durationSeconds: s.durationSeconds,
-    attendanceDate: formatDate(s.attendance?.date),
-    workDate: formatDate(s.workDate),
-    approval: s.approval,
-    source: s.source,
-    decidedBy: s.decidedBy,
-    decidedAt: s.decidedAt,
-    startedAt: s.startedAt,
-    createdAt: s.createdAt,
-  }));
+  const formatted = sessions.map((s) => {
+    const perms = computeWorkSessionPermissions(
+      { userId: s.userId, user: s.user },
+      req.user
+    );
+    return {
+      id: s.id,
+      user: isScrumAdminCaller ? { id: s.user.id, name: s.user.name } : s.user,
+      targetType: s.projectId ? "PROJECT" : "TASK",
+      projectId: s.projectId,
+      project: s.project || null,
+      taskId: s.taskId,
+      task: s.task || null,
+      durationSeconds: s.durationSeconds,
+      attendanceDate: formatDate(s.attendance?.date),
+      workDate: formatDate(s.workDate),
+      approval: s.approval,
+      source: s.source,
+      decidedBy: s.decidedBy,
+      decidedAt: s.decidedAt,
+      startedAt: s.startedAt,
+      createdAt: s.createdAt,
+      ...perms,
+    };
+  });
 
   return res.status(200).json({
     success: true,
@@ -199,13 +194,26 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
 });
 
 export const getWorkSessionTargets = catchAsync(async (req, res, next) => {
+  const isScrumAdminCaller = req.user?.role === "SCRUM_ADMIN";
+
   const [projects, tasks] = await Promise.all([
-    prisma.project.findMany({
-      take: 200,
-      select: { id: true, name: true, isActive: true },
-      orderBy: [{ isActive: "desc" }, { name: "asc" }],
-    }),
+    isScrumAdminCaller
+      ? Promise.resolve([])
+      : prisma.project.findMany({
+          take: 200,
+          select: { id: true, name: true, isActive: true },
+          orderBy: [{ isActive: "desc" }, { name: "asc" }],
+        }),
     prisma.task.findMany({
+      where: isScrumAdminCaller
+        ? {
+            scrum: {
+              admins: {
+                some: { userId: req.user.id },
+              },
+            },
+          }
+        : undefined,
       take: 200,
       select: {
         id: true,
@@ -238,7 +246,7 @@ export const getWorkSessionTargets = catchAsync(async (req, res, next) => {
 });
 
 export const getWorkSessionsSummary = catchAsync(async (req, res, next) => {
-  const summaryRows = await getWorkSessionsSummaryAgg(req.query);
+  const summaryRows = await getWorkSessionsSummaryAgg(req.query, req.user);
 
   return res.status(200).json({
     success: true,
