@@ -8,6 +8,7 @@ import {
   decideWorkSessionRecord,
   deleteWorkSession,
 } from "./workSessionService.js";
+import { getAdministeredScrumIds } from "../Scrum/scrumAccess.js";
 import {
   buildWorkSessionReportWhere,
   computeWorkSessionPermissions,
@@ -120,7 +121,7 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
     req.user
   );
 
-  const [total, totalAgg, sessions] = await Promise.all([
+  const [total, totalAgg, sessions, administeredList] = await Promise.all([
     prisma.workSession.count({ where }),
     prisma.workSession.aggregate({
       where,
@@ -142,6 +143,7 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
             id: true,
             name: true,
             points: true,
+            scrumId: true,
             scrum: { select: { id: true, name: true, color: true } },
           },
         },
@@ -154,12 +156,22 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
       },
       orderBy: { createdAt: "desc" },
     }),
+    getAdministeredScrumIds(req.user),
   ]);
+
+  const administeredScrumIds = new Set(administeredList);
 
   const formatted = sessions.map((s) => {
     const perms = computeWorkSessionPermissions(
-      { userId: s.userId, user: s.user },
-      req.user
+      {
+        userId: s.userId,
+        user: s.user,
+        projectId: s.projectId,
+        taskId: s.taskId,
+        task: s.task,
+      },
+      req.user,
+      { administeredScrumIds }
     );
     return {
       id: s.id,

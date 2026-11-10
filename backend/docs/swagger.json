@@ -47,6 +47,10 @@
     {
       "name": "Scrum",
       "description": "مدیریت اسکرام، اسپرینت‌ها، تسک‌ها، شاخص‌های کلیدی (KPI)، ریتم جلسات و اهداف کاری"
+    },
+    {
+      "name": "Members",
+      "description": "پروفایل، تقویم حضور و گزارش فعالیت فردی اعضای استودیو و اسکرام‌ها"
     }
   ],
   "paths": {
@@ -184,7 +188,7 @@
           "Users"
         ],
         "summary": "جستجوی سریع پرسنل فعال (جهت دراپ‌داون اعضای پروژه)",
-        "description": "جستجوی سریع حداکثر ۲۰ پرسنل فعال بر اساس نام. برای SCRUM_ADMIN فقط id و name برگردانده می‌شود و کد پرسنلی هرگز افشا نمی‌شود.",
+        "description": "جستجوی کاربران فعال (حداکثر ۲۰ نفر). کاربران ADMIN به صورت عمومی جهت افزودن به اعضا نمایش داده نمی‌شوند. پارامتر scope=managed برای SCRUM_ADMIN/ADMIN به اعضای غیرادمین اسکرام‌های تحت مدیریت محدود می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -255,8 +259,8 @@
         "tags": [
           "Users"
         ],
-        "summary": "لیست ادمین‌های اسکرام فعال (فقط سوپرادمین)",
-        "description": "دریافت حداکثر ۵۰ کاربر فعال با نقش SCRUM_ADMIN جهت انتساب به اسکرام‌ها (بدون بازگرداندن کد پرسنلی).",
+        "summary": "لیست کاربران مجاز برای ادمین اسکرام (فقط سوپرادمین)",
+        "description": "دریافت حداکثر ۵۰ کاربر فعال با نقش SCRUM_ADMIN یا ADMIN جهت انتساب به اسکرام‌ها (بدون کد پرسنلی و بدون SUPER_ADMIN).",
         "security": [
           {
             "bearerAuth": []
@@ -292,7 +296,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/UserBasicItem"
+                        "$ref": "#/components/schemas/ScrumAdminCandidateItem"
                       }
                     }
                   }
@@ -329,7 +333,7 @@
           "Users"
         ],
         "summary": "دریافت لیست صفحه‌بندی شده کاربران (مخصوص سوپرادمین)",
-        "description": "مشاهده تمامی کاربران با قابلیت فیلتر بر اساس نقش، وضعیت فعالیت، و جستجوی متنی در نام یا کد کاربری.",
+        "description": "فهرست کاربران با صفحه‌بندی (ADMIN و SUPER_ADMIN). فیلد code برای ADMIN حذف شده و جستجو فقط در نام انجام می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -386,6 +390,18 @@
             "schema": {
               "type": "string",
               "example": "ali"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "required": false,
+            "description": "در صورت ارسال attendanceTotals خلاصه حضور هر کاربر نیز برگردانده می‌شود",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attendanceTotals"
+              ]
             }
           }
         ],
@@ -1323,7 +1339,7 @@
           "Attendance"
         ],
         "summary": "کارتابل بررسی و فیلتر حضور و غیاب پرسنل (مدیران و ادمین اسکرام)",
-        "description": "مشاهده حضور پرسنل همراه با فیلترهای پیشرفته و تجمیع دقیق زمان سشن‌ها بدون کوئری‌های N+1. مدیران عادی (ADMIN) و سوپرادمین تمامی پرسنل را می‌بینند؛ SCRUM_ADMIN فقط اعضای غیرادمین (USER/SCRUM_ADMIN) اسکرام‌های تحت مدیریت خود را با تجمیع ساعت محدود به تسک‌های همان اسکرام‌ها (و بدون افشای role) دریافت می‌کند.",
+        "description": "لیست حضور و غیاب پرسنل. برای SCRUM_ADMIN فقط اعضای غیرادمین اسکرام‌های تحت مدیریت او (به صورت فقط خواندنی با canDecide: false) نمایش داده می‌شوند و فیلدهای workNote، workNoteAt و scrums ضمیمه است.",
         "security": [
           {
             "bearerAuth": []
@@ -1438,7 +1454,7 @@
           "Attendance"
         ],
         "summary": "تأیید یا رد حضور پرسنل (مدیران و ادمین اسکرام)",
-        "description": "\nاعمال تصمیم تأیید (`APPROVED`) یا رد (`REJECTED`) روی یک رکورد حضور.\n- **قوانین ماشین وضعیت:**\n  - فقط رکوردهای با `status = PRESENT` قابل بررسی هستند.\n  - انتقال‌های مجاز: `PENDING -> APPROVED`, `PENDING -> REJECTED`, `APPROVED -> REJECTED`.\n  - رکورد `REJECTED` قطعی است و نمی‌توان آن را دوباره تغییر داد (خطای 409).\n  - هیچ مدیری نمی‌تواند رکورد حضور خودش را تأیید یا رد کند (خطای 403).\n  - مدیر عادی (`ADMIN`) نمی‌تواند حضور `SUPER_ADMIN` را تصمیم‌گیری کند (خطای 403).\n  - ادمین اسکرام (`SCRUM_ADMIN`) فقط مجاز به بررسی حضور اعضای غیرادمین (نه `ADMIN` و نه `SUPER_ADMIN`) اسکرام‌های تحت مدیریت خود است (در غیر این صورت 403) و `user.role` در پاسخ او حذف می‌شود.\n- **رفتار اتمیک رد حضور (Rejection Cascade):** در صورت رد حضور (`REJECTED`)، تمامی سشن‌های کاری ثبت‌شده آن روز کاربر در یک تراکنش دیتابیس پاک‌سازی شده و `effectiveStatus` برابر `ABSENT` خواهد شد.\n        ",
+        "description": "\nاعمال تصمیم تایید (APPROVED) یا رد (REJECTED) روی حضور.\n- حضور و غیاب استودیویی برای SCRUM_ADMIN فقط خواندنی است (403 تا زمانی که تنظیم مرکزی غیرفعال است).\n- هیچ کاربری (حتی SUPER_ADMIN) مجاز به تصمیم‌گیری روی رکورد خود نیست (403).\n- ADMIN روی کل استودیو به جز رکوردهای خود و SUPER_ADMIN تصمیم‌گیری می‌کند.\n- در صورت REJECTED تمامی سشن‌های آن روز به صورت تراکنشی حذف می‌شوند.\n",
         "security": [
           {
             "bearerAuth": []
@@ -2035,7 +2051,7 @@
           "WorkSessions"
         ],
         "summary": "تایید یا رد سشن کاری (ADMIN / SUPER_ADMIN / SCRUM_ADMIN منتسب)",
-        "description": "تغییر وضعیت سشن کاری به APPROVED یا REJECTED. نقش ADMIN و SUPER_ADMIN می‌توانند سشن‌های پروژه‌ها (و SUPER_ADMIN برای تسک‌ها نیز) را مدیریت کنند. SCRUM_ADMIN فقط مجاز به تصمیم‌گیری روی سشن‌های تسک‌های اسکرام‌های تحت مدیریت خود (و نه سوپرادمین) است.",
+        "description": "تغییر وضعیت سشن کاری به APPROVED یا REJECTED. هیچ کاربری (حتی SUPER_ADMIN) مجاز به تصمیم‌گیری سشن خود نیست (403). ADMIN سشن پروژه‌ها و همچنین تسک‌های اسکرام‌هایی که خودش ادمین آن است را تایید/رد می‌کند. SCRUM_ADMIN فقط سشن تسک‌های اسکرام‌های تحت مدیریت خود را بررسی می‌کند.",
         "security": [
           {
             "bearerAuth": []
@@ -2171,7 +2187,7 @@
           "Scrum"
         ],
         "summary": "لیست اسکرام‌های کاربر",
-        "description": "اعضای عادی اسکرام‌هایی را می‌بینند که عضو آن هستند؛ SCRUM_ADMIN اجتماع اسکرام‌های تحت مدیریت یا عضویت خود و SUPER_ADMIN تمام اسکرام‌ها را می‌بیند. فیلد myRole نقش کاربر در هر اسکرام را مشخص می‌کند.",
+        "description": "اعضای عادی اسکرام‌هایی را می‌بینند که عضو آن هستند؛ SCRUM_ADMIN و ADMIN اجتماع اسکرام‌های تحت مدیریت یا عضویت خود و SUPER_ADMIN تمام اسکرام‌ها را می‌بینند. یک ADMIN بدون هیچ رابطه‌ای لیست خالی می‌گیرد.",
         "security": [
           {
             "bearerAuth": []
@@ -2202,16 +2218,6 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         }
       },
@@ -2220,7 +2226,7 @@
           "Scrum"
         ],
         "summary": "ایجاد اسکرام جدید (فقط سوپرادمین)",
-        "description": "فقط توسط SUPER_ADMIN قابل فراخوانی است. می‌توان آرایه adminIds شامل شناسه‌های کاربران فعال با نقش SCRUM_ADMIN ارسال کرد.",
+        "description": "فقط توسط SUPER_ADMIN قابل فراخوانی است. آرایه admins مشخص می‌کند کدام کاربران SCRUM_ADMIN یا ADMIN ادمین اسکرام شوند و آیا هم‌زمان عضو (alsoMember) باشند یا خیر.",
         "security": [
           {
             "bearerAuth": []
@@ -2238,25 +2244,42 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "example": "اسکرام توسعه پلتفرم"
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "example": "اسکرام موبایل"
                   },
                   "description": {
                     "type": "string",
                     "nullable": true,
-                    "example": "تیم فنی"
+                    "maxLength": 2000
                   },
                   "color": {
                     "$ref": "#/components/schemas/ScrumColor"
                   },
-                  "adminIds": {
+                  "admins": {
                     "type": "array",
-                    "description": "شناسه‌های کاربران فعال با نقش SCRUM_ADMIN",
+                    "description": "آرایه ادمین‌های اسکرام با تعیین الزامی alsoMember",
                     "items": {
-                      "type": "integer",
-                      "minimum": 1
+                      "type": "object",
+                      "required": [
+                        "userId",
+                        "alsoMember"
+                      ],
+                      "properties": {
+                        "userId": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "alsoMember": {
+                          "type": "boolean"
+                        }
+                      }
                     },
                     "example": [
-                      3
+                      {
+                        "userId": 3,
+                        "alsoMember": true
+                      }
                     ]
                   }
                 }
@@ -2308,7 +2331,7 @@
             }
           },
           "422": {
-            "description": "یک یا چند شناسه در adminIds کاربر فعال با نقش SCRUM_ADMIN نیستند",
+            "description": "عدم ارسال alsoMember (boolean) یا نامعتبر بودن نقش/وضعیت ادمین",
             "content": {
               "application/json": {
                 "schema": {
@@ -2326,7 +2349,7 @@
           "Scrum"
         ],
         "summary": "جلسات و ریتم‌های امروز کاربر در اسکرام‌ها",
-        "description": "رویدادهایی از اسکرام‌های فعال کاربر که امروز به وقت تهران برگزار می‌شوند. نقش ADMIN دسترسی ندارد (403).",
+        "description": "رویدادهای امروز (بر اساس منطقه زمانی تهران) در اسکرام‌های قابل مشاهده کاربر (SUPER_ADMIN همه، ADMIN و SCRUM_ADMIN اسکرام‌های مدیریت یا عضویت، USER اسکرام‌های عضویت).",
         "security": [
           {
             "bearerAuth": []
@@ -2357,16 +2380,6 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -2389,7 +2402,20 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "required": false,
+            "description": "در صورت ارسال attendanceTotals، خلاصه حضور هر عضو برای ادمین‌های مجاز ضمیمه می‌شود",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attendanceTotals"
+              ]
             }
           }
         ],
@@ -2412,16 +2438,6 @@
                       "$ref": "#/components/schemas/ScrumResponse"
                     }
                   }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2610,7 +2626,7 @@
           "Scrum"
         ],
         "summary": "همگام‌سازی اعضای اسکرام (Set Diffing)",
-        "description": "تنظیم اعضای اسکرام (کاربران با نقش ADMIN و کاربران غیرفعال پذیرفته نمی‌شوند). در صورت حذف عضوی که به تسک‌های اسکرام اختصاص داشته، از انتساب آن تسک‌ها نیز برداشته می‌شود.",
+        "description": "تنظیم اعضای اسکرام (ادمین‌های فعلی اسکرام حفظ و با همگام‌سازی حذف نمی‌شوند). افزودن کاربران جدید با نقش ADMIN مجاز نیست (422 - از بخش ادمین اسکرام استفاده کنید).",
         "security": [
           {
             "bearerAuth": []
@@ -2716,17 +2732,24 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "تلاش برای افزودن ADMIN یا SUPER_ADMIN از بخش اعضا",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
-      }
-    },
-    "/api/scrums/{id}/admins": {
-      "put": {
+      },
+      "get": {
         "tags": [
           "Scrum"
         ],
-        "summary": "تخصیص و همگام‌سازی ادمین‌های اسکرام (فقط سوپرادمین)",
-        "description": "تنظیم لیست کامل ادمین‌های اسکرام (Set Diffing). تمام شناسه‌ها باید کاربر فعال با نقش SCRUM_ADMIN باشند (در غیر این صورت 422).",
+        "summary": "لیست اعضای اسکرام (با فیلترهای عملکرد و attendanceTotals برای ادمین)",
         "security": [
           {
             "bearerAuth": []
@@ -2738,39 +2761,25 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attendanceTotals"
+              ]
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "userIds"
-                ],
-                "properties": {
-                  "userIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "example": [
-                      3,
-                      4
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "لیست بروزرسانی‌شده ادمین‌های اسکرام",
+            "description": "لیست اعضا",
             "content": {
               "application/json": {
                 "schema": {
@@ -2786,7 +2795,112 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/UserBasicItem"
+                        "$ref": "#/components/schemas/ScrumMemberItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/admins": {
+      "post": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "افزودن ادمین اسکرام با تعیین عضویت هم‌زمان (فقط سوپرادمین)",
+        "description": "یک کاربر فعال با نقش SCRUM_ADMIN یا ADMIN را به عنوان ادمین این اسکرام ثبت کرده و در صورت alsoMember: true به صورت تراکنشی عضو اسکرام نیز می‌کند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "alsoMember"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 3
+                  },
+                  "alsoMember": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "ادمین اضافه شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "scrumId": {
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "SCRUM_ADMIN",
+                            "ADMIN"
+                          ]
+                        },
+                        "isMember": {
+                          "type": "boolean"
+                        }
                       }
                     }
                   }
@@ -2824,8 +2938,18 @@
               }
             }
           },
+          "409": {
+            "description": "این کاربر هم‌اکنون ادمین این اسکرام است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
-            "description": "کاربر غیرفعال یا فاقد نقش SCRUM_ADMIN",
+            "description": "عدم ارسال alsoMember یا کاربر فاقد نقش SCRUM_ADMIN/ADMIN",
             "content": {
               "application/json": {
                 "schema": {
@@ -2880,16 +3004,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3075,16 +3189,6 @@
               }
             }
           },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "اسکرام یافت نشد",
             "content": {
@@ -3241,16 +3345,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3548,16 +3642,6 @@
               }
             }
           },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "اسکرام یافت نشد",
             "content": {
@@ -3799,16 +3883,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4256,7 +4330,7 @@
           "Scrum"
         ],
         "summary": "جدول برترین‌های اسکرام (فقط زمان‌های تاییدشده)",
-        "description": "تجمع تک-کوئری سشن‌های تاییدشده (APPROVED) در اسپرینت انتخابی (بر اساس اتصال Task.sprintId یا بازه تاریخی اسپرینت برای تسک‌های بدون اسپرینت؛ با اولویت انتخاب ACTIVE سپس COMPLETED و سپس PLANNED)، ماه جاری جلالی (MONTH به وقت تهران)، یا کل زمان (ALL). تمام اعضای غیرادمین اسکرام (نقش‌های ADMIN و SUPER_ADMIN حتی در صورت عضویت در رتبه‌بندی و ردیف‌ها نمایش داده نمی‌شوند و شیء me برای آنان رتبه null و زمان ۰ دارد) با رتبه‌بندی رقابتی (۱، ۲، ۲، ۴) نمایش داده می‌شوند و فیلد pendingSeconds فقط برای شخص کاربر در شیء me برگردانده می‌شود.",
+        "description": "رتبه‌بندی اعضای اسکرام بر اساس مجموع ثانیه‌های تاییدشده (APPROVED) در دوره انتخابی. تمام اعضا شامل USER، SCRUM_ADMIN و ADMIN-عضو رتبه‌بندی می‌شوند و فقط SUPER_ADMIN مستثنی است.",
         "security": [
           {
             "bearerAuth": []
@@ -4293,6 +4367,18 @@
               "type": "integer",
               "minimum": 1
             }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "required": false,
+            "description": "در صورت ارسال attendanceTotals برای ادمین‌های مجاز آمار حضور ضمیمه می‌شود",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attendanceTotals"
+              ]
+            }
           }
         ],
         "responses": {
@@ -4324,16 +4410,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4392,16 +4468,6 @@
                       "$ref": "#/components/schemas/SprintResponse"
                     }
                   }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی برای نقش ADMIN مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4751,8 +4817,8 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "داشبورد اختصاصی مدیریت اسکرام (SCRUM_ADMIN و SUPER_ADMIN)",
-        "description": "آمار تجمیعی اسکرام‌های فعال تحت مدیریت کاربر (یا همه اسکرام‌های فعال برای SUPER_ADMIN) شامل تعداد اعضای یکتا، وضعیت KPIها، وضعیت اسپرینت‌های فعال و جلسات امروز به وقت تهران.",
+        "summary": "داشبورد اختصاصی مدیریت اسکرام (ADMIN / SCRUM_ADMIN / SUPER_ADMIN)",
+        "description": "آمار اسکرام‌های تحت مدیریت. برای ADMIN که هیچ اسکرامی را مدیریت نمی‌کند 403 برمی‌گرداند؛ برای SCRUM_ADMIN بدون اسکرام پاسخ خالی و برای SUPER_ADMIN همه اسکرام‌های فعال برگردانده می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -4792,7 +4858,1097 @@
             }
           },
           "403": {
-            "description": "فقط SCRUM_ADMIN و SUPER_ADMIN مجاز هستند",
+            "description": "نقش USER یا ADMIN فاقد هرگونه اسکرام تحت مدیریت",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/performance": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "ثبت یا پاک کردن وضعیت عملکرد سطح استودیو (ADMIN / SUPER_ADMIN)",
+        "description": "ثبت وضعیت عملکرد کلی فرد در استودیو توسط ADMIN یا SUPER_ADMIN. برای خود کاربر (403) مجاز نیست و نقش SCRUM_ADMIN خطای 404 دریافت می‌کند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "level"
+                ],
+                "properties": {
+                  "level": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/PerformanceLevel"
+                      }
+                    ],
+                    "nullable": true
+                  },
+                  "note": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "وضعیت عملکرد استودیو ثبت یا پاک شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "integer"
+                        },
+                        "studioPerformance": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/StudioPerformanceItem"
+                            }
+                          ],
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "ثبت وضعیت برای خود کاربر مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "کاربر یافت نشد یا دسترسی برای نقش SCRUM_ADMIN مخفی است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/today/work-note": {
+      "put": {
+        "tags": [
+          "Attendance"
+        ],
+        "summary": "ثبت یادداشت پایان کار یا رد کردن پاپ‌آپ (موانع و چالش‌ها)",
+        "description": "دقیقاً یکی از text (رشته ۱ تا ۱۰۰۰ کاراکتر) یا skipped: true ارسال می‌شود. مشمول پنجره نیمه‌شب به وقت تهران است و روی رکورد غیبت یا رد شده 409 برمی‌گرداند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "example": "چالش در هماهنگی API"
+                  },
+                  "skipped": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "یادداشت یا وضعیت ردشدن ثبت شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "type": "integer"
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "workNote": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "workNoteAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "workNotePrompted": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "رکورد حضور نامعتبر/غایب/ردشده یا اتمام مهلت ویرایش روز قبل",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/admin/{id}/impact": {
+      "get": {
+        "tags": [
+          "Attendance"
+        ],
+        "summary": "بررسی تعداد و مدت سشن‌های متأثر از رد حضور (ADMIN / SUPER_ADMIN)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "آمار سشن‌های وابسته به رکورد حضور",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AttendanceImpactData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط ADMIN و SUPER_ADMIN دسترسی دارند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "رکورد حضور یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/admins/{userId}": {
+      "delete": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "حذف ادمین اسکرام با تعیین تکلیف عضویت (فقط سوپرادمین)",
+        "description": "اگر کاربر با نقش SCRUM_ADMIN هم‌زمان عضو اسکرام باشد، ارسال keepMembership (true/false) الزامی است (422). برای کاربران نقش ADMIN در صورت عضویت همیشه ردیف عضویت هم حذف می‌شود.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "keepMembership",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ادمین حذف شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "scrumId": {
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "type": "integer"
+                        },
+                        "removedMembership": {
+                          "type": "boolean"
+                        },
+                        "isMember": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط سوپرادمین مجاز است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا ادمین یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "keepMembership برای SCRUM_ADMIN عضو الزامی است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/admins/{userId}/membership": {
+      "put": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "تغییر وضعیت عضویت یک ادمین اسکرام (فقط سوپرادمین)",
+        "description": "کاربر باید ادمین این اسکرام باشد. در صورت isMember: false عضویت و انتساب تسک‌های او در این اسکرام پاک می‌شود.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isMember"
+                ],
+                "properties": {
+                  "isMember": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "وضعیت عضویت بروزرسانی شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "scrumId": {
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "type": "integer"
+                        },
+                        "isMember": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط سوپرادمین مجاز است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا ادمین در این اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/members/{userId}/performance": {
+      "put": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "ثبت یا پاک کردن وضعیت عملکرد عضو در سطح اسکرام (ادمین اسکرام / سوپرادمین)",
+        "description": "ویرایشگر اسکرام (ADMIN یا SCRUM_ADMIN منتسب به این اسکرام، یا SUPER_ADMIN) می‌تواند وضعیت عملکرد عضو را تنظیم یا پاک کند. ثبت وضعیت برای خود فرد (403) مجاز نیست.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "level"
+                ],
+                "properties": {
+                  "level": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/PerformanceLevel"
+                      }
+                    ],
+                    "nullable": true
+                  },
+                  "note": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "وضعیت عملکرد عضو ثبت شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "performance": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PerformanceLevel"
+                            }
+                          ],
+                          "nullable": true
+                        },
+                        "performanceNote": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "performanceUpdatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقدان دسترسی مدیریت اسکرام یا اقدام روی خود کاربر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا عضو اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{userId}/profile": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "پروفایل عضو، عضویت‌های اسکرام، عملکرد و خلاصه کل حضور",
+        "description": "SCRUM_ADMIN فقط برای اعضای اسکرام‌های تحت مدیریت خود و صرفاً عضویت‌های همان اسکرام‌ها دسترسی دارد. کلیدهای performance* و studioPerformance بر اساس ماتریس دسترسی در صورت عدم مجوز به طور کامل حذف می‌شوند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "شناسه کاربر یا مقدار me",
+            "schema": {
+              "type": "string",
+              "example": "me"
+            }
+          },
+          {
+            "name": "scrumId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "اطلاعات پروفایل عضو",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MemberProfileData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "کاربر یافت نشد یا خارج از محدوده دسترسی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{userId}/calendar": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "تقویم روزانه حضور و کار عضو در بازه زمانی (حداکثر ۶۲ روز)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "شناسه کاربر یا مقدار me",
+            "schema": {
+              "type": "string",
+              "example": "me"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-10-12"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-11-10"
+            }
+          },
+          {
+            "name": "scrumId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "آرایه روزهای تقویم و آمار کلی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MemberCalendarData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "تاریخ نامعتبر یا بازه بیشتر از ۶۲ روز",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "کاربر یافت نشد یا خارج از محدوده دسترسی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{userId}/day": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "جزئیات حضور، یادداشت پایان کار و سشن‌های یک روز مشخص عضو",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "شناسه کاربر یا مقدار me",
+            "schema": {
+              "type": "string",
+              "example": "me"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-11-10"
+            }
+          },
+          {
+            "name": "scrumId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "جزئیات روز انتخابی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MemberDayData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "کاربر یافت نشد یا خارج از محدوده دسترسی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/members/{userId}/work": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "تفکیک کارهای انجام‌شده (تسک‌ها، پروژه‌ها، سشن‌ها و مجموع‌ها) عضو",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "شناسه کاربر یا مقدار me",
+            "schema": {
+              "type": "string",
+              "example": "me"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "scrumId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sprintId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "approval",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "گزارش تفکیکی عملکرد عضو",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MemberWorkData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "کاربر یا اسپرینت یافت نشد یا خارج از محدوده دسترسی",
             "content": {
               "application/json": {
                 "schema": {
@@ -5008,6 +6164,14 @@
                   },
                   "role": {
                     "$ref": "#/components/schemas/Role"
+                  },
+                  "administeredScrumCount": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "memberScrumCount": {
+                    "type": "integer",
+                    "example": 2
                   }
                 }
               }
@@ -5039,6 +6203,14 @@
               },
               "role": {
                 "$ref": "#/components/schemas/Role"
+              },
+              "administeredScrumCount": {
+                "type": "integer",
+                "example": 1
+              },
+              "memberScrumCount": {
+                "type": "integer",
+                "example": 2
               }
             }
           }
@@ -5088,7 +6260,8 @@
           },
           "code": {
             "type": "string",
-            "example": "ali_rezaei_01"
+            "example": "ali_rezaei_01",
+            "description": "کد پرسنلی (در نمای غیراز SUPER_ADMIN به کل حذف می‌شود)"
           },
           "name": {
             "type": "string",
@@ -5110,6 +6283,23 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-11-01T15:00:00.000Z"
+          },
+          "studioPerformance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StudioPerformanceItem"
+              }
+            ],
+            "nullable": true,
+            "description": "وضعیت عملکرد سطح استودیو؛ برای مشاهده‌گر مجاز (ADMIN / SUPER_ADMIN غیر از خود فرد) برگردانده می‌شود و در غیر این صورت کلید به طور کامل حذف می‌شود."
+          },
+          "attendanceTotals": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AttendanceTotals"
+              }
+            ],
+            "description": "در صورت ارسال include=attendanceTotals برگردانده می‌شود"
           }
         }
       },
@@ -5591,6 +6781,22 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-11-01T08:30:00.000Z"
+          },
+          "workNote": {
+            "type": "string",
+            "nullable": true,
+            "example": "هماهنگی برای پیاده‌سازی ماژول جدید انجام شد"
+          },
+          "workNoteAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "workNotePrompted": {
+            "type": "boolean",
+            "example": false,
+            "description": "آیا یادداشت پایان کار ثبت یا رد شده است (هرگز workNotePromptedAt را افشا نمی‌کند)"
           }
         }
       },
@@ -5668,6 +6874,22 @@
                 "type": "string",
                 "format": "date-time",
                 "example": "2026-11-01T08:30:00.000Z"
+              },
+              "workNote": {
+                "type": "string",
+                "nullable": true,
+                "example": "هماهنگی برای پیاده‌سازی ماژول جدید انجام شد"
+              },
+              "workNoteAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "example": null
+              },
+              "workNotePrompted": {
+                "type": "boolean",
+                "example": false,
+                "description": "آیا یادداشت پایان کار ثبت یا رد شده است (هرگز workNotePromptedAt را افشا نمی‌کند)"
               }
             }
           }
@@ -5725,6 +6947,22 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-11-01T08:30:00.000Z"
+          },
+          "workNote": {
+            "type": "string",
+            "nullable": true,
+            "example": "هماهنگی برای پیاده‌سازی ماژول جدید انجام شد"
+          },
+          "workNoteAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "workNotePrompted": {
+            "type": "boolean",
+            "example": false,
+            "description": "آیا یادداشت پایان کار ثبت یا رد شده است (هرگز workNotePromptedAt را افشا نمی‌کند)"
           }
         }
       },
@@ -5826,6 +7064,24 @@
           "canDecide": {
             "type": "boolean",
             "example": true
+          },
+          "workNote": {
+            "type": "string",
+            "nullable": true,
+            "example": "هماهنگی برای پیاده‌سازی ماژول جدید انجام شد"
+          },
+          "workNoteAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "scrums": {
+            "type": "array",
+            "description": "اسکرام‌های عضویت فرد (برای SCRUM_ADMIN محدود به اسکرام‌های تحت مدیریت)",
+            "items": {
+              "$ref": "#/components/schemas/ScrumBrief"
+            }
           }
         }
       },
@@ -6532,6 +7788,38 @@
             "type": "string",
             "nullable": true,
             "example": "اسکرام مستر"
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "example": false
+          },
+          "performance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PerformanceLevel"
+              }
+            ],
+            "nullable": true,
+            "description": "وضعیت عملکرد اسکرامی؛ فقط برای SUPER_ADMIN یا ادمین این اسکرام (غیر از خود عضو) برگردانده می‌شود و برای دیگران کلید به کل حذف می‌شود."
+          },
+          "performanceNote": {
+            "type": "string",
+            "nullable": true,
+            "description": "یادداشت عملکرد اسکرامی (در صورت عدم مجوز به کل حذف می‌شود)"
+          },
+          "performanceUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "زمان آخرین تغییر عملکرد اسکرامی (در صورت عدم مجوز به کل حذف می‌شود)"
+          },
+          "attendanceTotals": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AttendanceTotals"
+              }
+            ],
+            "description": "در صورت ارسال include=attendanceTotals توسط ادمین برگردانده می‌شود"
           }
         }
       },
@@ -6560,8 +7848,9 @@
           },
           "admins": {
             "type": "array",
+            "description": "در لیست اسکرام شامل id و name و در جزئیات اسکرام (GET /api/scrums/{id}) شامل role و isMember است",
             "items": {
-              "$ref": "#/components/schemas/UserBasicItem"
+              "$ref": "#/components/schemas/ScrumAdminDetailItem"
             }
           },
           "memberCount": {
@@ -7124,6 +8413,24 @@
                   "type": "integer",
                   "nullable": true,
                   "example": 720
+                },
+                "performance": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PerformanceLevel"
+                    }
+                  ],
+                  "nullable": true,
+                  "description": "وضعیت عملکرد اسکرامی عضو (برای خود فرد کلید حذف می‌شود)"
+                },
+                "performanceNote": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "performanceUpdatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true
                 }
               }
             }
@@ -7643,6 +8950,32 @@
                 "isMe": {
                   "type": "boolean",
                   "example": false
+                },
+                "performance": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PerformanceLevel"
+                    }
+                  ],
+                  "nullable": true,
+                  "description": "فقط برای ادمین اسکرام یا SUPER_ADMIN (غیر از خود کاربر)؛ در غیر این صورت کلید حذف می‌شود"
+                },
+                "performanceNote": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "performanceUpdatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true
+                },
+                "attendanceTotals": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/AttendanceTotals"
+                    }
+                  ],
+                  "description": "فقط با include=attendanceTotals و دسترسی ادمین"
                 }
               }
             }
@@ -7801,6 +9134,490 @@
                   "type": "integer",
                   "nullable": true
                 }
+              }
+            }
+          }
+        }
+      },
+      "PerformanceLevel": {
+        "type": "string",
+        "enum": [
+          "EXCELLENT",
+          "STRONG",
+          "AVERAGE",
+          "WEAK",
+          "NEEDS_ATTENTION"
+        ],
+        "example": "STRONG",
+        "description": "سطح ارزیابی عملکرد"
+      },
+      "AttendanceTotals": {
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "integer",
+            "example": 18
+          },
+          "pending": {
+            "type": "integer",
+            "example": 2
+          },
+          "absent": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "StudioPerformanceItem": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/PerformanceLevel"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "example": "عملکرد منظم در تحویل وظایف"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ScrumAdminCandidateItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 3
+          },
+          "name": {
+            "type": "string",
+            "example": "Sara Ahmadi"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SCRUM_ADMIN",
+              "ADMIN"
+            ],
+            "example": "SCRUM_ADMIN"
+          }
+        }
+      },
+      "ScrumAdminDetailItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 3
+          },
+          "name": {
+            "type": "string",
+            "example": "Sara Ahmadi"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SCRUM_ADMIN",
+              "ADMIN"
+            ],
+            "example": "SCRUM_ADMIN"
+          },
+          "isMember": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "AttendanceImpactData": {
+        "type": "object",
+        "properties": {
+          "sessionCount": {
+            "type": "integer",
+            "example": 3
+          },
+          "totalSeconds": {
+            "type": "integer",
+            "example": 5400
+          },
+          "taskSessionCount": {
+            "type": "integer",
+            "example": 2
+          },
+          "projectSessionCount": {
+            "type": "integer",
+            "example": 1
+          },
+          "alreadyRejected": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "MemberAttendanceState": {
+        "type": "string",
+        "enum": [
+          "PRESENT_APPROVED",
+          "PRESENT_PENDING",
+          "ABSENT",
+          "REJECTED",
+          "NONE"
+        ],
+        "example": "PRESENT_APPROVED"
+      },
+      "MemberProfileData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 5
+          },
+          "name": {
+            "type": "string",
+            "example": "Artin Amiri"
+          },
+          "memberships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scrum": {
+                  "$ref": "#/components/schemas/ScrumBrief"
+                },
+                "label": {
+                  "type": "string",
+                  "nullable": true,
+                  "example": "توسعه‌دهنده ارشد"
+                },
+                "performance": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PerformanceLevel"
+                    }
+                  ],
+                  "nullable": true
+                },
+                "performanceNote": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "performanceUpdatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "studioPerformance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StudioPerformanceItem"
+              }
+            ],
+            "nullable": true,
+            "description": "فقط برای ADMIN / SUPER_ADMIN (غیر از خود فرد)؛ در غیر این صورت کلید حذف می‌شود"
+          },
+          "attendanceTotals": {
+            "$ref": "#/components/schemas/AttendanceTotals"
+          }
+        }
+      },
+      "MemberCalendarData": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "example": "2026-11-01"
+                },
+                "state": {
+                  "$ref": "#/components/schemas/MemberAttendanceState"
+                },
+                "sessionCount": {
+                  "type": "integer",
+                  "example": 2
+                },
+                "taskCount": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "projectCount": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AttendanceTotals"
+          }
+        }
+      },
+      "MemberDayData": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-01"
+          },
+          "attendance": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "state": {
+                "$ref": "#/components/schemas/MemberAttendanceState"
+              },
+              "source": {
+                "$ref": "#/components/schemas/DecisionSource"
+              },
+              "workNote": {
+                "type": "string",
+                "nullable": true
+              },
+              "workNoteAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "durationSeconds": {
+                  "type": "integer"
+                },
+                "approval": {
+                  "$ref": "#/components/schemas/ApprovalStatus"
+                },
+                "target": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "TASK",
+                        "PROJECT"
+                      ]
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "scrum": {
+                      "$ref": "#/components/schemas/ScrumBrief"
+                    },
+                    "sprint": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "number": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "task": {
+                  "$ref": "#/components/schemas/UserBasicItem"
+                },
+                "scrum": {
+                  "$ref": "#/components/schemas/ScrumBrief"
+                },
+                "sprint": {
+                  "$ref": "#/components/schemas/TaskSprintBrief"
+                },
+                "points": {
+                  "type": "integer"
+                },
+                "sessionCount": {
+                  "type": "integer"
+                },
+                "totalSeconds": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "project": {
+                  "$ref": "#/components/schemas/UserBasicItem"
+                },
+                "sessionCount": {
+                  "type": "integer"
+                },
+                "totalSeconds": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "MemberWorkData": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "task": {
+                  "$ref": "#/components/schemas/UserBasicItem"
+                },
+                "scrum": {
+                  "$ref": "#/components/schemas/ScrumBrief"
+                },
+                "sprint": {
+                  "$ref": "#/components/schemas/TaskSprintBrief"
+                },
+                "points": {
+                  "type": "integer"
+                },
+                "sessionCount": {
+                  "type": "integer"
+                },
+                "totalSeconds": {
+                  "type": "integer"
+                },
+                "approvedSeconds": {
+                  "type": "integer"
+                },
+                "pendingSeconds": {
+                  "type": "integer"
+                },
+                "rejectedSeconds": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "project": {
+                  "$ref": "#/components/schemas/UserBasicItem"
+                },
+                "sessionCount": {
+                  "type": "integer"
+                },
+                "totalSeconds": {
+                  "type": "integer"
+                },
+                "approvedSeconds": {
+                  "type": "integer"
+                },
+                "pendingSeconds": {
+                  "type": "integer"
+                },
+                "rejectedSeconds": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "sessions": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "workDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "durationSeconds": {
+                      "type": "integer"
+                    },
+                    "approval": {
+                      "$ref": "#/components/schemas/ApprovalStatus"
+                    },
+                    "source": {
+                      "$ref": "#/components/schemas/DecisionSource"
+                    },
+                    "target": {
+                      "type": "object"
+                    }
+                  }
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/PaginationMeta"
+              }
+            }
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "totalSeconds": {
+                "type": "integer"
+              },
+              "approvedSeconds": {
+                "type": "integer"
+              },
+              "pendingSeconds": {
+                "type": "integer"
+              },
+              "rejectedSeconds": {
+                "type": "integer"
+              },
+              "sessionCount": {
+                "type": "integer"
+              },
+              "approvedCount": {
+                "type": "integer"
+              },
+              "pendingCount": {
+                "type": "integer"
+              },
+              "rejectedCount": {
+                "type": "integer"
               }
             }
           }

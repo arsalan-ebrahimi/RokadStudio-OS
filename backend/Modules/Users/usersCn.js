@@ -3,7 +3,12 @@ import prisma from "../../config/prisma.js";
 import { getPagination, formatPaginationMeta } from "../../Utils/pagination.js";
 import { invalidateUserAuthCache, invalidateUserProjectsCache } from "../../Utils/cache.js";
 import { mapPrismaError } from "../../Utils/prismaErrors.js";
-import { buildScrumAdminManagedMemberUserWhere } from "../Scrum/scrumScope.js";
+import { isScrumAdminRole } from "../Scrum/scrumAccess.js";
+import {
+  buildScrumAdminManagedMemberUserWhere,
+  fetchGroupedAttendanceTotals,
+  serializeStudioPerformance,
+} from "../Scrum/scrumScope.js";
 
 export const createUser = catchAsync(async (req, res, next) => {
   const { code, name, role = "USER" } = req.body;
@@ -31,7 +36,8 @@ export const createUser = catchAsync(async (req, res, next) => {
 
 export const getUsers = catchAsync(async (req, res, next) => {
   const { page, limit, skip } = getPagination(req.query);
-  const { role, isActive, search } = req.query;
+  const { role, isActive, search, include } = req.query;
+  const isSuperAdminCaller = req.user?.role === "SUPER_ADMIN";
 
   const where = {};
 
@@ -45,11 +51,30 @@ export const getUsers = catchAsync(async (req, res, next) => {
 
   if (search) {
     const term = search.trim();
-    where.OR = [
-      { name: { contains: term, mode: "insensitive" } },
-      { code: { contains: term, mode: "insensitive" } },
-    ];
+    where.OR = isSuperAdminCaller
+      ? [
+          { name: { contains: term, mode: "insensitive" } },
+          { code: { contains: term, mode: "insensitive" } },
+        ]
+      : [{ name: { contains: term, mode: "insensitive" } }];
   }
+
+  const userSelect = {
+    id: true,
+    ...(isSuperAdminCaller ? { code: true } : {}),
+    name: true,
+    role: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+    studioPerformance: {
+      select: {
+        level: true,
+        note: true,
+        updatedAt: true,
+      },
+    },
+  };
 
   const [total, users] = await Promise.all([
     prisma.user.count({ where }),
@@ -57,14 +82,32 @@ export const getUsers = catchAsync(async (req, res, next) => {
       where,
       skip,
       take: limit,
+      select: userSelect,
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
+  const includeAttendanceTotals = include === "attendanceTotals";
+  const totalsMap =
+    includeAttendanceTotals && users.length > 0
+      ? await fetchGroupedAttendanceTotals(users.map((u) => u.id))
+      : null;
+
+  const formattedUsers = users.map((u) => {
+    const { studioPerformance, ...baseUser } = u;
+    return {
+      ...baseUser,
+      ...serializeStudioPerformance(studioPerformance, req.user, u.id),
+      ...(totalsMap
+        ? { attendanceTotals: totalsMap.get(u.id) || { present: 0, pending: 0, absent: 0 } }
+        : {}),
+    };
+  });
+
   return res.status(200).json({
     success: true,
     message: "Users fetched successfully",
-    data: users,
+    data: formattedUsers,
     meta: formatPaginationMeta(page, limit, total),
   });
 });
@@ -76,9 +119,9 @@ export const searchUsers = catchAsync(async (req, res, next) => {
 
   const where = {
     isActive: true,
-    ...(isScrumAdminCaller && scope === "managed"
+    ...(isScrumAdminRole(req.user?.role) && scope === "managed"
       ? buildScrumAdminManagedMemberUserWhere(req.user.id)
-      : {}),
+      : { role: { not: "ADMIN" } }),
   };
 
   if (q) {
@@ -113,7 +156,7 @@ export const getScrumAdmins = catchAsync(async (req, res, next) => {
 
   const where = {
     isActive: true,
-    role: "SCRUM_ADMIN",
+    role: { in: ["SCRUM_ADMIN", "ADMIN"] },
   };
 
   if (q) {
@@ -125,6 +168,7 @@ export const getScrumAdmins = catchAsync(async (req, res, next) => {
     select: {
       id: true,
       name: true,
+      role: true,
     },
     take: 50,
     orderBy: { name: "asc" },
@@ -139,19 +183,105 @@ export const getScrumAdmins = catchAsync(async (req, res, next) => {
 
 export const getUserById = catchAsync(async (req, res, next) => {
   const id = Number(req.params.id);
+  const isSuperAdminCaller = req.user?.role === "SUPER_ADMIN";
 
   const user = await prisma.user.findUnique({
     where: { id },
+    select: {
+      id: true,
+      ...(isSuperAdminCaller ? { code: true } : {}),
+      name: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      studioPerformance: {
+        select: {
+          level: true,
+          note: true,
+          updatedAt: true,
+        },
+      },
+    },
   });
 
   if (!user) {
     return next(new HandleERROR("User not found", 404));
   }
 
+  const { studioPerformance, ...baseUser } = user;
+
   return res.status(200).json({
     success: true,
     message: "User fetched successfully",
-    data: user,
+    data: {
+      ...baseUser,
+      ...serializeStudioPerformance(studioPerformance, req.user, user.id),
+    },
+  });
+});
+
+export const updateUserPerformance = catchAsync(async (req, res, next) => {
+  const id = Number(req.params.id);
+  const { level, note } = req.body;
+
+  if (req.user.id === id) {
+    return next(new HandleERROR("شما مجاز به ثبت وضعیت عملکرد برای خود نیستید", 403));
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, name: true },
+  });
+
+  if (!targetUser) {
+    return next(new HandleERROR("User not found", 404));
+  }
+
+  if (level === null) {
+    await prisma.studioPerformance.deleteMany({
+      where: { userId: id },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "وضعیت عملکرد استودیو پاک شد",
+      data: {
+        userId: id,
+        studioPerformance: null,
+      },
+    });
+  }
+
+  const normalizedNote = typeof note === "string" && note.trim() ? note.trim() : null;
+
+  const perf = await prisma.studioPerformance.upsert({
+    where: { userId: id },
+    create: {
+      userId: id,
+      level,
+      note: normalizedNote,
+      updatedById: req.user.id,
+    },
+    update: {
+      level,
+      note: normalizedNote,
+      updatedById: req.user.id,
+    },
+    select: {
+      level: true,
+      note: true,
+      updatedAt: true,
+    },
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "وضعیت عملکرد استودیو با موفقیت ثبت شد",
+    data: {
+      userId: id,
+      studioPerformance: perf,
+    },
   });
 });
 
@@ -178,7 +308,8 @@ export const updateUser = catchAsync(async (req, res, next) => {
   }
 
   // Guard: The last active SUPER_ADMIN can never be removed or demoted
-  const isDemotingSuperAdmin = user.role === "SUPER_ADMIN" && role !== undefined && role !== "SUPER_ADMIN";
+  const isDemotingSuperAdmin =
+    user.role === "SUPER_ADMIN" && role !== undefined && role !== "SUPER_ADMIN";
   const isDeactivatingSuperAdmin = user.role === "SUPER_ADMIN" && isActive === false;
 
   if (user.isActive && (isDemotingSuperAdmin || isDeactivatingSuperAdmin)) {
@@ -202,8 +333,9 @@ export const updateUser = catchAsync(async (req, res, next) => {
   if (role !== undefined) data.role = role;
   if (isActive !== undefined) data.isActive = isActive;
 
+  // Preserve ScrumAdmin across SCRUM_ADMIN <-> ADMIN; remove when leaving admin-eligible roles or deactivated
   const shouldRemoveScrumAdmin =
-    (role !== undefined && role !== "SCRUM_ADMIN") || isActive === false;
+    (role !== undefined && !isScrumAdminRole(role)) || isActive === false;
 
   try {
     const updatedUser = await prisma.$transaction(async (tx) => {

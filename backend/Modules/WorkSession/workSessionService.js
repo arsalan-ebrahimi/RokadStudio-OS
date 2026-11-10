@@ -1,11 +1,11 @@
 import { HandleERROR } from "vanta-api";
 import prisma from "../../config/prisma.js";
+import { resolveTargetAttendanceForAction } from "../Attendance/attendanceService.js";
+import { isScrumMemberOf } from "../Scrum/scrumAccess.js";
 import {
-  todayDate,
-  addDays,
-  minutesSinceMidnight,
-} from "../../Utils/date.js";
-import { buildWorkSessionReportWhere } from "../Scrum/scrumScope.js";
+  assertCanDecideWorkSession,
+  buildWorkSessionReportWhere,
+} from "../Scrum/scrumScope.js";
 
 const taskInclude = {
   select: {
@@ -144,10 +144,6 @@ export const logWorkSession = async (
       throw new HandleERROR("تسک یافت نشد", 404);
     }
 
-    if (user?.role === "ADMIN") {
-      throw new HandleERROR("دسترسی به ماژول اسکرام برای این نقش مجاز نیست", 403);
-    }
-
     if (!task.scrum.isActive) {
       throw new HandleERROR("اسکرام مربوطه غیرفعال است", 400);
     }
@@ -157,46 +153,17 @@ export const logWorkSession = async (
     }
 
     const isAssignedToTask = task.members.length > 0;
-    const isScrumParticipant =
-      user?.role === "SUPER_ADMIN" ||
-      task.scrum.members.length > 0 ||
-      (user?.role === "SCRUM_ADMIN" && task.scrum.admins.length > 0);
+    const isScrumMember = user ? await isScrumMemberOf(user, task.scrum) : false;
 
-    if (!isAssignedToTask || !isScrumParticipant) {
+    if (!isAssignedToTask || !isScrumMember) {
       throw new HandleERROR("این تسک به شما اختصاص ندارد", 403);
     }
   } else {
     throw new HandleERROR("باید دقیقاً یکی از projectId یا taskId ارسال شود", 422);
   }
 
-  // 4. Resolve Attendance for workDate: derived using same day boundary helper as attendance
-  const workDate = todayDate(startDate);
-  let targetAttendance = await prisma.attendance.findUnique({
-    where: {
-      userId_date: {
-        userId,
-        date: workDate,
-      },
-    },
-  });
-
-  if (!targetAttendance) {
-    // Check Midnight Grace
-    const minutes = minutesSinceMidnight(startDate);
-    const graceMinutes = parseInt(process.env.MIDNIGHT_GRACE_MINUTES || "30", 10);
-
-    if (minutes <= graceMinutes) {
-      const yesterday = addDays(workDate, -1);
-      targetAttendance = await prisma.attendance.findUnique({
-        where: {
-          userId_date: {
-            userId,
-            date: yesterday,
-          },
-        },
-      });
-    }
-  }
+  // 4. Resolve Attendance for workDate: derived using same day + midnight grace helper
+  const { targetAttendance } = await resolveTargetAttendanceForAction(userId, startDate);
 
   if (!targetAttendance) {
     throw new HandleERROR(
@@ -450,19 +417,7 @@ export const decideWorkSessionRecord = async (sessionId, decision, actorUser, no
     throw new HandleERROR("سشن کاری یافت نشد", 404);
   }
 
-  if (actorUser.role === "SCRUM_ADMIN") {
-    if (!session.taskId || !session.task) {
-      throw new HandleERROR("ادمین اسکرام فقط مجاز به تغییر وضعیت سشن‌های تسک‌های اسکرام است", 403);
-    }
-    if (!session.task.scrum?.admins || session.task.scrum.admins.length === 0) {
-      throw new HandleERROR("شما ادمین اسکرام مربوط به این تسک نیستید", 403);
-    }
-  }
-
-  // Guard: Non-SUPER_ADMIN may not decide a SUPER_ADMIN's record
-  if (actorUser.role !== "SUPER_ADMIN" && session.user.role === "SUPER_ADMIN") {
-    throw new HandleERROR("شما اجازه بررسی و تغییر وضعیت سشن سوپرادمین را ندارید", 403);
-  }
+  await assertCanDecideWorkSession(session, actorUser);
 
   if (decision !== "APPROVED" && decision !== "REJECTED") {
     throw new HandleERROR("وضعیت انتخابی نامعتبر است", 400);

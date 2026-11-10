@@ -21,6 +21,7 @@ import {
   workTargetsRouter,
   scrumAdminRouter,
 } from "./Modules/Scrum/scrum.js";
+import memberRouter from "./Modules/Member/member.js";
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerDocument, swaggerUiOptions } from "./docs/swagger.js";
@@ -134,6 +135,7 @@ app.use("/api/sprints", sprintRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/work-targets", workTargetsRouter);
 app.use("/api/scrum-admin", scrumAdminRouter);
+app.use("/api/members", memberRouter);
 
 // 404 Route handler
 app.use((req, res, next) => {

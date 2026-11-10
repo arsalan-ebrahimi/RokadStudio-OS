@@ -48,6 +48,11 @@ export type ScrumAdmin = Prisma.ScrumAdminModel
  */
 export type ScrumMember = Prisma.ScrumMemberModel
 /**
+ * Model StudioPerformance
+ * 
+ */
+export type StudioPerformance = Prisma.StudioPerformanceModel
+/**
  * Model Sprint
  * 
  */

@@ -249,7 +249,10 @@ export const getProjectWorkSessionsById = async (
     source: s.source,
     decidedBy: s.decidedBy || null,
     decidedAt: s.decidedAt || null,
-    canModerate: isPrivileged && !(isAttendanceAdmin && s.user.role === "SUPER_ADMIN"),
+    canModerate:
+      isPrivileged &&
+      s.user.id !== currentUser.id &&
+      !(isAttendanceAdmin && s.user.role === "SUPER_ADMIN"),
     canDelete: isPrivileged,
   }));
 

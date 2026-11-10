@@ -9,6 +9,7 @@ const SCRUM_COLORS = ["ECOSYSTEM", "MALE", "FEMALE", "COLLEGE", "CLUB"];
 const SPRINT_STATUSES = ["PLANNED", "ACTIVE", "COMPLETED"];
 const EVENT_SCHEDULE_TYPES = ["WEEKLY", "ONCE"];
 const KPI_STATUSES = ["BELOW_MIN", "IN_RANGE", "ON_TARGET"];
+const PERFORMANCE_LEVELS = ["EXCELLENT", "STRONG", "AVERAGE", "WEAK", "NEEDS_ATTENTION"];
 
 const KPI_ALLOWED_ROW_KEYS = new Set([
   "id",
@@ -242,8 +243,21 @@ export const taskIdValidator = [
   handleValidation,
 ];
 
+const validation422Middleware = (checkFn) => (req, res, next) => {
+  try {
+    checkFn(req);
+    next();
+  } catch (err) {
+    return res.status(err.statusCode || 422).json({
+      success: false,
+      message: err.message,
+      errors: err.errors || undefined,
+    });
+  }
+};
+
 export const createScrumValidator = [
-  rejectUnknownKeysMiddleware(["name", "description", "color", "adminIds"]),
+  rejectUnknownKeysMiddleware(["name", "description", "color", "admins"]),
   body("name")
     .custom((val) => {
       if (typeof val !== "string") {
@@ -263,13 +277,132 @@ export const createScrumValidator = [
     .withMessage("رنگ اسکرام نامعتبر است")
     .isIn(SCRUM_COLORS)
     .withMessage("گزینه رنگ انتخاب‌شده نامعتبر است"),
-  strictPositiveIntArrayBody("adminIds", "adminIds", { required: false, max: 50 }),
+  body("admins")
+    .optional()
+    .custom((admins) => {
+      if (!Array.isArray(admins)) {
+        throw new Error("فیلد admins باید آرایه باشد");
+      }
+      if (admins.length > 50) {
+        throw new Error("حداکثر ۵۰ ادمین در admins مجاز است");
+      }
+      const seenIds = new Set();
+      for (let i = 0; i < admins.length; i++) {
+        const item = admins[i];
+        if (!isPlainObject(item)) {
+          throw new Error(`ردیف ادمین ${i + 1} باید یک آبجکت معتبر باشد`);
+        }
+        const extraKeys = Object.keys(item).filter(
+          (k) => k !== "userId" && k !== "alsoMember"
+        );
+        if (extraKeys.length > 0) {
+          throw new Error(`فیلد غیرمجاز در ردیف ادمین ${i + 1}: ${extraKeys.join(", ")}`);
+        }
+        if (!isStrictPositiveInt32(item.userId)) {
+          throw new Error(`شناسه کاربر (userId) در ردیف ادمین ${i + 1} نامعتبر است`);
+        }
+        if (seenIds.has(item.userId)) {
+          throw new Error("شناسه کاربران در لیست admins نباید تکراری باشد");
+        }
+        seenIds.add(item.userId);
+      }
+      return true;
+    }),
+  handleValidation,
+  validation422Middleware((req) => {
+    const admins = req.validatedBody?.admins ?? req.body?.admins;
+    if (!Array.isArray(admins)) return;
+    for (let i = 0; i < admins.length; i++) {
+      const item = admins[i];
+      if (!Object.prototype.hasOwnProperty.call(item, "alsoMember") || typeof item.alsoMember !== "boolean") {
+        const err = new Error(`فیلد alsoMember (boolean) در ردیف ادمین ${i + 1} الزامی است`);
+        err.statusCode = 422;
+        throw err;
+      }
+    }
+  }),
+];
+
+export const addScrumAdminBodyValidator = [
+  rejectUnknownKeysMiddleware(["userId", "alsoMember"]),
+  body("userId")
+    .custom((val) => {
+      if (!isStrictPositiveInt32(val)) {
+        throw new Error("شناسه کاربر (userId) باید عدد صحیح مثبت باشد");
+      }
+      return true;
+    }),
+  handleValidation,
+  validation422Middleware((req) => {
+    const val = req.body?.alsoMember;
+    if (!Object.prototype.hasOwnProperty.call(req.body || {}, "alsoMember") || typeof val !== "boolean") {
+      const err = new Error("فیلد alsoMember (boolean) الزامی است");
+      err.statusCode = 422;
+      throw err;
+    }
+  }),
+];
+
+export const scrumAndUserIdParamsValidator = [
+  param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه اسکرام باید یک عدد صحیح مثبت باشد").toInt(),
+  param("userId").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه کاربر باید یک عدد صحیح مثبت باشد").toInt(),
   handleValidation,
 ];
 
-export const updateScrumAdminsBodyValidator = [
-  rejectUnknownKeysMiddleware(["userIds"]),
-  strictPositiveIntArrayBody("userIds", "userIds", { required: true, max: 50 }),
+export const removeScrumAdminQueryValidator = [
+  rejectUnknownQueryMiddleware(["keepMembership"]),
+  query("keepMembership")
+    .optional()
+    .isIn(["true", "false"])
+    .withMessage("پارامتر keepMembership باید true یا false باشد"),
+  handleValidation,
+];
+
+export const updateScrumAdminMembershipBodyValidator = [
+  rejectUnknownKeysMiddleware(["isMember"]),
+  body("isMember")
+    .custom((val) => {
+      if (typeof val !== "boolean") {
+        throw new Error("فیلد isMember (boolean) الزامی است");
+      }
+      return true;
+    }),
+  handleValidation,
+];
+
+export const scrumIncludeAttendanceQueryValidator = [
+  rejectUnknownQueryMiddleware(["include"]),
+  query("include")
+    .optional()
+    .isIn(["attendanceTotals"])
+    .withMessage("پارامتر include فقط می‌تواند attendanceTotals باشد"),
+  handleValidation,
+];
+
+export const updateScrumMemberPerformanceBodyValidator = [
+  rejectUnknownKeysMiddleware(["level", "note"]),
+  body().custom((rawBody) => {
+    if (!Object.prototype.hasOwnProperty.call(rawBody, "level")) {
+      throw new Error("فیلد level الزامی است (مقدار وضعیت یا null)");
+    }
+    if (
+      rawBody.level !== null &&
+      (typeof rawBody.level !== "string" || !PERFORMANCE_LEVELS.includes(rawBody.level))
+    ) {
+      throw new Error(
+        `سطح عملکرد باید یکی از مقادیر ${PERFORMANCE_LEVELS.join("، ")} یا null باشد`
+      );
+    }
+    if (rawBody.note !== undefined && rawBody.note !== null) {
+      if (typeof rawBody.note !== "string") {
+        throw new Error("یادداشت عملکرد باید رشته متنی یا null باشد");
+      }
+      if (rawBody.note.trim().length > 500) {
+        throw new Error("یادداشت عملکرد نباید بیشتر از ۵۰۰ کاراکتر باشد");
+      }
+    }
+    return true;
+  }),
   handleValidation,
 ];
 
@@ -825,7 +958,7 @@ export const scrumReportValidator = [
 ];
 
 export const scrumLeaderboardQueryValidator = [
-  rejectUnknownQueryMiddleware(["period", "sprintId"]),
+  rejectUnknownQueryMiddleware(["period", "sprintId", "include"]),
   query("period")
     .optional()
     .isIn(["SPRINT", "MONTH", "ALL"])
@@ -835,5 +968,9 @@ export const scrumLeaderboardQueryValidator = [
     .isInt({ min: 1, max: INT32_MAX })
     .withMessage("شناسه اسپرینت نامعتبر است")
     .toInt(),
+  query("include")
+    .optional()
+    .isIn(["attendanceTotals"])
+    .withMessage("پارامتر include فقط می‌تواند attendanceTotals باشد"),
   handleValidation,
 ];

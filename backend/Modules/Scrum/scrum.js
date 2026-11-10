@@ -3,7 +3,6 @@ import { isLogin } from "../../Middlewares/isLogin.js";
 import { allowedRoles } from "../../Middlewares/allowedRoles.js";
 import { scrumWriteRateLimiter } from "../../Middlewares/rateLimit.js";
 import {
-  requireNonAttendanceAdmin,
   requireScrumAccess,
   requireSprintAccess,
   requireTaskAccess,
@@ -12,10 +11,15 @@ import {
   scrumIdValidator,
   sprintIdValidator,
   taskIdValidator,
+  scrumAndUserIdParamsValidator,
+  scrumIncludeAttendanceQueryValidator,
   createScrumValidator,
-  updateScrumAdminsBodyValidator,
+  addScrumAdminBodyValidator,
+  removeScrumAdminQueryValidator,
+  updateScrumAdminMembershipBodyValidator,
   updateScrumBodyValidator,
   updateScrumMembersBodyValidator,
+  updateScrumMemberPerformanceBodyValidator,
   createSprintBodyValidator,
   updateSprintBodyValidator,
   updateSprintStatusBodyValidator,
@@ -34,10 +38,14 @@ import {
   getScrums,
   createScrum,
   getScrumById,
-  syncScrumAdmins,
+  getScrumMembers,
+  addScrumAdmin,
+  removeScrumAdmin,
+  updateScrumAdminMembership,
   updateScrum,
   deleteScrum,
   syncScrumMembers,
+  updateScrumMemberPerformance,
   getSprints,
   createSprint,
   getSprintById,
@@ -67,7 +75,7 @@ import {
 // 1. Scrums Router (/api/scrums)
 // ==========================================
 export const scrumRouter = express.Router();
-scrumRouter.use(isLogin, requireNonAttendanceAdmin);
+scrumRouter.use(isLogin);
 
 // Special root helper: today's events for current user
 // MUST be declared BEFORE /:id to avoid param capture
@@ -89,11 +97,21 @@ scrumRouter.post(
 scrumRouter.get(
   "/:id",
   scrumIdValidator,
+  scrumIncludeAttendanceQueryValidator,
   requireScrumAccess("member"),
   getScrumById
 );
 
-// Update scrum (assigned SCRUM_ADMIN / SUPER_ADMIN; isActive change restricted to SUPER_ADMIN in service)
+// Scrum members (optional include=attendanceTotals for admin viewers)
+scrumRouter.get(
+  "/:id/members",
+  scrumIdValidator,
+  scrumIncludeAttendanceQueryValidator,
+  requireScrumAccess("member"),
+  getScrumMembers
+);
+
+// Update scrum (assigned SCRUM_ADMIN / ADMIN / SUPER_ADMIN; isActive change restricted to SUPER_ADMIN in service)
 scrumRouter.patch(
   "/:id",
   scrumWriteRateLimiter,
@@ -112,17 +130,37 @@ scrumRouter.delete(
   deleteScrum
 );
 
-// Sync assigned Scrum admins (SUPER_ADMIN only)
-scrumRouter.put(
+// Assign Scrum admin with "also a member?" choice (SUPER_ADMIN only)
+scrumRouter.post(
   "/:id/admins",
   scrumWriteRateLimiter,
   scrumIdValidator,
   requireScrumAccess("super_admin"),
-  updateScrumAdminsBodyValidator,
-  syncScrumAdmins
+  addScrumAdminBodyValidator,
+  addScrumAdmin
 );
 
-// Sync members (editor / SA)
+// Remove Scrum admin with optional/required keepMembership flag (SUPER_ADMIN only)
+scrumRouter.delete(
+  "/:id/admins/:userId",
+  scrumWriteRateLimiter,
+  scrumAndUserIdParamsValidator,
+  removeScrumAdminQueryValidator,
+  requireScrumAccess("super_admin"),
+  removeScrumAdmin
+);
+
+// Toggle membership for an existing Scrum admin (SUPER_ADMIN only)
+scrumRouter.put(
+  "/:id/admins/:userId/membership",
+  scrumWriteRateLimiter,
+  scrumAndUserIdParamsValidator,
+  requireScrumAccess("super_admin"),
+  updateScrumAdminMembershipBodyValidator,
+  updateScrumAdminMembership
+);
+
+// Sync members (editor / SA; preserves existing ScrumAdmins, rejects ADMIN-role additions)
 scrumRouter.put(
   "/:id/members",
   scrumWriteRateLimiter,
@@ -130,6 +168,16 @@ scrumRouter.put(
   requireScrumAccess("editor"),
   updateScrumMembersBodyValidator,
   syncScrumMembers
+);
+
+// Set Scrum-level performance status for a Scrum member (editor / SA; self rejected 403)
+scrumRouter.put(
+  "/:id/members/:userId/performance",
+  scrumWriteRateLimiter,
+  scrumAndUserIdParamsValidator,
+  requireScrumAccess("editor"),
+  updateScrumMemberPerformanceBodyValidator,
+  updateScrumMemberPerformance
 );
 
 // Tasks under scrum
@@ -226,7 +274,7 @@ scrumRouter.get(
 // 2. Sprints Router (/api/sprints)
 // ==========================================
 export const sprintRouter = express.Router();
-sprintRouter.use(isLogin, requireNonAttendanceAdmin);
+sprintRouter.use(isLogin);
 
 // Get sprint details (simplified Sprint metadata, status & manual progressPercent)
 sprintRouter.get(
@@ -269,7 +317,7 @@ sprintRouter.delete(
 // 3. Tasks Router (/api/tasks)
 // ==========================================
 export const taskRouter = express.Router();
-taskRouter.use(isLogin, requireNonAttendanceAdmin);
+taskRouter.use(isLogin);
 
 // MUST be declared BEFORE /:id to avoid param capture
 taskRouter.get("/mine", myTasksQueryValidator, getMyTasks);
@@ -327,7 +375,7 @@ workTargetsRouter.get("/mine", getWorkTargetsMine);
 // 5. Scrum Admin Router (/api/scrum-admin)
 // ==========================================
 export const scrumAdminRouter = express.Router();
-scrumAdminRouter.use(isLogin, allowedRoles("SCRUM_ADMIN", "SUPER_ADMIN"));
+scrumAdminRouter.use(isLogin, allowedRoles("ADMIN", "SCRUM_ADMIN", "SUPER_ADMIN"));
 
 scrumAdminRouter.get("/dashboard", getScrumAdminDashboard);
 

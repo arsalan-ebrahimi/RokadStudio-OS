@@ -80,3 +80,14 @@ export const KpiStatus = {
 } as const
 
 export type KpiStatus = (typeof KpiStatus)[keyof typeof KpiStatus]
+
+
+export const PerformanceLevel = {
+  EXCELLENT: 'EXCELLENT',
+  STRONG: 'STRONG',
+  AVERAGE: 'AVERAGE',
+  WEAK: 'WEAK',
+  NEEDS_ATTENTION: 'NEEDS_ATTENTION'
+} as const
+
+export type PerformanceLevel = (typeof PerformanceLevel)[keyof typeof PerformanceLevel]

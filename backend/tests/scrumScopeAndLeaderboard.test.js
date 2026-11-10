@@ -1,6 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
+  SCRUM_ADMIN_CAN_DECIDE_ATTENDANCE,
   LEADERBOARD_EXCLUDED_ROLES,
   isLeaderboardEligibleMember,
   buildScrumAdminManagedMemberUserWhere,
@@ -67,19 +68,20 @@ async function runValidatorChain(middlewares, { body = {}, query = {}, params = 
 }
 
 describe("Leaderboard Role Exclusion Tests", () => {
-  test("LEADERBOARD_EXCLUDED_ROLES contains ADMIN and SUPER_ADMIN only", () => {
-    assert.equal(LEADERBOARD_EXCLUDED_ROLES.has("ADMIN"), true);
+  test("LEADERBOARD_EXCLUDED_ROLES contains SUPER_ADMIN only (ADMIN members participate)", () => {
     assert.equal(LEADERBOARD_EXCLUDED_ROLES.has("SUPER_ADMIN"), true);
+    assert.equal(LEADERBOARD_EXCLUDED_ROLES.has("ADMIN"), false);
     assert.equal(LEADERBOARD_EXCLUDED_ROLES.has("SCRUM_ADMIN"), false);
     assert.equal(LEADERBOARD_EXCLUDED_ROLES.has("USER"), false);
   });
 
-  test("isLeaderboardEligibleMember keeps non-admin ScrumMembers and excludes ADMIN / SUPER_ADMIN / non-members", () => {
+  test("isLeaderboardEligibleMember keeps all ScrumMembers except SUPER_ADMIN (includes ADMIN & SCRUM_ADMIN)", () => {
     assert.equal(isLeaderboardEligibleMember({ isScrumMember: true, role: "USER" }), true);
     assert.equal(isLeaderboardEligibleMember({ isScrumMember: true, role: "SCRUM_ADMIN" }), true);
-    assert.equal(isLeaderboardEligibleMember({ isScrumMember: true, role: "ADMIN" }), false);
+    assert.equal(isLeaderboardEligibleMember({ isScrumMember: true, role: "ADMIN" }), true);
     assert.equal(isLeaderboardEligibleMember({ isScrumMember: true, role: "SUPER_ADMIN" }), false);
     assert.equal(isLeaderboardEligibleMember({ isScrumMember: false, role: "USER" }), false);
+    assert.equal(isLeaderboardEligibleMember({ isScrumMember: false, role: "ADMIN" }), false);
     assert.equal(isLeaderboardEligibleMember({ isScrumMember: false, role: "SCRUM_ADMIN" }), false);
     assert.equal(isLeaderboardEligibleMember(null), false);
     assert.equal(isLeaderboardEligibleMember(undefined), false);
@@ -131,28 +133,35 @@ describe("SCRUM_ADMIN Scoped Attendance Helpers Tests", () => {
     assert.equal(Object.hasOwn(admAgg, "task"), false);
   });
 
-  test("computeAttendanceCanDecide enforces self, ADMIN, and SUPER_ADMIN guards", () => {
-    // Self check
+  test("computeAttendanceCanDecide enforces read-only toggle for SCRUM_ADMIN, self, ADMIN, and SUPER_ADMIN guards", () => {
+    assert.equal(SCRUM_ADMIN_CAN_DECIDE_ATTENDANCE, false);
+
+    // Self check (including SUPER_ADMIN)
     assert.equal(computeAttendanceCanDecide({ userId: 42, user: { id: 42, role: "SCRUM_ADMIN" } }, scrumAdmin), false);
     assert.equal(computeAttendanceCanDecide({ userId: 10, user: { id: 10, role: "ADMIN" } }, admin), false);
+    assert.equal(computeAttendanceCanDecide({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, superAdmin), false);
 
-    // SCRUM_ADMIN cannot decide SUPER_ADMIN or ADMIN, can decide USER / other SCRUM_ADMIN
-    assert.equal(computeAttendanceCanDecide({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, scrumAdmin), false);
-    assert.equal(computeAttendanceCanDecide({ userId: 10, user: { id: 10, role: "ADMIN" } }, scrumAdmin), false);
-    assert.equal(computeAttendanceCanDecide({ userId: 7, user: { id: 7, role: "USER" } }, scrumAdmin), true);
-    assert.equal(computeAttendanceCanDecide({ userId: 43, user: { id: 43, role: "SCRUM_ADMIN" } }, scrumAdmin), true);
+    // While SCRUM_ADMIN_CAN_DECIDE_ATTENDANCE is false, SCRUM_ADMIN always has canDecide === false (read-only)
+    assert.equal(computeAttendanceCanDecide({ userId: 7, user: { id: 7, role: "USER" } }, scrumAdmin), false);
+    assert.equal(computeAttendanceCanDecide({ userId: 43, user: { id: 43, role: "SCRUM_ADMIN" } }, scrumAdmin), false);
 
-    // ADMIN cannot decide SUPER_ADMIN, can decide ADMIN/USER
+    // Flipping toggle restores legacy SCRUM_ADMIN behavior (still blocks self, ADMIN, SUPER_ADMIN)
+    assert.equal(computeAttendanceCanDecide({ userId: 7, user: { id: 7, role: "USER" } }, scrumAdmin, true), true);
+    assert.equal(computeAttendanceCanDecide({ userId: 43, user: { id: 43, role: "SCRUM_ADMIN" } }, scrumAdmin, true), true);
+    assert.equal(computeAttendanceCanDecide({ userId: 10, user: { id: 10, role: "ADMIN" } }, scrumAdmin, true), false);
+    assert.equal(computeAttendanceCanDecide({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, scrumAdmin, true), false);
+
+    // ADMIN is unaffected by SCRUM_ADMIN toggle; cannot decide SUPER_ADMIN or self, can decide ADMIN/USER
     assert.equal(computeAttendanceCanDecide({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, admin), false);
     assert.equal(computeAttendanceCanDecide({ userId: 7, user: { id: 7, role: "USER" } }, admin), true);
+    assert.equal(computeAttendanceCanDecide({ userId: 11, user: { id: 11, role: "ADMIN" } }, admin), true);
 
     // SUPER_ADMIN can decide anyone except self
     assert.equal(computeAttendanceCanDecide({ userId: 2, user: { id: 2, role: "SUPER_ADMIN" } }, superAdmin), true);
-    assert.equal(computeAttendanceCanDecide({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, superAdmin), false);
   });
 });
 
-describe("SCRUM_ADMIN Scoped WorkSession Report & Permissions Tests", () => {
+describe("SCRUM_ADMIN & ADMIN Scoped WorkSession Report & Permissions Tests", () => {
   const scrumAdmin = { id: 42, role: "SCRUM_ADMIN" };
   const admin = { id: 10, role: "ADMIN" };
   const superAdmin = { id: 1, role: "SUPER_ADMIN" };
@@ -187,18 +196,40 @@ describe("SCRUM_ADMIN Scoped WorkSession Report & Permissions Tests", () => {
     });
   });
 
-  test("computeWorkSessionPermissions matches moderation & delete authorization", () => {
+  test("computeWorkSessionPermissions enforces self-moderation ban (incl. SUPER_ADMIN) and ADMIN scrum task scope", () => {
     assert.deepEqual(
       computeWorkSessionPermissions({ userId: 7, user: { id: 7, role: "USER" } }, scrumAdmin),
       { canModerate: true, canDelete: false }
     );
+    // Self moderation is always false
     assert.deepEqual(
       computeWorkSessionPermissions({ userId: 42, user: { id: 42, role: "SCRUM_ADMIN" } }, scrumAdmin),
+      { canModerate: false, canDelete: true }
+    );
+    assert.deepEqual(
+      computeWorkSessionPermissions({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, superAdmin),
+      { canModerate: false, canDelete: true }
+    );
+    // ADMIN on studio project -> canModerate: true; on managed scrum task -> true; on unmanaged scrum task -> false
+    assert.deepEqual(
+      computeWorkSessionPermissions({ userId: 7, user: { id: 7, role: "USER" }, projectId: 3 }, admin),
       { canModerate: true, canDelete: true }
     );
     assert.deepEqual(
-      computeWorkSessionPermissions({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, scrumAdmin),
-      { canModerate: false, canDelete: false }
+      computeWorkSessionPermissions(
+        { userId: 7, user: { id: 7, role: "USER" }, taskId: 10, task: { scrumId: 5 } },
+        admin,
+        { administeredScrumIds: new Set([5]) }
+      ),
+      { canModerate: true, canDelete: true }
+    );
+    assert.deepEqual(
+      computeWorkSessionPermissions(
+        { userId: 7, user: { id: 7, role: "USER" }, taskId: 10, task: { scrumId: 9 } },
+        admin,
+        { administeredScrumIds: new Set([5]) }
+      ),
+      { canModerate: false, canDelete: true }
     );
     assert.deepEqual(
       computeWorkSessionPermissions({ userId: 1, user: { id: 1, role: "SUPER_ADMIN" } }, admin),

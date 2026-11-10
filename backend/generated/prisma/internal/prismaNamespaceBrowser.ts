@@ -57,6 +57,7 @@ export const ModelName = {
   Scrum: 'Scrum',
   ScrumAdmin: 'ScrumAdmin',
   ScrumMember: 'ScrumMember',
+  StudioPerformance: 'StudioPerformance',
   Sprint: 'Sprint',
   Task: 'Task',
   TaskMember: 'TaskMember',
@@ -144,10 +145,25 @@ export type ScrumAdminScalarFieldEnum = (typeof ScrumAdminScalarFieldEnum)[keyof
 export const ScrumMemberScalarFieldEnum = {
   scrumId: 'scrumId',
   userId: 'userId',
-  label: 'label'
+  label: 'label',
+  performance: 'performance',
+  performanceNote: 'performanceNote',
+  performanceUpdatedAt: 'performanceUpdatedAt',
+  performanceUpdatedById: 'performanceUpdatedById'
 } as const
 
 export type ScrumMemberScalarFieldEnum = (typeof ScrumMemberScalarFieldEnum)[keyof typeof ScrumMemberScalarFieldEnum]
+
+
+export const StudioPerformanceScalarFieldEnum = {
+  userId: 'userId',
+  level: 'level',
+  note: 'note',
+  updatedAt: 'updatedAt',
+  updatedById: 'updatedById'
+} as const
+
+export type StudioPerformanceScalarFieldEnum = (typeof StudioPerformanceScalarFieldEnum)[keyof typeof StudioPerformanceScalarFieldEnum]
 
 
 export const SprintScalarFieldEnum = {
@@ -240,6 +256,9 @@ export const AttendanceScalarFieldEnum = {
   decidedById: 'decidedById',
   decidedAt: 'decidedAt',
   reason: 'reason',
+  workNote: 'workNote',
+  workNoteAt: 'workNoteAt',
+  workNotePromptedAt: 'workNotePromptedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

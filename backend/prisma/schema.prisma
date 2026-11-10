@@ -56,6 +56,14 @@ enum KpiStatus {
   ON_TARGET
 }
 
+enum PerformanceLevel {
+  EXCELLENT
+  STRONG
+  AVERAGE
+  WEAK
+  NEEDS_ATTENTION
+}
+
 model User {
   id                 Int             @id @default(autoincrement())
   code               String          @unique
@@ -65,17 +73,20 @@ model User {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  projectMembers         ProjectMember[]
-  attendances            Attendance[]    @relation("UserAttendances")
-  decidedAttendances     Attendance[]    @relation("AttendanceDecidedBy")
-  workSessions           WorkSession[]
-  decidedWorkSessions    WorkSession[]   @relation("WorkSessionDecidedBy")
-  createdProjects        Project[]       @relation("CreatedProjects")
-  scrumAdmins            ScrumAdmin[]    @relation("ScrumAdminUser")
-  assignedScrumAdmins    ScrumAdmin[]    @relation("ScrumAdminAssignedBy")
-  scrumMembers           ScrumMember[]   @relation("ScrumMemberUser")
-  assignedTasks          TaskMember[]    @relation("TaskMemberUser")
-  assignedTaskMembers    TaskMember[]    @relation("TaskMemberAssignedBy")
+  projectMembers            ProjectMember[]
+  attendances               Attendance[]        @relation("UserAttendances")
+  decidedAttendances        Attendance[]        @relation("AttendanceDecidedBy")
+  workSessions              WorkSession[]
+  decidedWorkSessions       WorkSession[]       @relation("WorkSessionDecidedBy")
+  createdProjects           Project[]           @relation("CreatedProjects")
+  scrumAdmins               ScrumAdmin[]        @relation("ScrumAdminUser")
+  assignedScrumAdmins       ScrumAdmin[]        @relation("ScrumAdminAssignedBy")
+  scrumMembers              ScrumMember[]       @relation("ScrumMemberUser")
+  updatedScrumPerformances  ScrumMember[]       @relation("ScrumMemberPerformanceUpdatedBy")
+  studioPerformance         StudioPerformance?  @relation("UserStudioPerformance")
+  updatedStudioPerformances StudioPerformance[] @relation("StudioPerformanceUpdatedBy")
+  assignedTasks             TaskMember[]        @relation("TaskMemberUser")
+  assignedTaskMembers       TaskMember[]        @relation("TaskMemberAssignedBy")
 }
 
 model Project {
@@ -140,15 +151,36 @@ model ScrumAdmin {
 }
 
 model ScrumMember {
-  scrumId Int
-  userId  Int
-  label   String?
+  scrumId                Int
+  userId                 Int
+  label                  String?
+  performance            PerformanceLevel?
+  performanceNote        String?           @db.VarChar(500)
+  performanceUpdatedAt   DateTime?
+  performanceUpdatedById Int?
 
-  scrum   Scrum @relation(fields: [scrumId], references: [id], onDelete: Cascade)
-  user    User  @relation("ScrumMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  scrum                Scrum @relation(fields: [scrumId], references: [id], onDelete: Cascade)
+  user                 User  @relation("ScrumMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  performanceUpdatedBy User? @relation("ScrumMemberPerformanceUpdatedBy", fields: [performanceUpdatedById], references: [id], onDelete: SetNull)
 
   @@id([scrumId, userId])
   @@index([userId])
+  @@index([performance])
+  @@index([performanceUpdatedById])
+}
+
+model StudioPerformance {
+  userId      Int              @id
+  level       PerformanceLevel
+  note        String?          @db.VarChar(500)
+  updatedAt   DateTime         @updatedAt
+  updatedById Int?
+
+  user      User  @relation("UserStudioPerformance", fields: [userId], references: [id], onDelete: Cascade)
+  updatedBy User? @relation("StudioPerformanceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([level])
+  @@index([updatedById])
 }
 
 model Sprint {
@@ -250,17 +282,20 @@ model ScrumEvent {
 }
 
 model Attendance {
-  id          Int              @id @default(autoincrement())
-  userId      Int
-  date        DateTime         @db.Date
-  status      AttendanceStatus
-  approval    ApprovalStatus
-  source      DecisionSource
-  decidedById Int?
-  decidedAt   DateTime?
-  reason      String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id                 Int              @id @default(autoincrement())
+  userId             Int
+  date               DateTime         @db.Date
+  status             AttendanceStatus
+  approval           ApprovalStatus
+  source             DecisionSource
+  decidedById        Int?
+  decidedAt          DateTime?
+  reason             String?
+  workNote           String?          @db.Text
+  workNoteAt         DateTime?
+  workNotePromptedAt DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   user         User            @relation("UserAttendances", fields: [userId], references: [id], onDelete: Cascade)
   decidedBy    User?           @relation("AttendanceDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
@@ -268,6 +303,7 @@ model Attendance {
 
   @@unique([userId, date])
   @@index([date, approval])
+  @@index([workNoteAt])
 }
 
 model WorkSession {
@@ -297,6 +333,7 @@ model WorkSession {
   @@index([projectId])
   @@index([taskId])
   @@index([userId, createdAt])
+  @@index([userId, workDate])
   @@index([workDate])
   @@index([approval])
   @@index([workDate, approval])

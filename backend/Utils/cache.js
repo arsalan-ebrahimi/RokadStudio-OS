@@ -60,8 +60,19 @@ export const invalidateAllProjectsCache = async () => {
 };
 
 /**
- * Invalidate user auth cache (on role change, deactivation, deletion)
+ * Invalidate user auth cache (on role change, deactivation, deletion, or scrum membership/admin changes)
  */
 export const invalidateUserAuthCache = async (userId) => {
   await cacheDel(`user:auth:${userId}`);
+};
+
+/**
+ * Invalidate auth caches for multiple users in a single Redis call.
+ */
+export const invalidateUsersAuthCache = async (userIds = []) => {
+  const keys = [...new Set(userIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))]
+    .map((id) => `user:auth:${id}`);
+  if (keys.length > 0) {
+    await cacheDel(keys);
+  }
 };

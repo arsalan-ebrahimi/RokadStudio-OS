@@ -29,29 +29,43 @@ export type AggregateScrumMember = {
 export type ScrumMemberAvgAggregateOutputType = {
   scrumId: number | null
   userId: number | null
+  performanceUpdatedById: number | null
 }
 
 export type ScrumMemberSumAggregateOutputType = {
   scrumId: number | null
   userId: number | null
+  performanceUpdatedById: number | null
 }
 
 export type ScrumMemberMinAggregateOutputType = {
   scrumId: number | null
   userId: number | null
   label: string | null
+  performance: $Enums.PerformanceLevel | null
+  performanceNote: string | null
+  performanceUpdatedAt: Date | null
+  performanceUpdatedById: number | null
 }
 
 export type ScrumMemberMaxAggregateOutputType = {
   scrumId: number | null
   userId: number | null
   label: string | null
+  performance: $Enums.PerformanceLevel | null
+  performanceNote: string | null
+  performanceUpdatedAt: Date | null
+  performanceUpdatedById: number | null
 }
 
 export type ScrumMemberCountAggregateOutputType = {
   scrumId: number
   userId: number
   label: number
+  performance: number
+  performanceNote: number
+  performanceUpdatedAt: number
+  performanceUpdatedById: number
   _all: number
 }
 
@@ -59,29 +73,43 @@ export type ScrumMemberCountAggregateOutputType = {
 export type ScrumMemberAvgAggregateInputType = {
   scrumId?: true
   userId?: true
+  performanceUpdatedById?: true
 }
 
 export type ScrumMemberSumAggregateInputType = {
   scrumId?: true
   userId?: true
+  performanceUpdatedById?: true
 }
 
 export type ScrumMemberMinAggregateInputType = {
   scrumId?: true
   userId?: true
   label?: true
+  performance?: true
+  performanceNote?: true
+  performanceUpdatedAt?: true
+  performanceUpdatedById?: true
 }
 
 export type ScrumMemberMaxAggregateInputType = {
   scrumId?: true
   userId?: true
   label?: true
+  performance?: true
+  performanceNote?: true
+  performanceUpdatedAt?: true
+  performanceUpdatedById?: true
 }
 
 export type ScrumMemberCountAggregateInputType = {
   scrumId?: true
   userId?: true
   label?: true
+  performance?: true
+  performanceNote?: true
+  performanceUpdatedAt?: true
+  performanceUpdatedById?: true
   _all?: true
 }
 
@@ -175,6 +203,10 @@ export type ScrumMemberGroupByOutputType = {
   scrumId: number
   userId: number
   label: string | null
+  performance: $Enums.PerformanceLevel | null
+  performanceNote: string | null
+  performanceUpdatedAt: Date | null
+  performanceUpdatedById: number | null
   _count: ScrumMemberCountAggregateOutputType | null
   _avg: ScrumMemberAvgAggregateOutputType | null
   _sum: ScrumMemberSumAggregateOutputType | null
@@ -204,16 +236,26 @@ export type ScrumMemberWhereInput = {
   scrumId?: Prisma.IntFilter<"ScrumMember"> | number
   userId?: Prisma.IntFilter<"ScrumMember"> | number
   label?: Prisma.StringNullableFilter<"ScrumMember"> | string | null
+  performance?: Prisma.EnumPerformanceLevelNullableFilter<"ScrumMember"> | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.StringNullableFilter<"ScrumMember"> | string | null
+  performanceUpdatedAt?: Prisma.DateTimeNullableFilter<"ScrumMember"> | Date | string | null
+  performanceUpdatedById?: Prisma.IntNullableFilter<"ScrumMember"> | number | null
   scrum?: Prisma.XOR<Prisma.ScrumScalarRelationFilter, Prisma.ScrumWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  performanceUpdatedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }
 
 export type ScrumMemberOrderByWithRelationInput = {
   scrumId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   label?: Prisma.SortOrderInput | Prisma.SortOrder
+  performance?: Prisma.SortOrderInput | Prisma.SortOrder
+  performanceNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  performanceUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  performanceUpdatedById?: Prisma.SortOrderInput | Prisma.SortOrder
   scrum?: Prisma.ScrumOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
+  performanceUpdatedBy?: Prisma.UserOrderByWithRelationInput
 }
 
 export type ScrumMemberWhereUniqueInput = Prisma.AtLeast<{
@@ -224,14 +266,23 @@ export type ScrumMemberWhereUniqueInput = Prisma.AtLeast<{
   scrumId?: Prisma.IntFilter<"ScrumMember"> | number
   userId?: Prisma.IntFilter<"ScrumMember"> | number
   label?: Prisma.StringNullableFilter<"ScrumMember"> | string | null
+  performance?: Prisma.EnumPerformanceLevelNullableFilter<"ScrumMember"> | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.StringNullableFilter<"ScrumMember"> | string | null
+  performanceUpdatedAt?: Prisma.DateTimeNullableFilter<"ScrumMember"> | Date | string | null
+  performanceUpdatedById?: Prisma.IntNullableFilter<"ScrumMember"> | number | null
   scrum?: Prisma.XOR<Prisma.ScrumScalarRelationFilter, Prisma.ScrumWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  performanceUpdatedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }, "scrumId_userId">
 
 export type ScrumMemberOrderByWithAggregationInput = {
   scrumId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   label?: Prisma.SortOrderInput | Prisma.SortOrder
+  performance?: Prisma.SortOrderInput | Prisma.SortOrder
+  performanceNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  performanceUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  performanceUpdatedById?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ScrumMemberCountOrderByAggregateInput
   _avg?: Prisma.ScrumMemberAvgOrderByAggregateInput
   _max?: Prisma.ScrumMemberMaxOrderByAggregateInput
@@ -246,46 +297,77 @@ export type ScrumMemberScalarWhereWithAggregatesInput = {
   scrumId?: Prisma.IntWithAggregatesFilter<"ScrumMember"> | number
   userId?: Prisma.IntWithAggregatesFilter<"ScrumMember"> | number
   label?: Prisma.StringNullableWithAggregatesFilter<"ScrumMember"> | string | null
+  performance?: Prisma.EnumPerformanceLevelNullableWithAggregatesFilter<"ScrumMember"> | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.StringNullableWithAggregatesFilter<"ScrumMember"> | string | null
+  performanceUpdatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ScrumMember"> | Date | string | null
+  performanceUpdatedById?: Prisma.IntNullableWithAggregatesFilter<"ScrumMember"> | number | null
 }
 
 export type ScrumMemberCreateInput = {
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
   scrum: Prisma.ScrumCreateNestedOneWithoutMembersInput
   user: Prisma.UserCreateNestedOneWithoutScrumMembersInput
+  performanceUpdatedBy?: Prisma.UserCreateNestedOneWithoutUpdatedScrumPerformancesInput
 }
 
 export type ScrumMemberUncheckedCreateInput = {
   scrumId: number
   userId: number
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+  performanceUpdatedById?: number | null
 }
 
 export type ScrumMemberUpdateInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrum?: Prisma.ScrumUpdateOneRequiredWithoutMembersNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutScrumMembersNestedInput
+  performanceUpdatedBy?: Prisma.UserUpdateOneWithoutUpdatedScrumPerformancesNestedInput
 }
 
 export type ScrumMemberUncheckedUpdateInput = {
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  performanceUpdatedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type ScrumMemberCreateManyInput = {
   scrumId: number
   userId: number
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+  performanceUpdatedById?: number | null
 }
 
 export type ScrumMemberUpdateManyMutationInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type ScrumMemberUncheckedUpdateManyInput = {
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  performanceUpdatedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type ScrumMemberListRelationFilter = {
@@ -307,28 +389,42 @@ export type ScrumMemberCountOrderByAggregateInput = {
   scrumId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   label?: Prisma.SortOrder
+  performance?: Prisma.SortOrder
+  performanceNote?: Prisma.SortOrder
+  performanceUpdatedAt?: Prisma.SortOrder
+  performanceUpdatedById?: Prisma.SortOrder
 }
 
 export type ScrumMemberAvgOrderByAggregateInput = {
   scrumId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  performanceUpdatedById?: Prisma.SortOrder
 }
 
 export type ScrumMemberMaxOrderByAggregateInput = {
   scrumId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   label?: Prisma.SortOrder
+  performance?: Prisma.SortOrder
+  performanceNote?: Prisma.SortOrder
+  performanceUpdatedAt?: Prisma.SortOrder
+  performanceUpdatedById?: Prisma.SortOrder
 }
 
 export type ScrumMemberMinOrderByAggregateInput = {
   scrumId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   label?: Prisma.SortOrder
+  performance?: Prisma.SortOrder
+  performanceNote?: Prisma.SortOrder
+  performanceUpdatedAt?: Prisma.SortOrder
+  performanceUpdatedById?: Prisma.SortOrder
 }
 
 export type ScrumMemberSumOrderByAggregateInput = {
   scrumId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  performanceUpdatedById?: Prisma.SortOrder
 }
 
 export type ScrumMemberCreateNestedManyWithoutUserInput = {
@@ -338,10 +434,24 @@ export type ScrumMemberCreateNestedManyWithoutUserInput = {
   connect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
 }
 
+export type ScrumMemberCreateNestedManyWithoutPerformanceUpdatedByInput = {
+  create?: Prisma.XOR<Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput> | Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput[] | Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput[]
+  connectOrCreate?: Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput[]
+  createMany?: Prisma.ScrumMemberCreateManyPerformanceUpdatedByInputEnvelope
+  connect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+}
+
 export type ScrumMemberUncheckedCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.ScrumMemberCreateWithoutUserInput, Prisma.ScrumMemberUncheckedCreateWithoutUserInput> | Prisma.ScrumMemberCreateWithoutUserInput[] | Prisma.ScrumMemberUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.ScrumMemberCreateOrConnectWithoutUserInput | Prisma.ScrumMemberCreateOrConnectWithoutUserInput[]
   createMany?: Prisma.ScrumMemberCreateManyUserInputEnvelope
+  connect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+}
+
+export type ScrumMemberUncheckedCreateNestedManyWithoutPerformanceUpdatedByInput = {
+  create?: Prisma.XOR<Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput> | Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput[] | Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput[]
+  connectOrCreate?: Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput[]
+  createMany?: Prisma.ScrumMemberCreateManyPerformanceUpdatedByInputEnvelope
   connect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
 }
 
@@ -359,6 +469,20 @@ export type ScrumMemberUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.ScrumMemberScalarWhereInput | Prisma.ScrumMemberScalarWhereInput[]
 }
 
+export type ScrumMemberUpdateManyWithoutPerformanceUpdatedByNestedInput = {
+  create?: Prisma.XOR<Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput> | Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput[] | Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput[]
+  connectOrCreate?: Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput[]
+  upsert?: Prisma.ScrumMemberUpsertWithWhereUniqueWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberUpsertWithWhereUniqueWithoutPerformanceUpdatedByInput[]
+  createMany?: Prisma.ScrumMemberCreateManyPerformanceUpdatedByInputEnvelope
+  set?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  disconnect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  delete?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  connect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  update?: Prisma.ScrumMemberUpdateWithWhereUniqueWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberUpdateWithWhereUniqueWithoutPerformanceUpdatedByInput[]
+  updateMany?: Prisma.ScrumMemberUpdateManyWithWhereWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberUpdateManyWithWhereWithoutPerformanceUpdatedByInput[]
+  deleteMany?: Prisma.ScrumMemberScalarWhereInput | Prisma.ScrumMemberScalarWhereInput[]
+}
+
 export type ScrumMemberUncheckedUpdateManyWithoutUserNestedInput = {
   create?: Prisma.XOR<Prisma.ScrumMemberCreateWithoutUserInput, Prisma.ScrumMemberUncheckedCreateWithoutUserInput> | Prisma.ScrumMemberCreateWithoutUserInput[] | Prisma.ScrumMemberUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.ScrumMemberCreateOrConnectWithoutUserInput | Prisma.ScrumMemberCreateOrConnectWithoutUserInput[]
@@ -370,6 +494,20 @@ export type ScrumMemberUncheckedUpdateManyWithoutUserNestedInput = {
   connect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
   update?: Prisma.ScrumMemberUpdateWithWhereUniqueWithoutUserInput | Prisma.ScrumMemberUpdateWithWhereUniqueWithoutUserInput[]
   updateMany?: Prisma.ScrumMemberUpdateManyWithWhereWithoutUserInput | Prisma.ScrumMemberUpdateManyWithWhereWithoutUserInput[]
+  deleteMany?: Prisma.ScrumMemberScalarWhereInput | Prisma.ScrumMemberScalarWhereInput[]
+}
+
+export type ScrumMemberUncheckedUpdateManyWithoutPerformanceUpdatedByNestedInput = {
+  create?: Prisma.XOR<Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput> | Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput[] | Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput[]
+  connectOrCreate?: Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput[]
+  upsert?: Prisma.ScrumMemberUpsertWithWhereUniqueWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberUpsertWithWhereUniqueWithoutPerformanceUpdatedByInput[]
+  createMany?: Prisma.ScrumMemberCreateManyPerformanceUpdatedByInputEnvelope
+  set?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  disconnect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  delete?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  connect?: Prisma.ScrumMemberWhereUniqueInput | Prisma.ScrumMemberWhereUniqueInput[]
+  update?: Prisma.ScrumMemberUpdateWithWhereUniqueWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberUpdateWithWhereUniqueWithoutPerformanceUpdatedByInput[]
+  updateMany?: Prisma.ScrumMemberUpdateManyWithWhereWithoutPerformanceUpdatedByInput | Prisma.ScrumMemberUpdateManyWithWhereWithoutPerformanceUpdatedByInput[]
   deleteMany?: Prisma.ScrumMemberScalarWhereInput | Prisma.ScrumMemberScalarWhereInput[]
 }
 
@@ -415,14 +553,30 @@ export type ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput = {
   deleteMany?: Prisma.ScrumMemberScalarWhereInput | Prisma.ScrumMemberScalarWhereInput[]
 }
 
+export type NullableEnumPerformanceLevelFieldUpdateOperationsInput = {
+  set?: $Enums.PerformanceLevel | null
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
 export type ScrumMemberCreateWithoutUserInput = {
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
   scrum: Prisma.ScrumCreateNestedOneWithoutMembersInput
+  performanceUpdatedBy?: Prisma.UserCreateNestedOneWithoutUpdatedScrumPerformancesInput
 }
 
 export type ScrumMemberUncheckedCreateWithoutUserInput = {
   scrumId: number
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+  performanceUpdatedById?: number | null
 }
 
 export type ScrumMemberCreateOrConnectWithoutUserInput = {
@@ -432,6 +586,34 @@ export type ScrumMemberCreateOrConnectWithoutUserInput = {
 
 export type ScrumMemberCreateManyUserInputEnvelope = {
   data: Prisma.ScrumMemberCreateManyUserInput | Prisma.ScrumMemberCreateManyUserInput[]
+  skipDuplicates?: boolean
+}
+
+export type ScrumMemberCreateWithoutPerformanceUpdatedByInput = {
+  label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+  scrum: Prisma.ScrumCreateNestedOneWithoutMembersInput
+  user: Prisma.UserCreateNestedOneWithoutScrumMembersInput
+}
+
+export type ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput = {
+  scrumId: number
+  userId: number
+  label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+}
+
+export type ScrumMemberCreateOrConnectWithoutPerformanceUpdatedByInput = {
+  where: Prisma.ScrumMemberWhereUniqueInput
+  create: Prisma.XOR<Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput>
+}
+
+export type ScrumMemberCreateManyPerformanceUpdatedByInputEnvelope = {
+  data: Prisma.ScrumMemberCreateManyPerformanceUpdatedByInput | Prisma.ScrumMemberCreateManyPerformanceUpdatedByInput[]
   skipDuplicates?: boolean
 }
 
@@ -458,16 +640,44 @@ export type ScrumMemberScalarWhereInput = {
   scrumId?: Prisma.IntFilter<"ScrumMember"> | number
   userId?: Prisma.IntFilter<"ScrumMember"> | number
   label?: Prisma.StringNullableFilter<"ScrumMember"> | string | null
+  performance?: Prisma.EnumPerformanceLevelNullableFilter<"ScrumMember"> | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.StringNullableFilter<"ScrumMember"> | string | null
+  performanceUpdatedAt?: Prisma.DateTimeNullableFilter<"ScrumMember"> | Date | string | null
+  performanceUpdatedById?: Prisma.IntNullableFilter<"ScrumMember"> | number | null
+}
+
+export type ScrumMemberUpsertWithWhereUniqueWithoutPerformanceUpdatedByInput = {
+  where: Prisma.ScrumMemberWhereUniqueInput
+  update: Prisma.XOR<Prisma.ScrumMemberUpdateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedUpdateWithoutPerformanceUpdatedByInput>
+  create: Prisma.XOR<Prisma.ScrumMemberCreateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedCreateWithoutPerformanceUpdatedByInput>
+}
+
+export type ScrumMemberUpdateWithWhereUniqueWithoutPerformanceUpdatedByInput = {
+  where: Prisma.ScrumMemberWhereUniqueInput
+  data: Prisma.XOR<Prisma.ScrumMemberUpdateWithoutPerformanceUpdatedByInput, Prisma.ScrumMemberUncheckedUpdateWithoutPerformanceUpdatedByInput>
+}
+
+export type ScrumMemberUpdateManyWithWhereWithoutPerformanceUpdatedByInput = {
+  where: Prisma.ScrumMemberScalarWhereInput
+  data: Prisma.XOR<Prisma.ScrumMemberUpdateManyMutationInput, Prisma.ScrumMemberUncheckedUpdateManyWithoutPerformanceUpdatedByInput>
 }
 
 export type ScrumMemberCreateWithoutScrumInput = {
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutScrumMembersInput
+  performanceUpdatedBy?: Prisma.UserCreateNestedOneWithoutUpdatedScrumPerformancesInput
 }
 
 export type ScrumMemberUncheckedCreateWithoutScrumInput = {
   userId: number
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+  performanceUpdatedById?: number | null
 }
 
 export type ScrumMemberCreateOrConnectWithoutScrumInput = {
@@ -499,41 +709,109 @@ export type ScrumMemberUpdateManyWithWhereWithoutScrumInput = {
 export type ScrumMemberCreateManyUserInput = {
   scrumId: number
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+  performanceUpdatedById?: number | null
+}
+
+export type ScrumMemberCreateManyPerformanceUpdatedByInput = {
+  scrumId: number
+  userId: number
+  label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
 }
 
 export type ScrumMemberUpdateWithoutUserInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrum?: Prisma.ScrumUpdateOneRequiredWithoutMembersNestedInput
+  performanceUpdatedBy?: Prisma.UserUpdateOneWithoutUpdatedScrumPerformancesNestedInput
 }
 
 export type ScrumMemberUncheckedUpdateWithoutUserInput = {
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  performanceUpdatedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type ScrumMemberUncheckedUpdateManyWithoutUserInput = {
   scrumId?: Prisma.IntFieldUpdateOperationsInput | number
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  performanceUpdatedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
+export type ScrumMemberUpdateWithoutPerformanceUpdatedByInput = {
+  label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scrum?: Prisma.ScrumUpdateOneRequiredWithoutMembersNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutScrumMembersNestedInput
+}
+
+export type ScrumMemberUncheckedUpdateWithoutPerformanceUpdatedByInput = {
+  scrumId?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type ScrumMemberUncheckedUpdateManyWithoutPerformanceUpdatedByInput = {
+  scrumId?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type ScrumMemberCreateManyScrumInput = {
   userId: number
   label?: string | null
+  performance?: $Enums.PerformanceLevel | null
+  performanceNote?: string | null
+  performanceUpdatedAt?: Date | string | null
+  performanceUpdatedById?: number | null
 }
 
 export type ScrumMemberUpdateWithoutScrumInput = {
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutScrumMembersNestedInput
+  performanceUpdatedBy?: Prisma.UserUpdateOneWithoutUpdatedScrumPerformancesNestedInput
 }
 
 export type ScrumMemberUncheckedUpdateWithoutScrumInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  performanceUpdatedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type ScrumMemberUncheckedUpdateManyWithoutScrumInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performance?: Prisma.NullableEnumPerformanceLevelFieldUpdateOperationsInput | $Enums.PerformanceLevel | null
+  performanceNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  performanceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  performanceUpdatedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -542,44 +820,66 @@ export type ScrumMemberSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   scrumId?: boolean
   userId?: boolean
   label?: boolean
+  performance?: boolean
+  performanceNote?: boolean
+  performanceUpdatedAt?: boolean
+  performanceUpdatedById?: boolean
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  performanceUpdatedBy?: boolean | Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs>
 }, ExtArgs["result"]["scrumMember"]>
 
 export type ScrumMemberSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   scrumId?: boolean
   userId?: boolean
   label?: boolean
+  performance?: boolean
+  performanceNote?: boolean
+  performanceUpdatedAt?: boolean
+  performanceUpdatedById?: boolean
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  performanceUpdatedBy?: boolean | Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs>
 }, ExtArgs["result"]["scrumMember"]>
 
 export type ScrumMemberSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   scrumId?: boolean
   userId?: boolean
   label?: boolean
+  performance?: boolean
+  performanceNote?: boolean
+  performanceUpdatedAt?: boolean
+  performanceUpdatedById?: boolean
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  performanceUpdatedBy?: boolean | Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs>
 }, ExtArgs["result"]["scrumMember"]>
 
 export type ScrumMemberSelectScalar = {
   scrumId?: boolean
   userId?: boolean
   label?: boolean
+  performance?: boolean
+  performanceNote?: boolean
+  performanceUpdatedAt?: boolean
+  performanceUpdatedById?: boolean
 }
 
-export type ScrumMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"scrumId" | "userId" | "label", ExtArgs["result"]["scrumMember"]>
+export type ScrumMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"scrumId" | "userId" | "label" | "performance" | "performanceNote" | "performanceUpdatedAt" | "performanceUpdatedById", ExtArgs["result"]["scrumMember"]>
 export type ScrumMemberInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  performanceUpdatedBy?: boolean | Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs>
 }
 export type ScrumMemberIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  performanceUpdatedBy?: boolean | Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs>
 }
 export type ScrumMemberIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  performanceUpdatedBy?: boolean | Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs>
 }
 
 export type $ScrumMemberPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -587,11 +887,16 @@ export type $ScrumMemberPayload<ExtArgs extends runtime.Types.Extensions.Interna
   objects: {
     scrum: Prisma.$ScrumPayload<ExtArgs>
     user: Prisma.$UserPayload<ExtArgs>
+    performanceUpdatedBy: Prisma.$UserPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     scrumId: number
     userId: number
     label: string | null
+    performance: $Enums.PerformanceLevel | null
+    performanceNote: string | null
+    performanceUpdatedAt: Date | null
+    performanceUpdatedById: number | null
   }, ExtArgs["result"]["scrumMember"]>
   composites: {}
 }
@@ -988,6 +1293,7 @@ export interface Prisma__ScrumMemberClient<T, Null = never, ExtArgs extends runt
   readonly [Symbol.toStringTag]: "PrismaPromise"
   scrum<T extends Prisma.ScrumDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScrumDefaultArgs<ExtArgs>>): Prisma.Prisma__ScrumClient<runtime.Types.Result.GetResult<Prisma.$ScrumPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  performanceUpdatedBy<T extends Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScrumMember$performanceUpdatedByArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1020,6 +1326,10 @@ export interface ScrumMemberFieldRefs {
   readonly scrumId: Prisma.FieldRef<"ScrumMember", 'Int'>
   readonly userId: Prisma.FieldRef<"ScrumMember", 'Int'>
   readonly label: Prisma.FieldRef<"ScrumMember", 'String'>
+  readonly performance: Prisma.FieldRef<"ScrumMember", 'PerformanceLevel'>
+  readonly performanceNote: Prisma.FieldRef<"ScrumMember", 'String'>
+  readonly performanceUpdatedAt: Prisma.FieldRef<"ScrumMember", 'DateTime'>
+  readonly performanceUpdatedById: Prisma.FieldRef<"ScrumMember", 'Int'>
 }
     
 
@@ -1418,6 +1728,25 @@ export type ScrumMemberDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many ScrumMembers to delete.
    */
   limit?: number
+}
+
+/**
+ * ScrumMember.performanceUpdatedBy
+ */
+export type ScrumMember$performanceUpdatedByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**

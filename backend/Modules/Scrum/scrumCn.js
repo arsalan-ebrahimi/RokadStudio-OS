@@ -5,10 +5,14 @@ import {
   listScrumsService,
   createScrumService,
   getScrumDetailsService,
-  syncScrumAdminsService,
+  getScrumMembersService,
+  addScrumAdminService,
+  removeScrumAdminService,
+  updateScrumAdminMembershipService,
   updateScrumService,
   deleteScrumService,
   syncScrumMembersService,
+  updateScrumMemberPerformanceService,
   listSprintsService,
   createSprintService,
   getSprintDetailsService,
@@ -66,11 +70,26 @@ export const createScrum = catchAsync(async (req, res, next) => {
 });
 
 export const getScrumById = catchAsync(async (req, res) => {
-  const scrum = await getScrumDetailsService(req.scrum.id, req.user);
+  const query = req.validatedQuery || req.query;
+  const scrum = await getScrumDetailsService(req.scrum.id, req.user, {
+    includeAttendanceTotals: query?.include === "attendanceTotals",
+  });
   return res.status(200).json({
     success: true,
     message: "اطلاعات اسکرام با موفقیت دریافت شد",
     data: scrum,
+  });
+});
+
+export const getScrumMembers = catchAsync(async (req, res) => {
+  const query = req.validatedQuery || req.query;
+  const members = await getScrumMembersService(req.scrum.id, req.user, {
+    includeAttendanceTotals: query?.include === "attendanceTotals",
+  });
+  return res.status(200).json({
+    success: true,
+    message: "اعضای اسکرام با موفقیت دریافت شدند",
+    data: members,
   });
 });
 
@@ -101,14 +120,44 @@ export const deleteScrum = catchAsync(async (req, res, next) => {
   }
 });
 
-export const syncScrumAdmins = catchAsync(async (req, res, next) => {
+export const addScrumAdmin = catchAsync(async (req, res, next) => {
   try {
     const body = req.validatedBody || req.body;
-    const admins = await syncScrumAdminsService(req.scrum.id, body.userIds, req.user);
+    const admin = await addScrumAdminService(req.scrum.id, body, req.user);
+    return res.status(201).json({
+      success: true,
+      message: "ادمین با موفقیت به اسکرام اضافه شد",
+      data: admin,
+    });
+  } catch (err) {
+    forwardPrismaOrThrow(err, next);
+  }
+});
+
+export const removeScrumAdmin = catchAsync(async (req, res, next) => {
+  try {
+    const targetUserId = req.validatedParams?.userId ?? Number(req.params.userId);
+    const query = req.validatedQuery || req.query;
+    const result = await removeScrumAdminService(req.scrum.id, targetUserId, query);
     return res.status(200).json({
       success: true,
-      message: "ادمین‌های اسکرام با موفقیت بروزرسانی شدند",
-      data: admins,
+      message: "ادمین از اسکرام حذف شد",
+      data: result,
+    });
+  } catch (err) {
+    forwardPrismaOrThrow(err, next);
+  }
+});
+
+export const updateScrumAdminMembership = catchAsync(async (req, res, next) => {
+  try {
+    const targetUserId = req.validatedParams?.userId ?? Number(req.params.userId);
+    const body = req.validatedBody || req.body;
+    const result = await updateScrumAdminMembershipService(req.scrum.id, targetUserId, body);
+    return res.status(200).json({
+      success: true,
+      message: "وضعیت عضویت ادمین اسکرام با موفقیت بروزرسانی شد",
+      data: result,
     });
   } catch (err) {
     forwardPrismaOrThrow(err, next);
@@ -118,11 +167,31 @@ export const syncScrumAdmins = catchAsync(async (req, res, next) => {
 export const syncScrumMembers = catchAsync(async (req, res, next) => {
   try {
     const body = req.validatedBody || req.body;
-    const members = await syncScrumMembersService(req.scrum.id, body.members);
+    const members = await syncScrumMembersService(req.scrum.id, body.members, req.user);
     return res.status(200).json({
       success: true,
       message: "اعضای اسکرام با موفقیت بروزرسانی شدند",
       data: members,
+    });
+  } catch (err) {
+    forwardPrismaOrThrow(err, next);
+  }
+});
+
+export const updateScrumMemberPerformance = catchAsync(async (req, res, next) => {
+  try {
+    const targetUserId = req.validatedParams?.userId ?? Number(req.params.userId);
+    const body = req.validatedBody || req.body;
+    const result = await updateScrumMemberPerformanceService(
+      req.scrum.id,
+      targetUserId,
+      body,
+      req.user
+    );
+    return res.status(200).json({
+      success: true,
+      message: "وضعیت عملکرد عضو اسکرام با موفقیت ثبت شد",
+      data: result,
     });
   } catch (err) {
     forwardPrismaOrThrow(err, next);

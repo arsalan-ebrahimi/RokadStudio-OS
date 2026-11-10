@@ -1,5 +1,7 @@
 import { body, param, query, validationResult } from "express-validator";
 
+const PERFORMANCE_LEVELS = ["EXCELLENT", "STRONG", "AVERAGE", "WEAK", "NEEDS_ATTENTION"];
+
 export const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -81,6 +83,10 @@ export const getUsersValidator = [
   query("role").optional().isIn(["USER", "ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"]),
   query("isActive").optional().isBoolean().toBoolean(),
   query("search").optional().trim(),
+  query("include")
+    .optional()
+    .isIn(["attendanceTotals"])
+    .withMessage("include must be attendanceTotals"),
   handleValidation,
 ];
 
@@ -90,5 +96,42 @@ export const searchUsersValidator = [
     .optional()
     .isIn(["all", "managed"])
     .withMessage("scope must be all or managed"),
+  handleValidation,
+];
+
+export const updateUserPerformanceValidator = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("User ID must be a positive integer")
+    .toInt(),
+  body().custom((rawBody) => {
+    if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+      throw new Error("بدنه درخواست نامعتبر است");
+    }
+    const extraKeys = Object.keys(rawBody).filter((k) => k !== "level" && k !== "note");
+    if (extraKeys.length > 0) {
+      throw new Error(`فیلد غیرمجاز در درخواست: ${extraKeys.join(", ")}`);
+    }
+    if (!Object.prototype.hasOwnProperty.call(rawBody, "level")) {
+      throw new Error("فیلد level الزامی است (مقدار وضعیت یا null)");
+    }
+    if (
+      rawBody.level !== null &&
+      (typeof rawBody.level !== "string" || !PERFORMANCE_LEVELS.includes(rawBody.level))
+    ) {
+      throw new Error(
+        `سطح عملکرد باید یکی از مقادیر ${PERFORMANCE_LEVELS.join("، ")} یا null باشد`
+      );
+    }
+    if (rawBody.note !== undefined && rawBody.note !== null) {
+      if (typeof rawBody.note !== "string") {
+        throw new Error("یادداشت عملکرد باید رشته متنی یا null باشد");
+      }
+      if (rawBody.note.trim().length > 500) {
+        throw new Error("یادداشت عملکرد نباید بیشتر از ۵۰۰ کاراکتر باشد");
+      }
+    }
+    return true;
+  }),
   handleValidation,
 ];

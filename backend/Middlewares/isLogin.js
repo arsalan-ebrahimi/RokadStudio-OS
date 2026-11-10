@@ -2,6 +2,41 @@ import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
 import { cacheGet, cacheSet } from "../Utils/cache.js";
 
+/**
+ * Loads user auth identity alongside Scrum admin/member counts for auth cache & /api/auth/me.
+ */
+export const fetchUserAuthWithCounts = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      isActive: true,
+      name: true,
+      _count: {
+        select: {
+          scrumAdmins: true,
+          scrumMembers: true,
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  const isAdminEligible = user.role === "SCRUM_ADMIN" || user.role === "ADMIN";
+  const isMemberEligible = user.role !== "SUPER_ADMIN";
+
+  return {
+    id: user.id,
+    role: user.role,
+    isActive: user.isActive,
+    name: user.name,
+    administeredScrumCount: isAdminEligible ? Number(user._count?.scrumAdmins || 0) : 0,
+    memberScrumCount: isMemberEligible ? Number(user._count?.scrumMembers || 0) : 0,
+  };
+};
+
 export const isLogin = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -34,20 +69,16 @@ export const isLogin = async (req, res, next) => {
     const cacheKey = `user:auth:${userId}`;
     let user = await cacheGet(cacheKey);
 
-    if (!user) {
+    if (
+      !user ||
+      typeof user.administeredScrumCount !== "number" ||
+      typeof user.memberScrumCount !== "number"
+    ) {
       // Fallback to database
-      user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          role: true,
-          isActive: true,
-          name: true,
-        },
-      });
+      user = await fetchUserAuthWithCounts(userId);
 
       if (user) {
-        // Cache user auth status for 60 seconds
+        // Cache user auth status & scrum counts for 60 seconds
         await cacheSet(cacheKey, user, 60);
       }
     }

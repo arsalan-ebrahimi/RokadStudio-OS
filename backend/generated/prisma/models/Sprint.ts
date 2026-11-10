@@ -590,10 +590,6 @@ export type SprintUncheckedUpdateManyWithoutScrumNestedInput = {
   deleteMany?: Prisma.SprintScalarWhereInput | Prisma.SprintScalarWhereInput[]
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type EnumSprintStatusFieldUpdateOperationsInput = {
   set?: $Enums.SprintStatus
 }

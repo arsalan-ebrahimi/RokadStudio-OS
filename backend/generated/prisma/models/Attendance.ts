@@ -48,6 +48,9 @@ export type AttendanceMinAggregateOutputType = {
   decidedById: number | null
   decidedAt: Date | null
   reason: string | null
+  workNote: string | null
+  workNoteAt: Date | null
+  workNotePromptedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -62,6 +65,9 @@ export type AttendanceMaxAggregateOutputType = {
   decidedById: number | null
   decidedAt: Date | null
   reason: string | null
+  workNote: string | null
+  workNoteAt: Date | null
+  workNotePromptedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -76,6 +82,9 @@ export type AttendanceCountAggregateOutputType = {
   decidedById: number
   decidedAt: number
   reason: number
+  workNote: number
+  workNoteAt: number
+  workNotePromptedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -104,6 +113,9 @@ export type AttendanceMinAggregateInputType = {
   decidedById?: true
   decidedAt?: true
   reason?: true
+  workNote?: true
+  workNoteAt?: true
+  workNotePromptedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -118,6 +130,9 @@ export type AttendanceMaxAggregateInputType = {
   decidedById?: true
   decidedAt?: true
   reason?: true
+  workNote?: true
+  workNoteAt?: true
+  workNotePromptedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -132,6 +147,9 @@ export type AttendanceCountAggregateInputType = {
   decidedById?: true
   decidedAt?: true
   reason?: true
+  workNote?: true
+  workNoteAt?: true
+  workNotePromptedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -233,6 +251,9 @@ export type AttendanceGroupByOutputType = {
   decidedById: number | null
   decidedAt: Date | null
   reason: string | null
+  workNote: string | null
+  workNoteAt: Date | null
+  workNotePromptedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: AttendanceCountAggregateOutputType | null
@@ -270,6 +291,9 @@ export type AttendanceWhereInput = {
   decidedById?: Prisma.IntNullableFilter<"Attendance"> | number | null
   decidedAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
   reason?: Prisma.StringNullableFilter<"Attendance"> | string | null
+  workNote?: Prisma.StringNullableFilter<"Attendance"> | string | null
+  workNoteAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
+  workNotePromptedAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Attendance"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Attendance"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -287,6 +311,9 @@ export type AttendanceOrderByWithRelationInput = {
   decidedById?: Prisma.SortOrderInput | Prisma.SortOrder
   decidedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   reason?: Prisma.SortOrderInput | Prisma.SortOrder
+  workNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  workNoteAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  workNotePromptedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -308,6 +335,9 @@ export type AttendanceWhereUniqueInput = Prisma.AtLeast<{
   decidedById?: Prisma.IntNullableFilter<"Attendance"> | number | null
   decidedAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
   reason?: Prisma.StringNullableFilter<"Attendance"> | string | null
+  workNote?: Prisma.StringNullableFilter<"Attendance"> | string | null
+  workNoteAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
+  workNotePromptedAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Attendance"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Attendance"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -325,6 +355,9 @@ export type AttendanceOrderByWithAggregationInput = {
   decidedById?: Prisma.SortOrderInput | Prisma.SortOrder
   decidedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   reason?: Prisma.SortOrderInput | Prisma.SortOrder
+  workNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  workNoteAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  workNotePromptedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.AttendanceCountOrderByAggregateInput
@@ -347,6 +380,9 @@ export type AttendanceScalarWhereWithAggregatesInput = {
   decidedById?: Prisma.IntNullableWithAggregatesFilter<"Attendance"> | number | null
   decidedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Attendance"> | Date | string | null
   reason?: Prisma.StringNullableWithAggregatesFilter<"Attendance"> | string | null
+  workNote?: Prisma.StringNullableWithAggregatesFilter<"Attendance"> | string | null
+  workNoteAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Attendance"> | Date | string | null
+  workNotePromptedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Attendance"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Attendance"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Attendance"> | Date | string
 }
@@ -358,6 +394,9 @@ export type AttendanceCreateInput = {
   source: $Enums.DecisionSource
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAttendancesInput
@@ -375,6 +414,9 @@ export type AttendanceUncheckedCreateInput = {
   decidedById?: number | null
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutAttendanceInput
@@ -387,6 +429,9 @@ export type AttendanceUpdateInput = {
   source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAttendancesNestedInput
@@ -404,6 +449,9 @@ export type AttendanceUncheckedUpdateInput = {
   decidedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutAttendanceNestedInput
@@ -419,6 +467,9 @@ export type AttendanceCreateManyInput = {
   decidedById?: number | null
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -430,6 +481,9 @@ export type AttendanceUpdateManyMutationInput = {
   source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -444,6 +498,9 @@ export type AttendanceUncheckedUpdateManyInput = {
   decidedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -473,6 +530,9 @@ export type AttendanceCountOrderByAggregateInput = {
   decidedById?: Prisma.SortOrder
   decidedAt?: Prisma.SortOrder
   reason?: Prisma.SortOrder
+  workNote?: Prisma.SortOrder
+  workNoteAt?: Prisma.SortOrder
+  workNotePromptedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -493,6 +553,9 @@ export type AttendanceMaxOrderByAggregateInput = {
   decidedById?: Prisma.SortOrder
   decidedAt?: Prisma.SortOrder
   reason?: Prisma.SortOrder
+  workNote?: Prisma.SortOrder
+  workNoteAt?: Prisma.SortOrder
+  workNotePromptedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -507,6 +570,9 @@ export type AttendanceMinOrderByAggregateInput = {
   decidedById?: Prisma.SortOrder
   decidedAt?: Prisma.SortOrder
   reason?: Prisma.SortOrder
+  workNote?: Prisma.SortOrder
+  workNoteAt?: Prisma.SortOrder
+  workNotePromptedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -639,6 +705,9 @@ export type AttendanceCreateWithoutUserInput = {
   source: $Enums.DecisionSource
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   decidedBy?: Prisma.UserCreateNestedOneWithoutDecidedAttendancesInput
@@ -654,6 +723,9 @@ export type AttendanceUncheckedCreateWithoutUserInput = {
   decidedById?: number | null
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutAttendanceInput
@@ -676,6 +748,9 @@ export type AttendanceCreateWithoutDecidedByInput = {
   source: $Enums.DecisionSource
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAttendancesInput
@@ -691,6 +766,9 @@ export type AttendanceUncheckedCreateWithoutDecidedByInput = {
   source: $Enums.DecisionSource
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutAttendanceInput
@@ -735,6 +813,9 @@ export type AttendanceScalarWhereInput = {
   decidedById?: Prisma.IntNullableFilter<"Attendance"> | number | null
   decidedAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
   reason?: Prisma.StringNullableFilter<"Attendance"> | string | null
+  workNote?: Prisma.StringNullableFilter<"Attendance"> | string | null
+  workNoteAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
+  workNotePromptedAt?: Prisma.DateTimeNullableFilter<"Attendance"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Attendance"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Attendance"> | Date | string
 }
@@ -762,6 +843,9 @@ export type AttendanceCreateWithoutWorkSessionsInput = {
   source: $Enums.DecisionSource
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAttendancesInput
@@ -778,6 +862,9 @@ export type AttendanceUncheckedCreateWithoutWorkSessionsInput = {
   decidedById?: number | null
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -805,6 +892,9 @@ export type AttendanceUpdateWithoutWorkSessionsInput = {
   source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAttendancesNestedInput
@@ -821,6 +911,9 @@ export type AttendanceUncheckedUpdateWithoutWorkSessionsInput = {
   decidedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -834,6 +927,9 @@ export type AttendanceCreateManyUserInput = {
   decidedById?: number | null
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -847,6 +943,9 @@ export type AttendanceCreateManyDecidedByInput = {
   source: $Enums.DecisionSource
   decidedAt?: Date | string | null
   reason?: string | null
+  workNote?: string | null
+  workNoteAt?: Date | string | null
+  workNotePromptedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -858,6 +957,9 @@ export type AttendanceUpdateWithoutUserInput = {
   source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   decidedBy?: Prisma.UserUpdateOneWithoutDecidedAttendancesNestedInput
@@ -873,6 +975,9 @@ export type AttendanceUncheckedUpdateWithoutUserInput = {
   decidedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutAttendanceNestedInput
@@ -887,6 +992,9 @@ export type AttendanceUncheckedUpdateManyWithoutUserInput = {
   decidedById?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -898,6 +1006,9 @@ export type AttendanceUpdateWithoutDecidedByInput = {
   source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAttendancesNestedInput
@@ -913,6 +1024,9 @@ export type AttendanceUncheckedUpdateWithoutDecidedByInput = {
   source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutAttendanceNestedInput
@@ -927,6 +1041,9 @@ export type AttendanceUncheckedUpdateManyWithoutDecidedByInput = {
   source?: Prisma.EnumDecisionSourceFieldUpdateOperationsInput | $Enums.DecisionSource
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workNoteAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workNotePromptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -972,6 +1089,9 @@ export type AttendanceSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   decidedById?: boolean
   decidedAt?: boolean
   reason?: boolean
+  workNote?: boolean
+  workNoteAt?: boolean
+  workNotePromptedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -990,6 +1110,9 @@ export type AttendanceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   decidedById?: boolean
   decidedAt?: boolean
   reason?: boolean
+  workNote?: boolean
+  workNoteAt?: boolean
+  workNotePromptedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1006,6 +1129,9 @@ export type AttendanceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   decidedById?: boolean
   decidedAt?: boolean
   reason?: boolean
+  workNote?: boolean
+  workNoteAt?: boolean
+  workNotePromptedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1022,11 +1148,14 @@ export type AttendanceSelectScalar = {
   decidedById?: boolean
   decidedAt?: boolean
   reason?: boolean
+  workNote?: boolean
+  workNoteAt?: boolean
+  workNotePromptedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AttendanceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "date" | "status" | "approval" | "source" | "decidedById" | "decidedAt" | "reason" | "createdAt" | "updatedAt", ExtArgs["result"]["attendance"]>
+export type AttendanceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "date" | "status" | "approval" | "source" | "decidedById" | "decidedAt" | "reason" | "workNote" | "workNoteAt" | "workNotePromptedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["attendance"]>
 export type AttendanceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   decidedBy?: boolean | Prisma.Attendance$decidedByArgs<ExtArgs>
@@ -1059,6 +1188,9 @@ export type $AttendancePayload<ExtArgs extends runtime.Types.Extensions.Internal
     decidedById: number | null
     decidedAt: Date | null
     reason: string | null
+    workNote: string | null
+    workNoteAt: Date | null
+    workNotePromptedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["attendance"]>
@@ -1496,6 +1628,9 @@ export interface AttendanceFieldRefs {
   readonly decidedById: Prisma.FieldRef<"Attendance", 'Int'>
   readonly decidedAt: Prisma.FieldRef<"Attendance", 'DateTime'>
   readonly reason: Prisma.FieldRef<"Attendance", 'String'>
+  readonly workNote: Prisma.FieldRef<"Attendance", 'String'>
+  readonly workNoteAt: Prisma.FieldRef<"Attendance", 'DateTime'>
+  readonly workNotePromptedAt: Prisma.FieldRef<"Attendance", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Attendance", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Attendance", 'DateTime'>
 }

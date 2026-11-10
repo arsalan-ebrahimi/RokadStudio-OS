@@ -211,6 +211,13 @@ export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
 }
 
+export type EnumPerformanceLevelNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPerformanceLevelNullableFilter<$PrismaModel> | $Enums.PerformanceLevel | null
+}
+
 export type DateTimeNullableFilter<$PrismaModel = never> = {
   equals?: Date | string | Prisma.DateTimeFieldRefInput<$PrismaModel> | null
   in?: Date[] | string[] | Prisma.ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -222,11 +229,14 @@ export type DateTimeNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
 }
 
-export type EnumSprintStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.SprintStatus | Prisma.EnumSprintStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumSprintStatusFilter<$PrismaModel> | $Enums.SprintStatus
+export type EnumPerformanceLevelNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPerformanceLevelNullableWithAggregatesFilter<$PrismaModel> | $Enums.PerformanceLevel | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPerformanceLevelNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPerformanceLevelNullableFilter<$PrismaModel>
 }
 
 export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -241,6 +251,30 @@ export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
+}
+
+export type EnumPerformanceLevelFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPerformanceLevelFilter<$PrismaModel> | $Enums.PerformanceLevel
+}
+
+export type EnumPerformanceLevelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPerformanceLevelWithAggregatesFilter<$PrismaModel> | $Enums.PerformanceLevel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPerformanceLevelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPerformanceLevelFilter<$PrismaModel>
+}
+
+export type EnumSprintStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.SprintStatus | Prisma.EnumSprintStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSprintStatusFilter<$PrismaModel> | $Enums.SprintStatus
 }
 
 export type EnumSprintStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -575,6 +609,13 @@ export type NestedFloatNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
 }
 
+export type NestedEnumPerformanceLevelNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPerformanceLevelNullableFilter<$PrismaModel> | $Enums.PerformanceLevel | null
+}
+
 export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
   equals?: Date | string | Prisma.DateTimeFieldRefInput<$PrismaModel> | null
   in?: Date[] | string[] | Prisma.ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -586,11 +627,14 @@ export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
 }
 
-export type NestedEnumSprintStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.SprintStatus | Prisma.EnumSprintStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumSprintStatusFilter<$PrismaModel> | $Enums.SprintStatus
+export type NestedEnumPerformanceLevelNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumPerformanceLevelNullableWithAggregatesFilter<$PrismaModel> | $Enums.PerformanceLevel | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPerformanceLevelNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPerformanceLevelNullableFilter<$PrismaModel>
 }
 
 export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -605,6 +649,30 @@ export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumPerformanceLevelFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPerformanceLevelFilter<$PrismaModel> | $Enums.PerformanceLevel
+}
+
+export type NestedEnumPerformanceLevelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PerformanceLevel | Prisma.EnumPerformanceLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PerformanceLevel[] | Prisma.ListEnumPerformanceLevelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPerformanceLevelWithAggregatesFilter<$PrismaModel> | $Enums.PerformanceLevel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPerformanceLevelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPerformanceLevelFilter<$PrismaModel>
+}
+
+export type NestedEnumSprintStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.SprintStatus | Prisma.EnumSprintStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.SprintStatus[] | Prisma.ListEnumSprintStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumSprintStatusFilter<$PrismaModel> | $Enums.SprintStatus
 }
 
 export type NestedEnumSprintStatusWithAggregatesFilter<$PrismaModel = never> = {

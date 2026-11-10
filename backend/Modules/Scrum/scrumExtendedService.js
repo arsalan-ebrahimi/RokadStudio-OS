@@ -12,9 +12,13 @@ import {
   MAX_LIST_LIMIT,
   getTehranPersianDayOfWeek,
 } from "./scrumService.js";
+import { getAdministeredScrumIds, isScrumAdminOf } from "./scrumAccess.js";
 import {
   LEADERBOARD_EXCLUDED_ROLES,
   isLeaderboardEligibleMember,
+  canViewAttendanceTotals,
+  fetchGroupedAttendanceTotals,
+  serializeScrumMemberPerformance,
 } from "./scrumScope.js";
 
 export { LEADERBOARD_EXCLUDED_ROLES, isLeaderboardEligibleMember };
@@ -94,12 +98,8 @@ const assertValidTaskAssignees = async (db, scrumId, userIds = []) => {
     where: {
       id: { in: uniqueIds },
       isActive: true,
-      role: { in: ["USER", "SCRUM_ADMIN", "SUPER_ADMIN"] },
-      OR: [
-        { scrumMembers: { some: { scrumId } } },
-        { scrumAdmins: { some: { scrumId } } },
-        { role: "SUPER_ADMIN" },
-      ],
+      role: { in: ["USER", "SCRUM_ADMIN", "ADMIN"] },
+      scrumMembers: { some: { scrumId } },
     },
     select: { id: true },
   });
@@ -222,8 +222,29 @@ export const getMyScrumTasksService = async (
   { scrumId, isActive, search, date, dateFrom, dateTo } = {},
   currentUser
 ) => {
+  if (currentUser.role === "SUPER_ADMIN") {
+    return {
+      scrums: [],
+      tasks: [],
+      summary: {
+        totalTasks: 0,
+        activeTasks: 0,
+        workedTasksCount: 0,
+        totalPoints: 0,
+        approvedSeconds: 0,
+        pendingSeconds: 0,
+        rejectedSeconds: 0,
+        totalSeconds: 0,
+        sessionCount: 0,
+      },
+    };
+  }
+
   const taskWhere = {
     members: { some: { userId: currentUser.id } },
+    scrum: {
+      members: { some: { userId: currentUser.id } },
+    },
   };
 
   if (scrumId !== undefined && scrumId !== null && scrumId !== "") {
@@ -244,6 +265,7 @@ export const getMyScrumTasksService = async (
   const [scrumOptions, tasks] = await Promise.all([
     prisma.scrum.findMany({
       where: {
+        members: { some: { userId: currentUser.id } },
         tasks: {
           some: {
             members: { some: { userId: currentUser.id } },
@@ -713,7 +735,10 @@ export const getTaskWorkSessionsService = async (
     source: s.source,
     decidedBy: s.decidedBy || null,
     decidedAt: s.decidedAt || null,
-    canModerate: canEditContent && !(currentUser.role !== "SUPER_ADMIN" && s.user.role === "SUPER_ADMIN"),
+    canModerate:
+      canEditContent &&
+      s.user.id !== currentUser.id &&
+      !(currentUser.role !== "SUPER_ADMIN" && s.user.role === "SUPER_ADMIN"),
     canDelete: isSuperAdmin,
   }));
 
@@ -745,7 +770,7 @@ export const getTaskWorkSessionsService = async (
 
 export const getScrumLeaderboardService = async (
   scrumId,
-  { period = "SPRINT", sprintId } = {},
+  { period = "SPRINT", sprintId, include } = {},
   currentUser,
   now = new Date()
 ) => {
@@ -863,54 +888,70 @@ export const getScrumLeaderboardService = async (
     periodFilterSql = Prisma.sql`t."scrumId" = ${scrumId}`;
   }
 
-  // Single DB query joining ScrumMembers + caller against approved & pending Task WorkSessions
-  const rawRows = await prisma.$queryRaw(Prisma.sql`
-    WITH scoped_users AS (
-      SELECT sm."userId", TRUE AS "isScrumMember"
-      FROM "ScrumMember" sm
-      WHERE sm."scrumId" = ${scrumId}
-      UNION
+  const [isViewerScrumAdmin, rawRows] = await Promise.all([
+    currentUser.role === "SUPER_ADMIN"
+      ? Promise.resolve(true)
+      : isScrumAdminOf(currentUser, scrumId),
+    // Single DB query joining ScrumMembers + caller against approved & pending Task WorkSessions
+    prisma.$queryRaw(Prisma.sql`
+      WITH scoped_users AS (
+        SELECT sm."userId", TRUE AS "isScrumMember"
+        FROM "ScrumMember" sm
+        WHERE sm."scrumId" = ${scrumId}
+        UNION
+        SELECT
+          ${currentUser.id}::int AS "userId",
+          EXISTS (
+            SELECT 1
+            FROM "ScrumMember" sm2
+            WHERE sm2."scrumId" = ${scrumId} AND sm2."userId" = ${currentUser.id}
+          ) AS "isScrumMember"
+      ),
+      session_agg AS (
+        SELECT
+          ws."userId",
+          COALESCE(SUM(ws."durationSeconds") FILTER (WHERE ws."approval" = 'APPROVED'), 0)::bigint AS "approvedSeconds",
+          COUNT(*) FILTER (WHERE ws."approval" = 'APPROVED')::int AS "sessionCount",
+          COALESCE(SUM(ws."durationSeconds") FILTER (WHERE ws."approval" = 'PENDING'), 0)::bigint AS "pendingSeconds"
+        FROM "WorkSession" ws
+        JOIN "Attendance" a ON a."id" = ws."attendanceId"
+        JOIN "Task" t ON t."id" = ws."taskId"
+        WHERE a."approval" <> 'REJECTED'
+          AND ws."approval" IN ('APPROVED', 'PENDING')
+          AND (${periodFilterSql})
+        GROUP BY ws."userId"
+      )
       SELECT
-        ${currentUser.id}::int AS "userId",
-        EXISTS (
-          SELECT 1
-          FROM "ScrumMember" sm2
-          WHERE sm2."scrumId" = ${scrumId} AND sm2."userId" = ${currentUser.id}
-        ) AS "isScrumMember"
-    ),
-    session_agg AS (
-      SELECT
-        ws."userId",
-        COALESCE(SUM(ws."durationSeconds") FILTER (WHERE ws."approval" = 'APPROVED'), 0)::bigint AS "approvedSeconds",
-        COUNT(*) FILTER (WHERE ws."approval" = 'APPROVED')::int AS "sessionCount",
-        COALESCE(SUM(ws."durationSeconds") FILTER (WHERE ws."approval" = 'PENDING'), 0)::bigint AS "pendingSeconds"
-      FROM "WorkSession" ws
-      JOIN "Attendance" a ON a."id" = ws."attendanceId"
-      JOIN "Task" t ON t."id" = ws."taskId"
-      WHERE a."approval" <> 'REJECTED'
-        AND ws."approval" IN ('APPROVED', 'PENDING')
-        AND (${periodFilterSql})
-      GROUP BY ws."userId"
-    )
-    SELECT
-      u."id"::int AS "id",
-      u."name" AS "name",
-      u."role"::text AS "role",
-      su."isScrumMember" AS "isScrumMember",
-      COALESCE(sa."approvedSeconds", 0)::bigint AS "approvedSeconds",
-      COALESCE(sa."sessionCount", 0)::int AS "sessionCount",
-      COALESCE(sa."pendingSeconds", 0)::bigint AS "pendingSeconds"
-    FROM scoped_users su
-    JOIN "User" u ON u."id" = su."userId"
-    LEFT JOIN session_agg sa ON sa."userId" = u."id"
-    ORDER BY COALESCE(sa."approvedSeconds", 0) DESC, u."name" ASC
-  `);
+        u."id"::int AS "id",
+        u."name" AS "name",
+        u."role"::text AS "role",
+        su."isScrumMember" AS "isScrumMember",
+        sm."performance"::text AS "performance",
+        sm."performanceNote" AS "performanceNote",
+        sm."performanceUpdatedAt" AS "performanceUpdatedAt",
+        COALESCE(sa."approvedSeconds", 0)::bigint AS "approvedSeconds",
+        COALESCE(sa."sessionCount", 0)::int AS "sessionCount",
+        COALESCE(sa."pendingSeconds", 0)::bigint AS "pendingSeconds"
+      FROM scoped_users su
+      JOIN "User" u ON u."id" = su."userId"
+      LEFT JOIN "ScrumMember" sm ON sm."scrumId" = ${scrumId} AND sm."userId" = u."id"
+      LEFT JOIN session_agg sa ON sa."userId" = u."id"
+      ORDER BY COALESCE(sa."approvedSeconds", 0) DESC, u."name" ASC
+    `),
+  ]);
 
   const memberRows = rawRows.filter(isLeaderboardEligibleMember);
+  const shouldIncludeAttendanceTotals =
+    include === "attendanceTotals" && canViewAttendanceTotals(currentUser, isViewerScrumAdmin);
+  const totalsMap =
+    shouldIncludeAttendanceTotals && memberRows.length > 0
+      ? await fetchGroupedAttendanceTotals(memberRows.map((r) => Number(r.id)))
+      : null;
 
   let prevRank = 0;
   let prevSeconds = null;
   const rows = memberRows.map((r, idx) => {
+    const memberId = Number(r.id);
     const approvedSeconds = Number(r.approvedSeconds || 0);
     const sessionCount = Number(r.sessionCount || 0);
     const rank = idx === 0 ? 1 : approvedSeconds === prevSeconds ? prevRank : idx + 1;
@@ -920,12 +961,24 @@ export const getScrumLeaderboardService = async (
     return {
       rank,
       user: {
-        id: Number(r.id),
+        id: memberId,
         name: r.name,
       },
       approvedSeconds,
       sessionCount,
-      isMe: Number(r.id) === currentUser.id,
+      isMe: memberId === currentUser.id,
+      ...serializeScrumMemberPerformance(r, currentUser, memberId, {
+        isScrumAdminOfScrum: isViewerScrumAdmin,
+      }),
+      ...(totalsMap
+        ? {
+            attendanceTotals: totalsMap.get(memberId) || {
+              present: 0,
+              pending: 0,
+              absent: 0,
+            },
+          }
+        : {}),
     };
   });
 
@@ -956,9 +1009,29 @@ export const getScrumLeaderboardService = async (
 
 export const getScrumAdminDashboardService = async (currentUser, now = new Date()) => {
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
-  const scrumWhere = isSuperAdmin
-    ? { isActive: true }
-    : { isActive: true, admins: { some: { userId: currentUser.id } } };
+  let scrumWhere = { isActive: true };
+
+  if (!isSuperAdmin) {
+    const administeredIds = await getAdministeredScrumIds(currentUser);
+    if (currentUser.role === "ADMIN" && administeredIds.length === 0) {
+      throw new HandleERROR("شما ادمین هیچ اسکرامی نیستید", 403);
+    }
+    if (administeredIds.length === 0) {
+      return {
+        totals: {
+          scrums: 0,
+          members: 0,
+          activeSprints: 0,
+          activeTasks: 0,
+          totalTasks: 0,
+          totalTaskPoints: 0,
+        },
+        scrums: [],
+        todayEvents: [],
+      };
+    }
+    scrumWhere = { isActive: true, id: { in: administeredIds } };
+  }
 
   const scrums = await prisma.scrum.findMany({
     where: scrumWhere,

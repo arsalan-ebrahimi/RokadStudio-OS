@@ -2,7 +2,17 @@ import { HandleERROR } from "vanta-api";
 import { Prisma } from "../../generated/prisma/client.ts";
 import prisma from "../../config/prisma.js";
 import { todayDate, toDateOnly, formatDate, getTimezoneParts } from "../../Utils/date.js";
-import { getVisibleScrumsWhere } from "./scrumAccess.js";
+import { invalidateUserAuthCache, invalidateUsersAuthCache } from "../../Utils/cache.js";
+import {
+  getVisibleScrumsWhere,
+  isScrumAdminOf,
+  isScrumAdminRole,
+} from "./scrumAccess.js";
+import {
+  canViewAttendanceTotals,
+  fetchGroupedAttendanceTotals,
+  serializeScrumMemberPerformance,
+} from "./scrumScope.js";
 import { serializeKpiRows } from "./kpiSerializer.js";
 import { isEventRowEmpty } from "./scrumValidator.js";
 
@@ -21,7 +31,7 @@ export const getTehranPersianDayOfWeek = (now = new Date()) => {
 
 export const buildScrumAccessMeta = (currentUser, isAssignedAdmin) => {
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
-  const isScrumAdmin = currentUser.role === "SCRUM_ADMIN" && Boolean(isAssignedAdmin);
+  const isScrumAdmin = isScrumAdminRole(currentUser.role) && Boolean(isAssignedAdmin);
   const canEditContent = isSuperAdmin || isScrumAdmin;
   const myRole = isSuperAdmin ? "SUPER_ADMIN" : isScrumAdmin ? "ADMIN" : "MEMBER";
   return {
@@ -43,20 +53,43 @@ const assertValidScrumAdminUsers = async (db, adminIds = []) => {
     where: {
       id: { in: uniqueIds },
       isActive: true,
-      role: "SCRUM_ADMIN",
+      role: { in: ["SCRUM_ADMIN", "ADMIN"] },
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, role: true },
     orderBy: { name: "asc" },
   });
 
   if (users.length !== uniqueIds.length) {
     throw new HandleERROR(
-      "همه ادمین‌های اسکرام باید کاربر فعال با نقش SCRUM_ADMIN باشند",
+      "همه ادمین‌های اسکرام باید کاربر فعال با نقش SCRUM_ADMIN یا ADMIN باشند",
       422
     );
   }
 
   return users;
+};
+
+/**
+ * Shared helper removing ScrumMember rows along with any TaskMember assignments inside `scrumId`.
+ * Reused across syncScrumMembers, admin removal (when removing membership), and membership toggle.
+ */
+export const removeScrumMembershipAndTasks = async (tx, scrumId, userIds = []) => {
+  const uniqueIds = [...new Set(userIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+  if (uniqueIds.length === 0) return;
+
+  await tx.taskMember.deleteMany({
+    where: {
+      task: { scrumId },
+      userId: { in: uniqueIds },
+    },
+  });
+
+  await tx.scrumMember.deleteMany({
+    where: {
+      scrumId,
+      userId: { in: uniqueIds },
+    },
+  });
 };
 
 const formatEventRow = (e) => ({
@@ -177,12 +210,37 @@ export const listScrumsService = async (currentUser) => {
   }));
 };
 
-export const createScrumService = async ({ name, description, color, adminIds = [] }, currentUser) => {
+export const createScrumService = async (
+  { name, description, color, admins = [] },
+  currentUser
+) => {
   if (currentUser.role !== "SUPER_ADMIN") {
     throw new HandleERROR("فقط سوپرادمین مجاز به ایجاد اسکرام است", 403);
   }
 
-  const uniqueAdminIds = [...new Set((adminIds || []).map(Number))];
+  const adminEntries = Array.isArray(admins) ? admins : [];
+  for (let i = 0; i < adminEntries.length; i++) {
+    const entry = adminEntries[i];
+    if (
+      !entry ||
+      typeof entry !== "object" ||
+      typeof entry.alsoMember !== "boolean"
+    ) {
+      throw new HandleERROR(
+        `فیلد alsoMember (boolean) در ردیف ادمین ${i + 1} الزامی است`,
+        422
+      );
+    }
+  }
+
+  const uniqueAdminIds = [...new Set(adminEntries.map((a) => Number(a.userId)))];
+  if (uniqueAdminIds.length !== adminEntries.length) {
+    throw new HandleERROR("شناسه کاربران در لیست admins نباید تکراری باشد", 400);
+  }
+
+  const memberAdminIds = adminEntries
+    .filter((a) => a.alsoMember === true)
+    .map((a) => Number(a.userId));
 
   const created = await prisma.$transaction(async (tx) => {
     await assertValidScrumAdminUsers(tx, uniqueAdminIds);
@@ -205,13 +263,66 @@ export const createScrumService = async ({ name, description, color, adminIds = 
       });
     }
 
+    if (memberAdminIds.length > 0) {
+      await tx.scrumMember.createMany({
+        data: memberAdminIds.map((userId) => ({
+          scrumId: scrum.id,
+          userId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     return scrum;
   });
+
+  if (uniqueAdminIds.length > 0) {
+    await invalidateUsersAuthCache(uniqueAdminIds);
+  }
 
   return await getScrumDetailsService(created.id, currentUser);
 };
 
-export const getScrumDetailsService = async (scrumId, currentUser) => {
+const formatScrumMembersPayload = async (
+  scrumMembers = [],
+  adminUserIdSet,
+  currentUser,
+  isAssignedAdmin,
+  { includeAttendanceTotals = false } = {}
+) => {
+  const memberUserIds = scrumMembers.map((m) => m.user.id);
+  const allowAttendanceTotals =
+    includeAttendanceTotals && canViewAttendanceTotals(currentUser, isAssignedAdmin);
+  const totalsMap =
+    allowAttendanceTotals && memberUserIds.length > 0
+      ? await fetchGroupedAttendanceTotals(memberUserIds)
+      : null;
+
+  return scrumMembers.map((m) => ({
+    id: m.user.id,
+    name: m.user.name,
+    label: m.label || null,
+    isAdmin: adminUserIdSet.has(m.user.id),
+    ...serializeScrumMemberPerformance(m, currentUser, m.user.id, {
+      isScrumAdminOfScrum: isAssignedAdmin,
+    }),
+    ...(totalsMap
+      ? {
+          attendanceTotals: totalsMap.get(m.user.id) || {
+            present: 0,
+            pending: 0,
+            absent: 0,
+          },
+        }
+      : {}),
+  }));
+};
+
+export const getScrumDetailsService = async (
+  scrumId,
+  currentUser,
+  { includeAttendanceTotals = false } = {}
+) => {
   const scrum = await prisma.scrum.findUnique({
     where: { id: scrumId },
     select: {
@@ -228,6 +339,7 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
             select: {
               id: true,
               name: true,
+              role: true,
             },
           },
         },
@@ -236,6 +348,9 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
       members: {
         select: {
           label: true,
+          performance: true,
+          performanceNote: true,
+          performanceUpdatedAt: true,
           user: {
             select: {
               id: true,
@@ -265,21 +380,37 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
     throw new HandleERROR("اسکرام یافت نشد", 404);
   }
 
+  const adminUserIdSet = new Set(scrum.admins.map((a) => a.user.id));
+  const memberUserIdSet = new Set(scrum.members.map((m) => m.user.id));
+
   const admins = scrum.admins.map((a) => ({
     id: a.user.id,
     name: a.user.name,
+    role: a.user.role,
+    isMember: memberUserIdSet.has(a.user.id),
   }));
-  const isAssignedAdmin = admins.some((a) => a.id === currentUser.id);
+
+  const isAssignedAdmin =
+    isScrumAdminRole(currentUser.role) && adminUserIdSet.has(currentUser.id);
   const meta = buildScrumAccessMeta(currentUser, isAssignedAdmin);
 
-  const visibleTaskCount = meta.permissions.canEditContent
-    ? scrum._count.tasks
-    : await prisma.task.count({
-        where: {
-          scrumId,
-          members: { some: { userId: currentUser.id } },
-        },
-      });
+  const [visibleTaskCount, membersPayload] = await Promise.all([
+    meta.permissions.canEditContent
+      ? Promise.resolve(scrum._count.tasks)
+      : prisma.task.count({
+          where: {
+            scrumId,
+            members: { some: { userId: currentUser.id } },
+          },
+        }),
+    formatScrumMembersPayload(
+      scrum.members,
+      adminUserIdSet,
+      currentUser,
+      isAssignedAdmin,
+      { includeAttendanceTotals }
+    ),
+  ]);
 
   return {
     id: scrum.id,
@@ -294,63 +425,232 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
     activeSprint: scrum.sprints[0] || null,
     createdAt: scrum.createdAt,
     updatedAt: scrum.updatedAt,
-    members: scrum.members.map((m) => ({
-      id: m.user.id,
-      name: m.user.name,
-      label: m.label || null,
-    })),
+    members: membersPayload,
   };
 };
 
-export const syncScrumAdminsService = async (scrumId, userIds = [], currentUser) => {
-  const targetIds = [...new Set((userIds || []).map(Number))];
-
-  return await prisma.$transaction(async (tx) => {
-    await assertValidScrumAdminUsers(tx, targetIds);
-
-    const existing = await tx.scrumAdmin.findMany({
+export const getScrumMembersService = async (
+  scrumId,
+  currentUser,
+  { includeAttendanceTotals = false } = {}
+) => {
+  const [adminRows, members] = await Promise.all([
+    prisma.scrumAdmin.findMany({
       where: { scrumId },
+      select: { userId: true },
+    }),
+    prisma.scrumMember.findMany({
+      where: { scrumId },
+      select: {
+        label: true,
+        performance: true,
+        performanceNote: true,
+        performanceUpdatedAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { user: { name: "asc" } },
+    }),
+  ]);
+
+  const adminUserIdSet = new Set(adminRows.map((a) => a.userId));
+  const isAssignedAdmin =
+    isScrumAdminRole(currentUser.role) && adminUserIdSet.has(currentUser.id);
+
+  return await formatScrumMembersPayload(
+    members,
+    adminUserIdSet,
+    currentUser,
+    isAssignedAdmin,
+    { includeAttendanceTotals }
+  );
+};
+
+export const addScrumAdminService = async (
+  scrumId,
+  { userId, alsoMember },
+  currentUser
+) => {
+  if (typeof alsoMember !== "boolean") {
+    throw new HandleERROR("فیلد alsoMember (boolean) الزامی است", 422);
+  }
+
+  const targetUserId = Number(userId);
+  const [validUser] = await assertValidScrumAdminUsers(prisma, [targetUserId]);
+
+  await prisma.$transaction(async (tx) => {
+    const existingAdmin = await tx.scrumAdmin.findUnique({
+      where: {
+        scrumId_userId: { scrumId, userId: targetUserId },
+      },
       select: { userId: true },
     });
 
-    const existingSet = new Set(existing.map((e) => e.userId));
-    const targetSet = new Set(targetIds);
-
-    const toAdd = targetIds.filter((uid) => !existingSet.has(uid));
-    const toRemove = existing.map((e) => e.userId).filter((uid) => !targetSet.has(uid));
-
-    if (toRemove.length > 0) {
-      await tx.scrumAdmin.deleteMany({
-        where: {
-          scrumId,
-          userId: { in: toRemove },
-        },
-      });
+    if (existingAdmin) {
+      throw new HandleERROR("این کاربر هم‌اکنون ادمین این اسکرام است", 409);
     }
 
-    if (toAdd.length > 0) {
-      await tx.scrumAdmin.createMany({
-        data: toAdd.map((userId) => ({
-          scrumId,
-          userId,
-          assignedById: currentUser.id,
-        })),
-      });
-    }
-
-    const updatedAdmins = await tx.scrumAdmin.findMany({
-      where: { scrumId },
-      select: {
-        user: { select: { id: true, name: true } },
+    await tx.scrumAdmin.create({
+      data: {
+        scrumId,
+        userId: targetUserId,
+        assignedById: currentUser.id,
       },
-      orderBy: { user: { name: "asc" } },
     });
 
-    return updatedAdmins.map((a) => ({
-      id: a.user.id,
-      name: a.user.name,
-    }));
+    if (alsoMember) {
+      await tx.scrumMember.upsert({
+        where: {
+          scrumId_userId: { scrumId, userId: targetUserId },
+        },
+        create: {
+          scrumId,
+          userId: targetUserId,
+        },
+        update: {},
+      });
+    }
   });
+
+  await invalidateUserAuthCache(targetUserId);
+
+  const memberRow = await prisma.scrumMember.findUnique({
+    where: { scrumId_userId: { scrumId, userId: targetUserId } },
+    select: { userId: true },
+  });
+
+  return {
+    scrumId,
+    userId: targetUserId,
+    name: validUser.name,
+    role: validUser.role,
+    isMember: Boolean(memberRow),
+  };
+};
+
+export const removeScrumAdminService = async (
+  scrumId,
+  targetUserId,
+  { keepMembership } = {}
+) => {
+  const uid = Number(targetUserId);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const existingAdmin = await tx.scrumAdmin.findUnique({
+      where: {
+        scrumId_userId: { scrumId, userId: uid },
+      },
+      include: {
+        user: {
+          select: { id: true, role: true },
+        },
+      },
+    });
+
+    if (!existingAdmin) {
+      throw new HandleERROR("ادمین مورد نظر در این اسکرام یافت نشد", 404);
+    }
+
+    const existingMember = await tx.scrumMember.findUnique({
+      where: {
+        scrumId_userId: { scrumId, userId: uid },
+      },
+      select: { userId: true },
+    });
+
+    let removeMembership = false;
+    if (existingMember) {
+      if (existingAdmin.user.role === "ADMIN") {
+        // Studio ADMIN relates to a Scrum strictly by administering it; unassign always removes membership
+        removeMembership = true;
+      } else {
+        if (keepMembership === undefined || keepMembership === null || keepMembership === "") {
+          throw new HandleERROR(
+            "برای حذف ادمینی که عضو اسکرام است، تعیین پارامتر keepMembership (true یا false) الزامی است",
+            422
+          );
+        }
+        const parsedKeep =
+          keepMembership === true || keepMembership === "true";
+        removeMembership = !parsedKeep;
+      }
+    }
+
+    await tx.scrumAdmin.delete({
+      where: {
+        scrumId_userId: { scrumId, userId: uid },
+      },
+    });
+
+    if (removeMembership) {
+      await removeScrumMembershipAndTasks(tx, scrumId, [uid]);
+    }
+
+    return {
+      scrumId,
+      userId: uid,
+      removedMembership: removeMembership,
+      isMember: Boolean(existingMember) && !removeMembership,
+    };
+  });
+
+  await invalidateUserAuthCache(uid);
+  return result;
+};
+
+export const updateScrumAdminMembershipService = async (
+  scrumId,
+  targetUserId,
+  { isMember }
+) => {
+  const uid = Number(targetUserId);
+
+  await prisma.$transaction(async (tx) => {
+    const existingAdmin = await tx.scrumAdmin.findUnique({
+      where: {
+        scrumId_userId: { scrumId, userId: uid },
+      },
+      include: {
+        user: {
+          select: { id: true, role: true },
+        },
+      },
+    });
+
+    if (!existingAdmin) {
+      throw new HandleERROR("کاربر مورد نظر ادمین این اسکرام نیست", 404);
+    }
+
+    if (isMember) {
+      if (existingAdmin.user.role === "SUPER_ADMIN") {
+        throw new HandleERROR("سوپرادمین نمی‌تواند عضو اسکرام باشد", 422);
+      }
+      await tx.scrumMember.upsert({
+        where: {
+          scrumId_userId: { scrumId, userId: uid },
+        },
+        create: {
+          scrumId,
+          userId: uid,
+        },
+        update: {},
+      });
+    } else {
+      await removeScrumMembershipAndTasks(tx, scrumId, [uid]);
+    }
+  });
+
+  await invalidateUserAuthCache(uid);
+
+  return {
+    scrumId,
+    userId: uid,
+    isMember: Boolean(isMember),
+  };
 };
 
 export const updateScrumService = async (
@@ -379,7 +679,7 @@ export const updateScrumService = async (
 };
 
 export const deleteScrumService = async (scrumId) => {
-  await prisma.$transaction(async (tx) => {
+  const affectedUserIds = await prisma.$transaction(async (tx) => {
     const sessionCount = await tx.workSession.count({
       where: {
         task: {
@@ -395,60 +695,86 @@ export const deleteScrumService = async (scrumId) => {
       );
     }
 
+    const [admins, members] = await Promise.all([
+      tx.scrumAdmin.findMany({ where: { scrumId }, select: { userId: true } }),
+      tx.scrumMember.findMany({ where: { scrumId }, select: { userId: true } }),
+    ]);
+
     await tx.scrum.delete({
       where: { id: scrumId },
     });
+
+    return [...new Set([...admins.map((a) => a.userId), ...members.map((m) => m.userId)])];
   });
+
+  if (affectedUserIds.length > 0) {
+    await invalidateUsersAuthCache(affectedUserIds);
+  }
 };
 
-export const syncScrumMembersService = async (scrumId, memberList = []) => {
+export const syncScrumMembersService = async (scrumId, memberList = [], currentUser) => {
   const targetUserIds = memberList.map((m) => Number(m.userId));
 
-  if (targetUserIds.length > 0) {
-    const validUsers = await prisma.user.findMany({
-      where: {
-        id: { in: targetUserIds },
-        isActive: true,
-        role: { in: ["USER", "SCRUM_ADMIN", "SUPER_ADMIN"] },
-      },
-      select: { id: true },
-    });
+  const [existingAdmins, existingMembers, requestedUsers] = await Promise.all([
+    prisma.scrumAdmin.findMany({
+      where: { scrumId },
+      select: { userId: true },
+    }),
+    prisma.scrumMember.findMany({
+      where: { scrumId },
+      select: { userId: true, label: true },
+    }),
+    targetUserIds.length > 0
+      ? prisma.user.findMany({
+          where: {
+            id: { in: targetUserIds },
+            isActive: true,
+          },
+          select: { id: true, role: true },
+        })
+      : [],
+  ]);
 
-    const validIdSet = new Set(validUsers.map((u) => u.id));
-    const invalidIds = targetUserIds.filter((id) => !validIdSet.has(id));
+  const adminIdSet = new Set(existingAdmins.map((a) => a.userId));
+  const existingMap = new Map(existingMembers.map((e) => [e.userId, e.label ?? null]));
+
+  if (targetUserIds.length > 0) {
+    const userById = new Map(requestedUsers.map((u) => [u.id, u]));
+    const invalidIds = targetUserIds.filter((id) => !userById.has(id));
 
     if (invalidIds.length > 0) {
       throw new HandleERROR(
-        `کاربران با شناسه ${invalidIds.join(", ")} نامعتبر، غیرفعال یا دارای نقش غیرمجاز هستند`,
+        `کاربران با شناسه ${invalidIds.join(", ")} نامعتبر یا غیرفعال هستند`,
         400
+      );
+    }
+
+    const superAdminUsers = requestedUsers.filter((u) => u.role === "SUPER_ADMIN");
+    if (superAdminUsers.length > 0) {
+      throw new HandleERROR("سوپرادمین نمی‌تواند عضو اسکرام باشد", 422);
+    }
+
+    // ADMIN-role users cannot be added via Members sync; existing member-admins remain manageable via admin endpoints
+    const disallowedAdminAdds = requestedUsers.filter(
+      (u) => u.role === "ADMIN" && !existingMap.has(u.id)
+    );
+    if (disallowedAdminAdds.length > 0) {
+      throw new HandleERROR(
+        "کاربران با نقش ADMIN را نمی‌توان از بخش اعضا اضافه کرد؛ لطفاً از بخش ادمین‌های اسکرام و گزینه عضویت استفاده کنید",
+        422
       );
     }
   }
 
-  return await prisma.$transaction(async (tx) => {
-    const existing = await tx.scrumMember.findMany({
-      where: { scrumId },
-      select: { userId: true, label: true },
-    });
-
-    const existingMap = new Map(existing.map((e) => [e.userId, e.label ?? null]));
+  const { addedIds, removedIds, updatedMembers } = await prisma.$transaction(async (tx) => {
     const targetSet = new Set(targetUserIds);
-    const removedIds = existing.map((e) => e.userId).filter((id) => !targetSet.has(id));
+    // Users who are ScrumAdmins of S are NEVER removed by a Members sync
+    const removedIds = existingMembers
+      .map((e) => e.userId)
+      .filter((id) => !targetSet.has(id) && !adminIdSet.has(id));
 
     if (removedIds.length > 0) {
-      await tx.taskMember.deleteMany({
-        where: {
-          task: { scrumId },
-          userId: { in: removedIds },
-        },
-      });
-
-      await tx.scrumMember.deleteMany({
-        where: {
-          scrumId,
-          userId: { in: removedIds },
-        },
-      });
+      await removeScrumMembershipAndTasks(tx, scrumId, removedIds);
     }
 
     const toCreate = [];
@@ -483,17 +809,99 @@ export const syncScrumMembersService = async (scrumId, memberList = []) => {
       where: { scrumId },
       select: {
         label: true,
+        performance: true,
+        performanceNote: true,
+        performanceUpdatedAt: true,
         user: { select: { id: true, name: true } },
       },
       orderBy: { user: { name: "asc" } },
     });
 
-    return updatedMembers.map((m) => ({
-      id: m.user.id,
-      name: m.user.name,
-      label: m.label || null,
-    }));
+    return {
+      addedIds: toCreate.map((c) => c.userId),
+      removedIds,
+      updatedMembers,
+    };
   });
+
+  const membershipChangedIds = [...addedIds, ...removedIds];
+  if (membershipChangedIds.length > 0) {
+    await invalidateUsersAuthCache(membershipChangedIds);
+  }
+
+  const isAssignedAdmin =
+    Boolean(currentUser) &&
+    isScrumAdminRole(currentUser.role) &&
+    adminIdSet.has(currentUser.id);
+
+  return await formatScrumMembersPayload(
+    updatedMembers,
+    adminIdSet,
+    currentUser,
+    isAssignedAdmin
+  );
+};
+
+export const updateScrumMemberPerformanceService = async (
+  scrumId,
+  targetUserId,
+  { level, note },
+  actorUser
+) => {
+  const uid = Number(targetUserId);
+
+  if (actorUser.id === uid) {
+    throw new HandleERROR("شما مجاز به ثبت وضعیت عملکرد برای خود نیستید", 403);
+  }
+
+  const existing = await prisma.scrumMember.findUnique({
+    where: {
+      scrumId_userId: { scrumId, userId: uid },
+    },
+    select: { userId: true },
+  });
+
+  if (!existing) {
+    throw new HandleERROR("کاربر مورد نظر عضو این اسکرام نیست", 404);
+  }
+
+  const normalizedNote = typeof note === "string" && note.trim() ? note.trim() : null;
+
+  const updated = await prisma.scrumMember.update({
+    where: {
+      scrumId_userId: { scrumId, userId: uid },
+    },
+    data:
+      level === null
+        ? {
+            performance: null,
+            performanceNote: null,
+            performanceUpdatedAt: null,
+            performanceUpdatedById: null,
+          }
+        : {
+            performance: level,
+            performanceNote: normalizedNote,
+            performanceUpdatedAt: new Date(),
+            performanceUpdatedById: actorUser.id,
+          },
+    select: {
+      label: true,
+      performance: true,
+      performanceNote: true,
+      performanceUpdatedAt: true,
+      user: { select: { id: true, name: true } },
+    },
+  });
+
+  return {
+    id: updated.user.id,
+    name: updated.user.name,
+    label: updated.label || null,
+    performance: updated.performance ?? null,
+    performanceNote: updated.performanceNote ?? null,
+    performanceUpdatedAt: updated.performanceUpdatedAt ?? null,
+  };
 };
 
 export const listSprintsService = async (scrumId) => {
@@ -936,7 +1344,6 @@ export const getTodayEventsService = async (currentUser) => {
 export const getWorkTargetsMineService = async (currentUser, now = new Date()) => {
   const userId = currentUser.id;
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
-  const isAttendanceAdmin = currentUser.role === "ADMIN";
 
   // 1. Fetch active studio projects visible to user
   const candidateProjects = await prisma.project.findMany({
@@ -962,24 +1369,15 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
   }));
   const trackableProjectIds = new Set(studioProjects.map((p) => p.id));
 
-  // 2. Scrum Tasks assigned to current user (ADMIN has zero access to Scrum targets)
+  // 2. Scrum Tasks assigned to current user (relationship-based: ScrumMember + TaskMember, role != SUPER_ADMIN)
   const scrumsFormatted = [];
   const trackableTaskIds = new Set();
 
-  if (!isAttendanceAdmin) {
-    const scrumParticipationFilter = isSuperAdmin
-      ? {}
-      : {
-          OR: [
-            { members: { some: { userId } } },
-            { admins: { some: { userId } } },
-          ],
-        };
-
+  if (!isSuperAdmin) {
     const userScrums = await prisma.scrum.findMany({
       where: {
         isActive: true,
-        ...scrumParticipationFilter,
+        members: { some: { userId } },
         tasks: {
           some: {
             isActive: true,
@@ -1103,7 +1501,7 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
   for (const s of recentSessions) {
     if (recent.length >= 3) break;
 
-    if (s.taskId && s.task && !isAttendanceAdmin) {
+    if (s.taskId && s.task && !isSuperAdmin) {
       const key = `TASK_${s.taskId}`;
       if (!seen.has(key) && s.task.isActive && s.task.scrum.isActive && trackableTaskIds.has(s.taskId)) {
         seen.add(key);
@@ -1314,14 +1712,28 @@ export const getScrumReportService = async (
   }
 
   const sessionUserIds = [...new Set(groupedTaskSessions.map((g) => g.userId))];
-  const sessionUsers =
+  const [sessionUsers, scrumMemberRows, isViewerScrumAdmin] = await Promise.all([
     sessionUserIds.length > 0
-      ? await prisma.user.findMany({
+      ? prisma.user.findMany({
           where: { id: { in: sessionUserIds } },
           select: { id: true, name: true },
         })
-      : [];
+      : [],
+    prisma.scrumMember.findMany({
+      where: { scrumId },
+      select: {
+        userId: true,
+        performance: true,
+        performanceNote: true,
+        performanceUpdatedAt: true,
+      },
+    }),
+    currentUser.role === "SUPER_ADMIN"
+      ? Promise.resolve(true)
+      : isScrumAdminOf(currentUser, scrumId),
+  ]);
   const userNameMap = new Map(sessionUsers.map((u) => [u.id, u.name]));
+  const memberPerfMap = new Map(scrumMemberRows.map((m) => [m.userId, m]));
 
   const taskSessionsMap = new Map();
   for (const g of groupedTaskSessions) {
@@ -1374,18 +1786,26 @@ export const getScrumReportService = async (
     let taskSessionCount = 0;
 
     if (entries.length === 0) {
+      const firstMember = assignedMembers[0] || null;
+      const firstPerf = firstMember ? memberPerfMap.get(firstMember.id) : null;
       rows.push({
         task: taskSummaryBase,
-        member: assignedMembers[0] || null,
+        member: firstMember,
         assignedMembersCount: assignedMembers.length,
         sessionCount: 0,
         totalSeconds: 0,
         secondsPerPoint: null,
+        ...(firstMember
+          ? serializeScrumMemberPerformance(firstPerf, currentUser, firstMember.id, {
+              isScrumAdminOfScrum: isViewerScrumAdmin,
+            })
+          : {}),
       });
     } else {
       for (const entry of entries) {
         taskTotalSeconds += entry.totalSeconds;
         taskSessionCount += entry.sessionCount;
+        const entryPerf = memberPerfMap.get(entry.userId);
 
         rows.push({
           task: taskSummaryBase,
@@ -1400,6 +1820,9 @@ export const getScrumReportService = async (
             taskPoints > 0 && entry.totalSeconds > 0
               ? Math.round(entry.totalSeconds / taskPoints)
               : null,
+          ...serializeScrumMemberPerformance(entryPerf, currentUser, entry.userId, {
+            isScrumAdminOfScrum: isViewerScrumAdmin,
+          }),
         });
       }
     }

@@ -403,6 +403,7 @@ export const ModelName = {
   Scrum: 'Scrum',
   ScrumAdmin: 'ScrumAdmin',
   ScrumMember: 'ScrumMember',
+  StudioPerformance: 'StudioPerformance',
   Sprint: 'Sprint',
   Task: 'Task',
   TaskMember: 'TaskMember',
@@ -425,7 +426,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "project" | "projectMember" | "scrum" | "scrumAdmin" | "scrumMember" | "sprint" | "task" | "taskMember" | "scrumKpi" | "scrumEvent" | "attendance" | "workSession"
+    modelProps: "user" | "project" | "projectMember" | "scrum" | "scrumAdmin" | "scrumMember" | "studioPerformance" | "sprint" | "task" | "taskMember" | "scrumKpi" | "scrumEvent" | "attendance" | "workSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -870,6 +871,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ScrumMemberCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ScrumMemberCountAggregateOutputType> | number
+        }
+      }
+    }
+    StudioPerformance: {
+      payload: Prisma.$StudioPerformancePayload<ExtArgs>
+      fields: Prisma.StudioPerformanceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StudioPerformanceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StudioPerformanceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>
+        }
+        findFirst: {
+          args: Prisma.StudioPerformanceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StudioPerformanceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>
+        }
+        findMany: {
+          args: Prisma.StudioPerformanceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>[]
+        }
+        create: {
+          args: Prisma.StudioPerformanceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>
+        }
+        createMany: {
+          args: Prisma.StudioPerformanceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StudioPerformanceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>[]
+        }
+        delete: {
+          args: Prisma.StudioPerformanceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>
+        }
+        update: {
+          args: Prisma.StudioPerformanceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>
+        }
+        deleteMany: {
+          args: Prisma.StudioPerformanceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StudioPerformanceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StudioPerformanceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>[]
+        }
+        upsert: {
+          args: Prisma.StudioPerformanceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioPerformancePayload>
+        }
+        aggregate: {
+          args: Prisma.StudioPerformanceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStudioPerformance>
+        }
+        groupBy: {
+          args: Prisma.StudioPerformanceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StudioPerformanceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StudioPerformanceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StudioPerformanceCountAggregateOutputType> | number
         }
       }
     }
@@ -1492,10 +1567,25 @@ export type ScrumAdminScalarFieldEnum = (typeof ScrumAdminScalarFieldEnum)[keyof
 export const ScrumMemberScalarFieldEnum = {
   scrumId: 'scrumId',
   userId: 'userId',
-  label: 'label'
+  label: 'label',
+  performance: 'performance',
+  performanceNote: 'performanceNote',
+  performanceUpdatedAt: 'performanceUpdatedAt',
+  performanceUpdatedById: 'performanceUpdatedById'
 } as const
 
 export type ScrumMemberScalarFieldEnum = (typeof ScrumMemberScalarFieldEnum)[keyof typeof ScrumMemberScalarFieldEnum]
+
+
+export const StudioPerformanceScalarFieldEnum = {
+  userId: 'userId',
+  level: 'level',
+  note: 'note',
+  updatedAt: 'updatedAt',
+  updatedById: 'updatedById'
+} as const
+
+export type StudioPerformanceScalarFieldEnum = (typeof StudioPerformanceScalarFieldEnum)[keyof typeof StudioPerformanceScalarFieldEnum]
 
 
 export const SprintScalarFieldEnum = {
@@ -1588,6 +1678,9 @@ export const AttendanceScalarFieldEnum = {
   decidedById: 'decidedById',
   decidedAt: 'decidedAt',
   reason: 'reason',
+  workNote: 'workNote',
+  workNoteAt: 'workNoteAt',
+  workNotePromptedAt: 'workNotePromptedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1719,6 +1812,20 @@ export type EnumScrumColorFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
  * Reference to a field of type 'ScrumColor[]'
  */
 export type ListEnumScrumColorFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScrumColor[]'>
+    
+
+
+/**
+ * Reference to a field of type 'PerformanceLevel'
+ */
+export type EnumPerformanceLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PerformanceLevel'>
+    
+
+
+/**
+ * Reference to a field of type 'PerformanceLevel[]'
+ */
+export type ListEnumPerformanceLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PerformanceLevel[]'>
     
 
 
@@ -1990,6 +2097,7 @@ export type GlobalOmitConfig = {
   scrum?: Prisma.ScrumOmit
   scrumAdmin?: Prisma.ScrumAdminOmit
   scrumMember?: Prisma.ScrumMemberOmit
+  studioPerformance?: Prisma.StudioPerformanceOmit
   sprint?: Prisma.SprintOmit
   task?: Prisma.TaskOmit
   taskMember?: Prisma.TaskMemberOmit

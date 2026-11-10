@@ -2,44 +2,123 @@ import { HandleERROR } from "vanta-api";
 import prisma from "../../config/prisma.js";
 
 /**
- * Ensures the authenticated user is not an attendance operations ADMIN.
- * ADMIN users have zero access to the Scrum module.
+ * Ensures the request has an authenticated user.
  */
-export const assertScrumRoleAllowed = (user) => {
+export const assertAuthenticated = (user) => {
   if (!user) {
     throw new HandleERROR("You are not logged in", 401);
-  }
-  if (user.role === "ADMIN") {
-    throw new HandleERROR("دسترسی به ماژول اسکرام برای این نقش مجاز نیست", 403);
   }
 };
 
 /**
- * Router-level guard rejecting ADMIN role with 403 before touching Scrum handlers.
+ * Roles eligible to administer Scrums when assigned via ScrumAdmin.
  */
-export const requireNonAttendanceAdmin = (req, res, next) => {
-  try {
-    assertScrumRoleAllowed(req.user);
-    next();
-  } catch (err) {
-    next(err);
+export const isScrumAdminRole = (role) => role === "SCRUM_ADMIN" || role === "ADMIN";
+
+/**
+ * Returns the list of Scrum IDs that `userOrId` administers (ScrumAdmin row + role SCRUM_ADMIN or ADMIN).
+ */
+export const getAdministeredScrumIds = async (userOrId, db = prisma) => {
+  if (!userOrId) return [];
+
+  if (typeof userOrId === "object") {
+    assertAuthenticated(userOrId);
+    if (!isScrumAdminRole(userOrId.role)) {
+      return [];
+    }
+    if (Array.isArray(userOrId.administeredScrumIds)) {
+      return userOrId.administeredScrumIds.map(Number);
+    }
+    const rows = await db.scrumAdmin.findMany({
+      where: { userId: Number(userOrId.id) },
+      select: { scrumId: true },
+    });
+    return rows.map((r) => r.scrumId);
   }
+
+  const userId = Number(userOrId);
+  if (!Number.isInteger(userId) || userId < 1) return [];
+
+  const rows = await db.scrumAdmin.findMany({
+    where: {
+      userId,
+      user: {
+        role: { in: ["SCRUM_ADMIN", "ADMIN"] },
+      },
+    },
+    select: { scrumId: true },
+  });
+  return rows.map((r) => r.scrumId);
+};
+
+/**
+ * Scrum admin of S = a ScrumAdmin row for S AND role SCRUM_ADMIN or ADMIN.
+ * Supports either a loaded Scrum object with `.admins` array or a scrumId.
+ */
+export const isScrumAdminOf = async (user, scrumOrId, db = prisma) => {
+  assertAuthenticated(user);
+  if (!isScrumAdminRole(user.role)) return false;
+
+  if (scrumOrId && typeof scrumOrId === "object" && Array.isArray(scrumOrId.admins)) {
+    return scrumOrId.admins.some((a) => (a.userId ?? a.user?.id ?? a.id) === user.id);
+  }
+
+  const scrumId = Number(scrumOrId?.id ?? scrumOrId);
+  if (!Number.isInteger(scrumId) || scrumId < 1) return false;
+
+  const row = await db.scrumAdmin.findUnique({
+    where: {
+      scrumId_userId: {
+        scrumId,
+        userId: user.id,
+      },
+    },
+    select: { scrumId: true },
+  });
+  return Boolean(row);
+};
+
+/**
+ * Member of S = a ScrumMember row (any role except SUPER_ADMIN).
+ * Supports either a loaded Scrum object with `.members` array or a scrumId.
+ */
+export const isScrumMemberOf = async (user, scrumOrId, db = prisma) => {
+  assertAuthenticated(user);
+  if (user.role === "SUPER_ADMIN") return false;
+
+  if (scrumOrId && typeof scrumOrId === "object" && Array.isArray(scrumOrId.members)) {
+    return scrumOrId.members.some((m) => (m.userId ?? m.user?.id ?? m.id) === user.id);
+  }
+
+  const scrumId = Number(scrumOrId?.id ?? scrumOrId);
+  if (!Number.isInteger(scrumId) || scrumId < 1) return false;
+
+  const row = await db.scrumMember.findUnique({
+    where: {
+      scrumId_userId: {
+        scrumId,
+        userId: user.id,
+      },
+    },
+    select: { scrumId: true },
+  });
+  return Boolean(row);
 };
 
 /**
  * Returns Prisma Scrum `where` filter matching scrums visible to `user`.
  * - SUPER_ADMIN sees all scrums
- * - SCRUM_ADMIN sees union of assigned (ScrumAdmin) and member (ScrumMember) scrums
- * - Other allowed roles (USER) see scrums they are a member of
+ * - SCRUM_ADMIN and ADMIN see administered ∪ member scrums
+ * - USER sees member scrums
  */
 export const getVisibleScrumsWhere = (user, extraWhere = {}) => {
-  assertScrumRoleAllowed(user);
+  assertAuthenticated(user);
 
   if (user.role === "SUPER_ADMIN") {
     return { ...extraWhere };
   }
 
-  if (user.role === "SCRUM_ADMIN") {
+  if (isScrumAdminRole(user.role)) {
     return {
       ...extraWhere,
       OR: [
@@ -57,14 +136,14 @@ export const getVisibleScrumsWhere = (user, extraWhere = {}) => {
 
 /**
  * Central Scrum access resolver used by all Scrum, Sprint, and Task handlers.
- * Unrelated authenticated users receive 404 so resource existence is never leaked.
+ * Unrelated authenticated users (including ADMIN with no relationship) receive 404
+ * so resource existence is never leaked.
  *
  * @param {object} user - req.user ({ id, role, ... })
  * @param {{ scrumId?: number, sprintId?: number, taskId?: number }} target
- * @returns {Promise<{ scrum: object, sprint?: object, task?: object, isSuperAdmin: boolean, isScrumAdmin: boolean, isMember: boolean, isTaskMember: boolean, canEditContent: boolean, canManageAdmins: boolean, canArchive: boolean, canEdit: boolean }>}
  */
 export const getScrumAccess = async (user, target = {}) => {
-  assertScrumRoleAllowed(user);
+  assertAuthenticated(user);
 
   let scrum = null;
   let sprint = null;
@@ -198,8 +277,8 @@ export const getScrumAccess = async (user, target = {}) => {
   }
 
   const isSuperAdmin = user.role === "SUPER_ADMIN";
-  const isScrumAdmin = user.role === "SCRUM_ADMIN" && scrum.admins.length > 0;
-  const isMember = scrum.members.length > 0;
+  const isScrumAdmin = await isScrumAdminOf(user, scrum);
+  const isMember = await isScrumMemberOf(user, scrum);
   const canEditContent = isSuperAdmin || isScrumAdmin;
   const canManageAdmins = isSuperAdmin;
   const canArchive = isSuperAdmin;
@@ -229,8 +308,8 @@ export const getScrumAccess = async (user, target = {}) => {
 /**
  * Checks and attaches Scrum context to the request.
  * mode:
- * - 'member': any member, assigned SCRUM_ADMIN, or SUPER_ADMIN
- * - 'editor': assigned SCRUM_ADMIN or SUPER_ADMIN only
+ * - 'member': any member, assigned SCRUM_ADMIN/ADMIN, or SUPER_ADMIN
+ * - 'editor': assigned SCRUM_ADMIN/ADMIN or SUPER_ADMIN only
  * - 'super_admin': SUPER_ADMIN only (outsiders still receive 404 from getScrumAccess)
  */
 export const requireScrumAccess = (mode = "member") => {
@@ -287,7 +366,7 @@ export const requireSprintAccess = (mode = "member") => {
 
 /**
  * Checks access for Scrum Task endpoints.
- * mode: 'member' (scrum member, assigned SCRUM_ADMIN, SA) | 'editor' (assigned SCRUM_ADMIN or SA)
+ * mode: 'member' (scrum member, assigned SCRUM_ADMIN/ADMIN, SA) | 'editor' (assigned SCRUM_ADMIN/ADMIN or SA)
  */
 export const requireTaskAccess = (mode = "member") => {
   return async (req, res, next) => {
