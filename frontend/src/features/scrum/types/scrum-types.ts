@@ -181,7 +181,6 @@ export interface ScrumKpi {
   firstMonthTarget?: string | null;
   target?: string | null;
   finalTarget?: string | null;
-  actualValue?: number | null;
   minExpected?: number | null;
   sortOrder?: number;
   progressPercent?: number | null;

@@ -45,7 +45,6 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
     firstMonthTarget: '',
     target: '',
     finalTarget: '',
-    actualValue: null,
     progressPercent: null,
     status: null,
     minExpected: null,
@@ -60,7 +59,6 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
       r.firstMonthTarget,
       r.target,
       r.finalTarget,
-      r.actualValue,
       r.progressPercent,
       r.status,
       r.minExpected,
@@ -191,41 +189,6 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
             onChange={(e) => onChange({ finalTarget: e.target.value })}
             placeholder="مثال: ۱۰۰ درصد"
             className="font-bold"
-          />
-        ),
-      },
-      {
-        id: 'actualValue',
-        header: 'پیشرفت واقعی',
-        minWidth: '115px',
-        align: 'center',
-        renderView: (row) =>
-          row.actualValue != null ? (
-            <span className="inline-flex items-center justify-center gap-1.5 font-black text-sec dark:text-white tabular-nums">
-              <span>{toPersianDigits(row.actualValue)}</span>
-              <UnitChip unit={row.unit} />
-            </span>
-          ) : (
-            <span className="text-sec/35 dark:text-gray-500">—</span>
-          ),
-        renderEdit: (row, _index, onChange) => (
-          <input
-            type="number"
-            step="any"
-            value={row.actualValue ?? ''}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === '') {
-                onChange({ actualValue: null });
-                return;
-              }
-              const parsed = Number(raw);
-              if (Number.isFinite(parsed)) {
-                onChange({ actualValue: parsed });
-              }
-            }}
-            placeholder="عدد"
-            className={cn(INLINE_INPUT_CLASS, 'text-center tabular-nums font-bold')}
           />
         ),
       },

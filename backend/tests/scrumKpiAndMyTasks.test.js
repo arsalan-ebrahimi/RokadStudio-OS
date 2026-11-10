@@ -74,7 +74,6 @@ describe("Scrum KPI Serializer Tests", () => {
     firstMonthTarget: "0",
     target: "۷۵ درصد تا پایان فصل",
     finalTarget: "   ",
-    actualValue: 0,
     minExpected: 0,
     progressPercent: 0,
     status: "IN_RANGE",
@@ -82,16 +81,16 @@ describe("Scrum KPI Serializer Tests", () => {
     updatedAt: new Date("2026-11-10T10:00:00.000Z"),
   };
 
-  test("serializes string targets (preserving '0'), whitespace -> null, manual progressPercent=0, and omits minExpected for non-admins", () => {
+  test("serializes string targets (preserving '0'), whitespace -> null, manual progressPercent=0, omits minExpected for non-admins, and omits actualValue", () => {
     const memberRow = serializeKpiRow(sampleRow, false);
 
     assert.equal(memberRow.firstMonthTarget, "0");
     assert.equal(memberRow.target, "۷۵ درصد تا پایان فصل");
     assert.equal(memberRow.finalTarget, null);
-    assert.equal(memberRow.actualValue, 0);
     assert.equal(memberRow.progressPercent, 0);
     assert.equal(memberRow.status, "IN_RANGE");
     assert.equal(Object.hasOwn(memberRow, "minExpected"), false);
+    assert.equal(Object.hasOwn(memberRow, "actualValue"), false);
   });
 
   test("includes minExpected (preserving 0) for admin callers and handles decimal rounding/invalid status", () => {
@@ -132,7 +131,6 @@ describe("Scrum KPI Batch Validator Tests", () => {
             firstMonthTarget: "۷۰ درصد",
             target: "۸۵ درصد",
             finalTarget: "۱۰۰ درصد",
-            actualValue: 82.5,
             progressPercent: 94.5,
             status: "ON_TARGET",
             minExpected: 60,
@@ -142,7 +140,6 @@ describe("Scrum KPI Batch Validator Tests", () => {
             firstMonthTarget: "0",
             target: "",
             finalTarget: null,
-            actualValue: 0,
             progressPercent: 0,
             status: null,
           },
@@ -197,6 +194,12 @@ describe("Scrum KPI Batch Validator Tests", () => {
     });
     assert.equal(resUnknown.passed, false);
     assert.equal(resUnknown.statusCode, 400);
+
+    const resRemovedActual = await runValidatorChain(batchKpiBodyValidator, {
+      body: { rows: [{ indicator: "X", actualValue: 50 }] },
+    });
+    assert.equal(resRemovedActual.passed, false);
+    assert.equal(resRemovedActual.statusCode, 400);
   });
 });
 

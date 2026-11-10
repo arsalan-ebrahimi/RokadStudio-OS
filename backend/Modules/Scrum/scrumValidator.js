@@ -20,7 +20,6 @@ const KPI_ALLOWED_ROW_KEYS = new Set([
   "target",
   "firstMonthTarget",
   "finalTarget",
-  "actualValue",
   "minExpected",
   "sortOrder",
   "updatedAt",
@@ -600,7 +599,7 @@ export const batchKpiBodyValidator = [
         firstMonthTarget: 255,
         finalTarget: 255,
       };
-      const numFields = ["actualValue", "minExpected"];
+      const numFields = ["minExpected"];
       const seenIds = new Set();
 
       for (let i = 0; i < rows.length; i++) {

@@ -6443,11 +6443,6 @@
             "description": "تارگت نهایی (رشته متنی)",
             "example": "۹۵ درصد"
           },
-          "actualValue": {
-            "type": "number",
-            "nullable": true,
-            "example": 80
-          },
           "sortOrder": {
             "type": "integer",
             "example": 0

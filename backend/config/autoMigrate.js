@@ -238,7 +238,6 @@ export const ensureSchemaUpdated = async () => {
             "target" TEXT,
             "firstMonthTarget" TEXT,
             "finalTarget" TEXT,
-            "actualValue" DECIMAL(12,2),
             "progressPercent" DECIMAL(5,2),
             "status" "KpiStatus",
             "minExpected" DECIMAL(12,2),
@@ -251,6 +250,7 @@ export const ensureSchemaUpdated = async () => {
           DECLARE
             v_kpi_has_progress BOOLEAN;
             v_kpi_has_status BOOLEAN;
+            v_kpi_has_actual BOOLEAN;
             v_kpi_target_type TEXT;
             v_kpi_first_month_type TEXT;
           BEGIN
@@ -263,6 +263,11 @@ export const ensureSchemaUpdated = async () => {
               SELECT 1 FROM information_schema.columns
               WHERE table_name = 'ScrumKpi' AND column_name = 'status'
             ) INTO v_kpi_has_status;
+
+            SELECT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'ScrumKpi' AND column_name = 'actualValue'
+            ) INTO v_kpi_has_actual;
 
             SELECT data_type INTO v_kpi_target_type
             FROM information_schema.columns
@@ -277,23 +282,26 @@ export const ensureSchemaUpdated = async () => {
             END IF;
 
             IF (NOT v_kpi_has_progress OR NOT v_kpi_has_status)
+              AND v_kpi_has_actual
               AND v_kpi_target_type IS NOT NULL
               AND v_kpi_target_type <> 'text' THEN
-              UPDATE "ScrumKpi"
-              SET
-                "progressPercent" = CASE
-                  WHEN "progressPercent" IS NOT NULL THEN "progressPercent"
-                  WHEN "actualValue" IS NOT NULL AND "target" IS NOT NULL AND "target" <> 0
-                    THEN LEAST(100, GREATEST(0, ROUND(("actualValue" / "target") * 100.0, 2)))::DECIMAL(5,2)
-                  ELSE NULL
-                END,
-                "status" = CASE
-                  WHEN "status" IS NOT NULL THEN "status"
-                  WHEN "actualValue" IS NULL OR "target" IS NULL THEN NULL
-                  WHEN "minExpected" IS NOT NULL AND "actualValue" < "minExpected" THEN 'BELOW_MIN'::"KpiStatus"
-                  WHEN "actualValue" >= "target" THEN 'ON_TARGET'::"KpiStatus"
-                  ELSE 'IN_RANGE'::"KpiStatus"
-                END;
+              EXECUTE $upd$
+                UPDATE "ScrumKpi"
+                SET
+                  "progressPercent" = CASE
+                    WHEN "progressPercent" IS NOT NULL THEN "progressPercent"
+                    WHEN "actualValue" IS NOT NULL AND "target" IS NOT NULL AND "target" <> 0
+                      THEN LEAST(100, GREATEST(0, ROUND(("actualValue" / "target") * 100.0, 2)))::DECIMAL(5,2)
+                    ELSE NULL
+                  END,
+                  "status" = CASE
+                    WHEN "status" IS NOT NULL THEN "status"
+                    WHEN "actualValue" IS NULL OR "target" IS NULL THEN NULL
+                    WHEN "minExpected" IS NOT NULL AND "actualValue" < "minExpected" THEN 'BELOW_MIN'::"KpiStatus"
+                    WHEN "actualValue" >= "target" THEN 'ON_TARGET'::"KpiStatus"
+                    ELSE 'IN_RANGE'::"KpiStatus"
+                  END
+              $upd$;
             END IF;
 
             IF v_kpi_target_type IS NOT NULL AND v_kpi_target_type <> 'text' THEN
@@ -318,6 +326,10 @@ export const ensureSchemaUpdated = async () => {
                   WHEN "firstMonthTarget"::text ~ '\.' THEN REGEXP_REPLACE(REGEXP_REPLACE("firstMonthTarget"::text, '0+$', ''), '\.$', '')
                   ELSE "firstMonthTarget"::text
                 END;
+            END IF;
+
+            IF v_kpi_has_actual THEN
+              ALTER TABLE "ScrumKpi" DROP COLUMN IF EXISTS "actualValue";
             END IF;
           END;
 

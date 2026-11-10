@@ -10,7 +10,6 @@ const normalizeNullableText = (val) => {
  * For plain members, `minExpected` is omitted entirely from the object.
  */
 export const serializeKpiRow = (kpi, isAdmin = false) => {
-  const actualValue = kpi.actualValue != null ? Number(kpi.actualValue) : null;
   const minExpected = kpi.minExpected != null ? Number(kpi.minExpected) : null;
   const rawProgress = kpi.progressPercent != null ? Number(kpi.progressPercent) : null;
   const progressPercent =
@@ -29,7 +28,6 @@ export const serializeKpiRow = (kpi, isAdmin = false) => {
     target: normalizeNullableText(kpi.target),
     firstMonthTarget: normalizeNullableText(kpi.firstMonthTarget),
     finalTarget: normalizeNullableText(kpi.finalTarget),
-    actualValue,
     sortOrder: kpi.sortOrder,
     updatedAt: kpi.updatedAt,
     progressPercent,

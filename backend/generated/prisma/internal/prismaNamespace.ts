@@ -1551,7 +1551,6 @@ export const ScrumKpiScalarFieldEnum = {
   target: 'target',
   firstMonthTarget: 'firstMonthTarget',
   finalTarget: 'finalTarget',
-  actualValue: 'actualValue',
   progressPercent: 'progressPercent',
   status: 'status',
   minExpected: 'minExpected',

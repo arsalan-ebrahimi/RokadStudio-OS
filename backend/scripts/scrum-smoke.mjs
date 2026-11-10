@@ -372,6 +372,7 @@ const main = async () => {
       }
       const ownerRow = oRes.json.data[0];
       assert(Object.prototype.hasOwnProperty.call(ownerRow, "minExpected"), "Admin missing minExpected");
+      assert(!Object.prototype.hasOwnProperty.call(ownerRow, "actualValue"), "Removed actualValue must not be present");
       assert(typeof ownerRow.firstMonthTarget === "string" && typeof ownerRow.target === "string" && typeof ownerRow.finalTarget === "string", "KPI targets must be strings");
       assert(ownerRow.progressPercent === 80 && ownerRow.status === "IN_RANGE", "KPI stored progress/status mismatch");
       assert(sRes.json.data[0].minExpected === ownerRow.minExpected, "SA minExpected mismatch");
@@ -514,8 +515,8 @@ const main = async () => {
         token: tempScrumAdmin.token,
         body: {
           rows: [
-            { indicator: "Below Min", firstMonthTarget: "۴۰ درصد", target: "۸۰ درصد", finalTarget: "۱۰۰ درصد", minExpected: 50, actualValue: 30, progressPercent: 30, status: "BELOW_MIN" },
-            { indicator: "On Target", firstMonthTarget: "۶۰", target: "۹۰", finalTarget: "۱۰۰", minExpected: 50, actualValue: 100, progressPercent: 100, status: "ON_TARGET" },
+            { indicator: "Below Min", firstMonthTarget: "۴۰ درصد", target: "۸۰ درصد", finalTarget: "۱۰۰ درصد", minExpected: 50, progressPercent: 30, status: "BELOW_MIN" },
+            { indicator: "On Target", firstMonthTarget: "۶۰", target: "۹۰", finalTarget: "۱۰۰", minExpected: 50, progressPercent: 100, status: "ON_TARGET" },
           ],
         },
       });
