@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Users,
   Layers,
+  ListChecks,
   ArrowLeft,
   MoreVertical,
   Edit2,
@@ -203,17 +204,24 @@ export const ScrumCard: React.FC<ScrumCardProps> = ({
           )}
 
           {/* Active Sprint Pill */}
-          <div className="pt-1 flex items-center gap-2 text-xs font-bold text-sec/80 dark:text-gray-300">
-            <Layers className="w-4 h-4 text-primary shrink-0" />
-            {scrum.activeSprint ? (
-              <span className="truncate">
-                <span className="font-mono text-sec dark:text-primary font-black me-1">
-                  S{toPersianDigits(scrum.activeSprint.number)}
+          <div className="pt-1 flex items-center justify-between gap-2 text-xs font-bold text-sec/80 dark:text-gray-300">
+            <div className="flex items-center gap-2 min-w-0">
+              <Layers className="w-4 h-4 text-primary shrink-0" />
+              {scrum.activeSprint ? (
+                <span className="truncate">
+                  <span className="font-mono text-sec dark:text-primary font-black me-1">
+                    S{toPersianDigits(scrum.activeSprint.number)}
+                  </span>
+                  <span>· {scrum.activeSprint.title}</span>
                 </span>
-                <span>· {scrum.activeSprint.title}</span>
+              ) : (
+                <span className="text-sec/45 dark:text-gray-500">بدون اسپرینت فعال</span>
+              )}
+            </div>
+            {scrum.activeSprint && typeof scrum.activeSprint.progressPercent === 'number' && (
+              <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-ecosystem-light dark:bg-ecosystem-darker/60 text-sec dark:text-ecosystem-light shrink-0 tabular-nums">
+                {toPersianDigits(scrum.activeSprint.progressPercent)}٪
               </span>
-            ) : (
-              <span className="text-sec/45 dark:text-gray-500">بدون اسپرینت فعال</span>
             )}
           </div>
 
@@ -237,9 +245,17 @@ export const ScrumCard: React.FC<ScrumCardProps> = ({
         to={`${basePath}/${scrum.id}`}
         className="pt-3.5 mt-4 border-t border-sec/10 dark:border-gray-800 flex items-center justify-between text-xs font-bold text-sec/70 dark:text-gray-400 focus:outline-none"
       >
-        <div className="flex items-center gap-1.5 tabular-nums">
-          <Users className="w-4 h-4 text-sec/45 dark:text-gray-500" />
-          <span>{toPersianDigits(scrum.memberCount || 0)} عضو</span>
+        <div className="flex items-center gap-3 tabular-nums">
+          <span className="flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-sec/45 dark:text-gray-500" />
+            <span>{toPersianDigits(scrum.memberCount || 0)} عضو</span>
+          </span>
+          {typeof scrum.taskCount === 'number' && (
+            <span className="flex items-center gap-1">
+              <ListChecks className="w-3.5 h-3.5 text-sec/45 dark:text-gray-500" />
+              <span>{toPersianDigits(scrum.taskCount)} تسک</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1 text-sec dark:text-primary font-black group-hover:-translate-x-1 transition-transform">

@@ -15,7 +15,8 @@ export const runSeed = async () => {
   // 1. Clean up ALL existing data in reverse relational order
   console.log("🧹 Wiping all existing database tables for a clean slate...");
   await prisma.workSession.deleteMany({});
-  await prisma.sprintProject.deleteMany({});
+  await prisma.taskMember.deleteMany({});
+  await prisma.task.deleteMany({});
   await prisma.sprint.deleteMany({});
   await prisma.scrumMember.deleteMany({});
   await prisma.scrumAdmin.deleteMany({});
@@ -112,7 +113,7 @@ export const runSeed = async () => {
     console.log(`   ✓ [${user.code}] ${user.name} (${u.department})`);
   }
 
-  // 5. Seed Scrums first so Projects can optionally link via scrumId
+  // 5. Seed Scrum workspaces
   console.log("\n🚀 Seeding sample Scrum workspaces...");
   const sampleScrum = await prisma.scrum.create({
     data: {
@@ -154,13 +155,12 @@ export const runSeed = async () => {
     ],
   });
 
-  // 6. Seed Projects and Assign Members (Projects[0] linked to sampleScrum; Projects[2] linked to sampleScrum2)
+  // 6. Seed Studio Projects and Assign Members (completely separate from Scrum Tasks)
   console.log("\n📁 Seeding active studio projects...");
   const projectsData = [
     {
       name: "Rokad Studio OS Platform",
       description: "Central attendance, focus timer and team workspace portal",
-      scrumId: sampleScrum.id,
       members: [
         superAdmin.id,
         simpleAdmin.id,
@@ -174,7 +174,6 @@ export const runSeed = async () => {
     {
       name: "Design System & Visual Identity",
       description: "Design tokens, typography and neo-brutalist UI components",
-      scrumId: null,
       members: [
         seededUsers[5].id,
         seededUsers[6].id,
@@ -185,7 +184,6 @@ export const runSeed = async () => {
     {
       name: "College Digital Marketing Campaign",
       description: "Bootcamp applicant acquisition, campaigns and performance tracking",
-      scrumId: sampleScrum2.id,
       members: [
         seededUsers[8].id,
         seededUsers[9].id,
@@ -195,7 +193,6 @@ export const runSeed = async () => {
     {
       name: "Mentoring & Courses Platform",
       description: "Interview management, mentoring sessions and student homework reviews",
-      scrumId: null,
       members: [
         seededUsers[11].id,
         seededUsers[12].id,
@@ -212,7 +209,6 @@ export const runSeed = async () => {
         name: p.name,
         description: p.description,
         isActive: true,
-        scrumId: p.scrumId,
         createdById: superAdmin.id,
       },
     });
@@ -223,9 +219,7 @@ export const runSeed = async () => {
       });
     }
     seededProjects.push(proj);
-    console.log(
-      `   ✓ Project: "${proj.name}" (${p.members.length} members, scrumId=${proj.scrumId ?? "none"})`
-    );
+    console.log(`   ✓ Project: "${proj.name}" (${p.members.length} members)`);
   }
 
   // 7. Seed Sample Attendance for Today & Yesterday (for APPROVED leaderboard sessions)
@@ -316,62 +310,105 @@ export const runSeed = async () => {
   });
   console.log("   ✓ 7 sample attendances seeded (4 today, 3 yesterday APPROVED).");
 
-  // 8. Seed Sprints, SprintProjects, KPIs & Ceremonies
-  const sprint1 = await prisma.sprint.create({
+  // 8. Seed Simplified Sprints, Scrum Tasks, KPIs & Ceremonies
+  await prisma.sprint.create({
     data: {
       scrumId: sampleScrum.id,
       number: 1,
       title: "اسپرینت ۱",
-      description: "راه‌اندازی ماژول اسکرام و پنل مدیریت",
+      description: "راه‌اندازی ماژول اسکرام، تسک‌ها و پنل مدیریت",
       status: "ACTIVE",
+      progressPercent: 65,
       startDate: yesterday,
+      endDate: addDays(today, 12),
     },
   });
 
-  const item1 = await prisma.sprintProject.create({
+  await prisma.sprint.create({
     data: {
-      sprintId: sprint1.id,
-      projectId: seededProjects[0].id,
-      name: "طراحی مدل داده و APIهای اسکرام",
-      points: 5,
-      assigneeId: seededUsers[1].id,
-      status: "DONE",
-      sortOrder: 0,
+      scrumId: sampleScrum.id,
+      number: 2,
+      title: "اسپرینت ۲",
+      description: "توسعه گزارش‌های تحلیلی و بهبود تجربه کاربری",
+      status: "PLANNED",
+      progressPercent: 0,
+      startDate: addDays(today, 13),
+      endDate: addDays(today, 27),
     },
   });
 
-  const item2 = await prisma.sprintProject.create({
-    data: {
-      sprintId: sprint1.id,
-      projectId: seededProjects[0].id,
-      name: "پیاده‌سازی کامپوننت‌های فرانت‌اند اسکرام",
-      points: 8,
-      assigneeId: seededUsers[0].id,
-      status: "DOING",
-      sortOrder: 1,
-    },
-  });
-
-  const scrum2Sprint1 = await prisma.sprint.create({
+  await prisma.sprint.create({
     data: {
       scrumId: sampleScrum2.id,
       number: 1,
       title: "اسپرینت ۱ کمپین",
       description: "اجرای کمپین پاییز کالج رکاد",
       status: "ACTIVE",
+      progressPercent: 40,
       startDate: yesterday,
+      endDate: addDays(today, 10),
     },
   });
 
-  const scrum2Item1 = await prisma.sprintProject.create({
+  // Scrum Tasks (decoupled from sprints, with multi-member TaskMember assignments)
+  const task1 = await prisma.task.create({
     data: {
-      sprintId: scrum2Sprint1.id,
-      projectId: seededProjects[2].id,
-      name: "طراحی لندینگ و قیف جذب بوت‌کمپ",
+      scrumId: sampleScrum.id,
+      name: "طراحی مدل داده و APIهای اسکرام",
+      description: "طراحی و پیاده‌سازی مدل تسک‌ها، گزارش‌های تجمیعی و سطوح دسترسی",
       points: 5,
-      assigneeId: seededUsers[8].id,
-      status: "DOING",
-      sortOrder: 0,
+      isActive: true,
+      members: {
+        create: [
+          { userId: seededUsers[1].id, assignedById: scrumAdmin.id },
+          { userId: seededUsers[0].id, assignedById: scrumAdmin.id },
+        ],
+      },
+    },
+  });
+
+  const task2 = await prisma.task.create({
+    data: {
+      scrumId: sampleScrum.id,
+      name: "پیاده‌سازی کامپوننت‌های فرانت‌اند اسکرام",
+      description: "پیاده‌سازی تب تسک‌ها، اسپرینت‌های ساده و مودال مشاهده جزئیات کارکرد",
+      points: 8,
+      isActive: true,
+      members: {
+        create: [
+          { userId: seededUsers[0].id, assignedById: scrumAdmin.id },
+          { userId: seededUsers[3].id, assignedById: scrumAdmin.id },
+        ],
+      },
+    },
+  });
+
+  const task3 = await prisma.task.create({
+    data: {
+      scrumId: sampleScrum.id,
+      name: "مستندسازی معماری اولیه اسکرام",
+      description: "مستندسازی جریان کار تایمر و تایید سشن‌ها",
+      points: 3,
+      isActive: false,
+      members: {
+        create: [{ userId: seededUsers[1].id, assignedById: scrumAdmin.id }],
+      },
+    },
+  });
+
+  const scrum2Task1 = await prisma.task.create({
+    data: {
+      scrumId: sampleScrum2.id,
+      name: "طراحی لندینگ و قیف جذب بوت‌کمپ",
+      description: "طراحی صفحه فرود کمپین پاییز کالج و پیگیری تبدیل لیدها",
+      points: 5,
+      isActive: true,
+      members: {
+        create: [
+          { userId: seededUsers[8].id, assignedById: scrumAdmin2.id },
+          { userId: seededUsers[9].id, assignedById: scrumAdmin2.id },
+        ],
+      },
     },
   });
 
@@ -477,7 +514,7 @@ export const runSeed = async () => {
     ],
   });
 
-  // 9. Seed Sample Focus Work Sessions (including APPROVED + PENDING across linked projects & sprint items)
+  // 9. Seed Sample Focus Work Sessions (APPROVED + PENDING + REJECTED across Studio Projects & Scrum Tasks)
   console.log("\n⏳ Seeding sample focus work sessions...");
   await prisma.workSession.createMany({
     data: [
@@ -499,11 +536,22 @@ export const runSeed = async () => {
       },
       {
         userId: seededUsers[0].id,
-        sprintProjectId: item2.id,
+        taskId: task2.id,
         attendanceId: att1.id,
         workDate: today,
         durationSeconds: 900,
         approval: "PENDING",
+      },
+      {
+        userId: seededUsers[0].id,
+        taskId: task2.id,
+        attendanceId: att1.id,
+        workDate: today,
+        durationSeconds: 600,
+        approval: "REJECTED",
+        source: "ADMIN",
+        decidedById: scrumAdmin.id,
+        decidedAt: new Date(),
       },
       {
         userId: seededUsers[2].id,
@@ -521,16 +569,27 @@ export const runSeed = async () => {
         durationSeconds: 1500,
         approval: "PENDING",
       },
-      // APPROVED sessions (counted on leaderboard)
+      // Yesterday APPROVED & REJECTED sessions
       {
         userId: seededUsers[1].id,
-        sprintProjectId: item1.id,
+        taskId: task1.id,
         attendanceId: attYesterday2.id,
         workDate: yesterday,
         durationSeconds: 1800,
         approval: "APPROVED",
         source: "ADMIN",
         decidedById: simpleAdmin.id,
+        decidedAt: new Date(),
+      },
+      {
+        userId: seededUsers[1].id,
+        taskId: task3.id,
+        attendanceId: attYesterday2.id,
+        workDate: yesterday,
+        durationSeconds: 900,
+        approval: "APPROVED",
+        source: "ADMIN",
+        decidedById: scrumAdmin.id,
         decidedAt: new Date(),
       },
       {
@@ -546,7 +605,7 @@ export const runSeed = async () => {
       },
       {
         userId: seededUsers[0].id,
-        sprintProjectId: item2.id,
+        taskId: task2.id,
         attendanceId: attYesterday1.id,
         workDate: yesterday,
         durationSeconds: 1500,
@@ -556,8 +615,19 @@ export const runSeed = async () => {
         decidedAt: new Date(),
       },
       {
+        userId: seededUsers[0].id,
+        projectId: seededProjects[0].id,
+        attendanceId: attYesterday1.id,
+        workDate: yesterday,
+        durationSeconds: 1200,
+        approval: "REJECTED",
+        source: "ADMIN",
+        decidedById: simpleAdmin.id,
+        decidedAt: new Date(),
+      },
+      {
         userId: seededUsers[8].id,
-        sprintProjectId: scrum2Item1.id,
+        taskId: scrum2Task1.id,
         attendanceId: attYesterdayAf1.id,
         workDate: yesterday,
         durationSeconds: 1200,
@@ -568,7 +638,7 @@ export const runSeed = async () => {
       },
     ],
   });
-  console.log("   ✓ 9 work sessions registered (4 APPROVED + 5 PENDING).");
+  console.log("   ✓ 12 work sessions registered (5 APPROVED, 5 PENDING, 2 REJECTED).");
 
   console.log("\n=======================================================");
   console.log("🎉 All Seed Data Successfully Created & Verified!");
@@ -583,9 +653,9 @@ export const runSeed = async () => {
     console.log(`      • [${u.code}] - ${u.name.padEnd(24)} (${u.department})`);
   });
   console.log(`\n   📁 Projects Created:   ${seededProjects.length}`);
-  console.log("   🚀 Scrums Created:     2 (with multi-admin, linked projects & leaderboard sessions)");
+  console.log("   🚀 Scrums Created:     2 (with multi-admin, Scrum Tasks, sprints & leaderboard sessions)");
   console.log("   ⏰ Attendances:        7 records (4 today, 3 yesterday APPROVED)");
-  console.log("   ⏳ Focus Sessions:     9 sessions (4 APPROVED, 5 PENDING)");
+  console.log("   ⏳ Focus Sessions:     12 sessions (5 APPROVED, 5 PENDING, 2 REJECTED)");
   console.log("=======================================================\n");
 
   return { superAdmin, simpleAdmin, scrumAdmin, scrumAdmin2, seededUsers, seededProjects };

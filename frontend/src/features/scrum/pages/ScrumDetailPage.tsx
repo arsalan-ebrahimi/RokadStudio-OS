@@ -3,7 +3,7 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import {
   ArrowRight,
   Layers,
-  FolderKanban,
+  ListChecks,
   BarChart3,
   Calendar,
   Users,
@@ -22,7 +22,7 @@ import {
 import { useScrum, useScrumLeaderboard } from '../hooks/use-scrum';
 import { SCRUM_COLOR_MAP } from '../types/scrum-types';
 import { SprintsTab } from '../components/SprintsTab';
-import { ProjectsTab } from '../components/ProjectsTab';
+import { TasksTab } from '../components/TasksTab';
 import { KpiTab } from '../components/KpiTab';
 import { EventsTab } from '../components/EventsTab';
 import { MembersTab } from '../components/MembersTab';
@@ -35,7 +35,7 @@ import { toPersianDigits } from '@/shared/lib/formatters';
 
 type TabKey =
   | 'sprints'
-  | 'projects'
+  | 'tasks'
   | 'kpi'
   | 'events'
   | 'members'
@@ -44,7 +44,7 @@ type TabKey =
 
 const VALID_TABS: readonly TabKey[] = [
   'sprints',
-  'projects',
+  'tasks',
   'kpi',
   'events',
   'members',
@@ -54,6 +54,7 @@ const VALID_TABS: readonly TabKey[] = [
 
 function parseTabHash(hash: string): TabKey {
   const clean = hash.replace(/^#/, '').trim();
+  if (clean === 'projects') return 'tasks';
   if ((VALID_TABS as readonly string[]).includes(clean)) {
     return clean as TabKey;
   }
@@ -194,7 +195,7 @@ export const ScrumDetailPage: React.FC = () => {
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
     { key: 'sprints', label: 'اسپرینت‌ها', icon: Layers },
-    { key: 'projects', label: 'پروژه‌ها', icon: FolderKanban },
+    { key: 'tasks', label: 'تسک‌ها', icon: ListChecks },
     { key: 'kpi', label: 'KPI', icon: BarChart3 },
     { key: 'events', label: 'ریتم جلسات', icon: Calendar },
     { key: 'members', label: `اعضا (${toPersianDigits(members.length)})`, icon: Users },
@@ -340,7 +341,7 @@ export const ScrumDetailPage: React.FC = () => {
       {/* Tab Content */}
       <div className="pt-1">
         {activeTab === 'sprints' && <SprintsTab scrum={scrum} canEdit={canEditContent} />}
-        {activeTab === 'projects' && <ProjectsTab scrum={scrum} canEdit={canEditContent} />}
+        {activeTab === 'tasks' && <TasksTab scrum={scrum} canEdit={canEditContent} />}
         {activeTab === 'kpi' && <KpiTab scrum={scrum} canEdit={canEditContent} />}
         {activeTab === 'events' && <EventsTab scrum={scrum} canEdit={canEditContent} />}
         {activeTab === 'members' && <MembersTab scrum={scrum} canEdit={canEditContent} />}

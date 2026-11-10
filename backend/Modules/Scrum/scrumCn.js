@@ -1,4 +1,5 @@
 import { catchAsync } from "vanta-api";
+import { formatPaginationMeta } from "../../Utils/pagination.js";
 import { mapPrismaError } from "../../Utils/prismaErrors.js";
 import {
   listScrumsService,
@@ -14,9 +15,6 @@ import {
   updateSprintService,
   updateSprintStatusService,
   deleteSprintService,
-  createSprintProjectService,
-  updateSprintProjectService,
-  deleteSprintProjectService,
   getKpisService,
   batchUpdateKpisService,
   getEventsService,
@@ -26,12 +24,13 @@ import {
   getScrumReportService,
 } from "./scrumService.js";
 import {
-  listScrumProjectsService,
-  createScrumProjectService,
-  listAvailableScrumProjectsService,
-  linkProjectToScrumService,
-  unlinkProjectFromScrumService,
-  syncScrumProjectMembersService,
+  listScrumTasksService,
+  getTaskByIdService,
+  createScrumTaskService,
+  updateScrumTaskService,
+  syncTaskMembersService,
+  deleteScrumTaskService,
+  getTaskWorkSessionsService,
   getScrumLeaderboardService,
   getScrumAdminDashboardService,
 } from "./scrumExtendedService.js";
@@ -153,7 +152,7 @@ export const createSprint = catchAsync(async (req, res, next) => {
 });
 
 export const getSprintById = catchAsync(async (req, res) => {
-  const sprint = await getSprintDetailsService(req.sprint.id, req.user, req.canEdit);
+  const sprint = await getSprintDetailsService(req.sprint.id);
   return res.status(200).json({
     success: true,
     message: "اطلاعات اسپرینت با موفقیت دریافت شد",
@@ -195,51 +194,6 @@ export const deleteSprint = catchAsync(async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "اسپرینت با موفقیت حذف شد",
-      data: null,
-    });
-  } catch (err) {
-    forwardPrismaOrThrow(err, next);
-  }
-});
-
-export const createSprintProject = catchAsync(async (req, res, next) => {
-  try {
-    const body = req.validatedBody || req.body;
-    const project = await createSprintProjectService(req.sprint.id, body);
-    return res.status(201).json({
-      success: true,
-      message: "پروژه اسپرینت با موفقیت ایجاد شد",
-      data: project,
-    });
-  } catch (err) {
-    forwardPrismaOrThrow(err, next);
-  }
-});
-
-export const updateSprintProject = catchAsync(async (req, res, next) => {
-  try {
-    const body = req.validatedBody || req.body;
-    const updated = await updateSprintProjectService(req.sprintProject.id, body, {
-      canEdit: req.canEdit,
-      isAssignee: req.isAssignee,
-      currentUser: req.user,
-    });
-    return res.status(200).json({
-      success: true,
-      message: "پروژه اسپرینت با موفقیت ویرایش شد",
-      data: updated,
-    });
-  } catch (err) {
-    forwardPrismaOrThrow(err, next);
-  }
-});
-
-export const deleteSprintProject = catchAsync(async (req, res, next) => {
-  try {
-    await deleteSprintProjectService(req.sprintProject.id);
-    return res.status(200).json({
-      success: true,
-      message: "پروژه اسپرینت با موفقیت حذف شد",
       data: null,
     });
   } catch (err) {
@@ -326,22 +280,23 @@ export const getScrumReport = catchAsync(async (req, res) => {
   });
 });
 
-export const listScrumProjects = catchAsync(async (req, res) => {
-  const projects = await listScrumProjectsService(req.scrum.id, req.canEditContent);
+export const listScrumTasks = catchAsync(async (req, res) => {
+  const query = req.validatedQuery || req.query;
+  const tasks = await listScrumTasksService(req.scrum.id, query, req.user, req.canEditContent);
   return res.status(200).json({
     success: true,
-    message: "پروژه‌های متصل به اسکرام با موفقیت دریافت شدند",
-    data: projects,
+    message: "تسک‌های اسکرام با موفقیت دریافت شدند",
+    data: tasks,
   });
 });
 
-export const createScrumProject = catchAsync(async (req, res, next) => {
+export const createScrumTask = catchAsync(async (req, res, next) => {
   try {
     const body = req.validatedBody || req.body;
-    const created = await createScrumProjectService(req.scrum.id, body, req.user);
+    const created = await createScrumTaskService(req.scrum.id, body, req.user);
     return res.status(201).json({
       success: true,
-      message: "پروژه با موفقیت ایجاد و به اسکرام متصل شد",
+      message: "تسک با موفقیت ایجاد شد",
       data: created,
     });
   } catch (err) {
@@ -349,37 +304,54 @@ export const createScrumProject = catchAsync(async (req, res, next) => {
   }
 });
 
-export const getAvailableScrumProjects = catchAsync(async (req, res) => {
-  const q = req.validatedQuery?.q ?? req.query?.q ?? "";
-  const projects = await listAvailableScrumProjectsService(q);
+export const getTaskById = catchAsync(async (req, res) => {
+  const task = await getTaskByIdService(req.task.id, req.user, req.canEditContent);
   return res.status(200).json({
     success: true,
-    message: "پروژه‌های آزاد قابل اتصال با موفقیت دریافت شدند",
-    data: projects,
+    message: "اطلاعات تسک با موفقیت دریافت شد",
+    data: task,
   });
 });
 
-export const linkProjectToScrum = catchAsync(async (req, res, next) => {
+export const updateScrumTask = catchAsync(async (req, res, next) => {
   try {
     const body = req.validatedBody || req.body;
-    const linked = await linkProjectToScrumService(req.scrum.id, body.projectId);
+    const updated = await updateScrumTaskService(
+      req.task.id,
+      body,
+      req.user,
+      req.canEditContent
+    );
     return res.status(200).json({
       success: true,
-      message: "پروژه با موفقیت به اسکرام متصل شد",
-      data: linked,
+      message: "تسک با موفقیت ویرایش شد",
+      data: updated,
     });
   } catch (err) {
     forwardPrismaOrThrow(err, next);
   }
 });
 
-export const unlinkProjectFromScrum = catchAsync(async (req, res, next) => {
+export const syncTaskMembers = catchAsync(async (req, res, next) => {
   try {
-    const projectId = req.validatedParams?.projectId ?? Number(req.params.projectId);
-    await unlinkProjectFromScrumService(req.scrum.id, projectId);
+    const body = req.validatedBody || req.body;
+    const members = await syncTaskMembersService(req.task.id, body.userIds, req.user);
     return res.status(200).json({
       success: true,
-      message: "اتصال پروژه از اسکرام با موفقیت قطع شد",
+      message: "افراد اختصاص‌داده‌شده به تسک با موفقیت بروزرسانی شدند",
+      data: members,
+    });
+  } catch (err) {
+    forwardPrismaOrThrow(err, next);
+  }
+});
+
+export const deleteScrumTask = catchAsync(async (req, res, next) => {
+  try {
+    await deleteScrumTaskService(req.task.id);
+    return res.status(200).json({
+      success: true,
+      message: "تسک با موفقیت حذف شد",
       data: null,
     });
   } catch (err) {
@@ -387,19 +359,20 @@ export const unlinkProjectFromScrum = catchAsync(async (req, res, next) => {
   }
 });
 
-export const syncScrumProjectMembers = catchAsync(async (req, res, next) => {
-  try {
-    const projectId = req.validatedParams?.projectId ?? Number(req.params.projectId);
-    const body = req.validatedBody || req.body;
-    const members = await syncScrumProjectMembersService(req.scrum.id, projectId, body.userIds);
-    return res.status(200).json({
-      success: true,
-      message: "اعضای پروژه اسکرام با موفقیت بروزرسانی شدند",
-      data: members,
-    });
-  } catch (err) {
-    forwardPrismaOrThrow(err, next);
-  }
+export const getTaskWorkSessions = catchAsync(async (req, res) => {
+  const query = req.validatedQuery || req.query;
+  const result = await getTaskWorkSessionsService(
+    req.task.id,
+    query,
+    req.user,
+    req.canEditContent
+  );
+  return res.status(200).json({
+    success: true,
+    message: "سشن‌های کاری تسک با موفقیت دریافت شد",
+    data: result.data,
+    meta: formatPaginationMeta(result.page, result.limit, result.total),
+  });
 });
 
 export const getScrumLeaderboard = catchAsync(async (req, res) => {

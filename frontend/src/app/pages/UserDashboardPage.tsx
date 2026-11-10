@@ -13,6 +13,7 @@ import {
   Calendar,
   Trash2,
   Layers,
+  ListChecks,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth';
@@ -65,7 +66,7 @@ const UserDashboardPage: React.FC = () => {
   // Validate that the timer's selected project actually belongs to the user's assigned projects
   useEffect(() => {
     if (!projectsLoading && projects.length > 0) {
-      if (timer.target?.kind === 'STUDIO' && !projects.some((p) => p.id === timer.target?.id)) {
+      if (timer.target?.kind === 'PROJECT' && !projects.some((p) => p.id === timer.target?.id)) {
         timer.clearTarget();
       }
     }
@@ -115,6 +116,11 @@ const UserDashboardPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
       queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
     },
     onError: (err: Error) => {
       queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
@@ -477,7 +483,13 @@ const UserDashboardPage: React.FC = () => {
                 </span>
                 <div className="space-y-2 max-h-56 overflow-y-auto pe-1">
                   {mySessions.map((s) => {
-                    const pName = s.projectName || 'پروژه';
+                    const isTask = s.targetType === 'TASK' && Boolean(s.task);
+                    const pName =
+                      isTask && s.task
+                        ? s.task.scrum
+                          ? `[${s.task.scrum.name}] ${s.task.name}`
+                          : s.task.name
+                        : s.project?.name || s.projectName || 'پروژه';
                     const sInfo = `${pName} (${formatDurationToHoursMins(s.durationSeconds)})`;
                     return (
                       <div
@@ -486,7 +498,11 @@ const UserDashboardPage: React.FC = () => {
                       >
                         <div className="min-w-0 flex-1 space-y-1.5">
                           <div className="flex items-center gap-1.5 font-black text-sec dark:text-white truncate">
-                            <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
+                            {isTask ? (
+                              <ListChecks className="w-3.5 h-3.5 text-primary shrink-0" />
+                            ) : (
+                              <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
+                            )}
                             <span className="truncate">{pName}</span>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
@@ -520,7 +536,11 @@ const UserDashboardPage: React.FC = () => {
               <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-sec/10 dark:border-gray-800">
                 <span className="text-sec/65 dark:text-gray-400 font-bold shrink-0">هدف کاری جاری</span>
                 <span className="font-extrabold text-sec dark:text-white flex items-center gap-1.5 truncate max-w-[200px]" title={timer.target?.label || ''}>
-                  <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
+                  {timer.target?.kind === 'TASK' ? (
+                    <ListChecks className="w-3.5 h-3.5 text-primary shrink-0" />
+                  ) : (
+                    <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
+                  )}
                   <span className="truncate">{timer.target?.label || 'انتخاب نشده'}</span>
                 </span>
               </div>

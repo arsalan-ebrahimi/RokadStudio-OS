@@ -7,7 +7,6 @@ const KPI_MAX_ABS = 9999999999.99;
 
 const SCRUM_COLORS = ["ECOSYSTEM", "MALE", "FEMALE", "COLLEGE", "CLUB"];
 const SPRINT_STATUSES = ["PLANNED", "ACTIVE", "COMPLETED"];
-const ITEM_STATUSES = ["TODO", "DOING", "DONE"];
 const EVENT_SCHEDULE_TYPES = ["WEEKLY", "ONCE"];
 
 const KPI_ALLOWED_ROW_KEYS = new Set([
@@ -232,19 +231,13 @@ export const scrumIdValidator = [
   handleValidation,
 ];
 
-export const scrumAndProjectIdValidator = [
-  param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه اسکرام باید یک عدد صحیح مثبت باشد").toInt(),
-  param("projectId").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه پروژه باید یک عدد صحیح مثبت باشد").toInt(),
-  handleValidation,
-];
-
 export const sprintIdValidator = [
   param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه اسپرینت باید یک عدد صحیح مثبت باشد").toInt(),
   handleValidation,
 ];
 
-export const sprintProjectIdValidator = [
-  param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه پروژه اسپرینت باید یک عدد صحیح مثبت باشد").toInt(),
+export const taskIdValidator = [
+  param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه تسک باید یک عدد صحیح مثبت باشد").toInt(),
   handleValidation,
 ];
 
@@ -358,11 +351,19 @@ export const updateScrumMembersValidator = [
 ];
 
 export const createSprintBodyValidator = [
-  rejectUnknownKeysMiddleware(["title", "description", "startDate", "endDate"], { allowEmptyUndefinedBody: true }),
+  rejectUnknownKeysMiddleware(["title", "description", "startDate", "endDate", "progressPercent"], { allowEmptyUndefinedBody: true }),
   strictOptionalString("title", { min: 1, max: 100, nullable: true, messagePrefix: "عنوان اسپرینت" }),
   strictOptionalString("description", { max: 2000, nullable: true, messagePrefix: "توضیحات اسپرینت" }),
   strictNullableDateBody("startDate"),
   strictNullableDateBody("endDate"),
+  body("progressPercent")
+    .optional()
+    .custom((val) => {
+      if (!isStrictIntInRange(val, 0, 100)) {
+        throw new Error("درصد پیشرفت اسپرینت باید عدد صحیح بین ۰ تا ۱۰۰ باشد");
+      }
+      return true;
+    }),
   body().custom((val) => {
     if (
       typeof val?.startDate === "string" &&
@@ -385,11 +386,19 @@ export const createSprintValidator = [
 ];
 
 export const updateSprintBodyValidator = [
-  rejectUnknownKeysMiddleware(["title", "description", "startDate", "endDate"], { requireNonEmpty: true }),
+  rejectUnknownKeysMiddleware(["title", "description", "startDate", "endDate", "progressPercent"], { requireNonEmpty: true }),
   strictOptionalString("title", { min: 1, max: 100, messagePrefix: "عنوان اسپرینت" }),
   strictOptionalString("description", { max: 2000, nullable: true, messagePrefix: "توضیحات اسپرینت" }),
   strictNullableDateBody("startDate"),
   strictNullableDateBody("endDate"),
+  body("progressPercent")
+    .optional()
+    .custom((val) => {
+      if (!isStrictIntInRange(val, 0, 100)) {
+        throw new Error("درصد پیشرفت اسپرینت باید عدد صحیح بین ۰ تا ۱۰۰ باشد");
+      }
+      return true;
+    }),
   body().custom((val) => {
     if (
       typeof val?.startDate === "string" &&
@@ -426,71 +435,105 @@ export const updateSprintStatusValidator = [
   ...updateSprintStatusBodyValidator,
 ];
 
-export const createSprintProjectBodyValidator = [
-  rejectUnknownKeysMiddleware(["name", "points", "assigneeId", "projectId"]),
+export const listScrumTasksQueryValidator = [
+  rejectUnknownQueryMiddleware(["isActive", "search"]),
+  query("isActive").optional().isBoolean().withMessage("isActive باید boolean باشد").toBoolean(),
+  query("search").optional().trim(),
+  handleValidation,
+];
+
+export const createTaskBodyValidator = [
+  rejectUnknownKeysMiddleware(["name", "description", "points", "isActive", "memberIds"]),
   body("name")
     .custom((val) => {
       if (typeof val !== "string") {
-        throw new Error("نام پروژه اسپرینت الزامی و باید رشته متنی باشد");
+        throw new Error("عنوان تسک الزامی و باید رشته متنی باشد");
       }
       const len = val.trim().length;
       if (len < 1 || len > 150) {
-        throw new Error("نام پروژه اسپرینت باید بین ۱ تا ۱۵۰ کاراکتر باشد");
+        throw new Error("عنوان تسک باید بین ۱ تا ۱۵۰ کاراکتر باشد");
       }
       return true;
     })
     .customSanitizer((val) => (typeof val === "string" ? val.trim() : val)),
+  strictOptionalString("description", { max: 2000, nullable: true, messagePrefix: "توضیحات تسک" }),
   body("points")
     .optional()
     .custom((val) => {
-      if (!isStrictIntInRange(val, 0, 100)) {
-        throw new Error("پوینت باید عدد صحیح بین ۰ تا ۱۰۰ باشد");
+      if (!isStrictIntInRange(val, 0, 1000)) {
+        throw new Error("پوینت باید عدد صحیح بین ۰ تا ۱۰۰۰ باشد");
       }
       return true;
     }),
-  strictNullablePositiveIntBody("assigneeId", "assigneeId"),
-  strictNullablePositiveIntBody("projectId", "projectId"),
+  body("isActive")
+    .optional()
+    .custom((val) => {
+      if (typeof val !== "boolean") {
+        throw new Error("فیلد isActive باید از نوع boolean باشد");
+      }
+      return true;
+    }),
+  strictPositiveIntArrayBody("memberIds", "memberIds", { required: false, max: MAX_BATCH_ROWS }),
   handleValidation,
 ];
 
-export const createSprintProjectValidator = [
-  param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه اسپرینت باید یک عدد صحیح مثبت باشد").toInt(),
-  ...createSprintProjectBodyValidator,
-];
-
-export const updateSprintProjectBodyValidator = [
-  rejectUnknownKeysMiddleware(["name", "points", "assigneeId", "projectId", "status", "sortOrder"], { requireNonEmpty: true }),
-  strictOptionalString("name", { min: 1, max: 150, messagePrefix: "نام پروژه اسپرینت" }),
+export const updateTaskBodyValidator = [
+  rejectUnknownKeysMiddleware(["name", "description", "points", "isActive"], { requireNonEmpty: true }),
+  strictOptionalString("name", { min: 1, max: 150, messagePrefix: "عنوان تسک" }),
+  strictOptionalString("description", { max: 2000, nullable: true, messagePrefix: "توضیحات تسک" }),
   body("points")
     .optional()
     .custom((val) => {
-      if (!isStrictIntInRange(val, 0, 100)) {
-        throw new Error("پوینت باید عدد صحیح بین ۰ تا ۱۰۰ باشد");
+      if (!isStrictIntInRange(val, 0, 1000)) {
+        throw new Error("پوینت باید عدد صحیح بین ۰ تا ۱۰۰۰ باشد");
       }
       return true;
     }),
-  strictNullablePositiveIntBody("assigneeId", "assigneeId"),
-  strictNullablePositiveIntBody("projectId", "projectId"),
-  body("status")
-    .optional()
-    .isString()
-    .withMessage("وضعیت تسک نامعتبر است")
-    .isIn(ITEM_STATUSES)
-    .withMessage("وضعیت باید TODO، DOING یا DONE باشد"),
-  body("sortOrder")
+  body("isActive")
     .optional()
     .custom((val) => {
-      if (!isStrictIntInRange(val, 0, INT32_MAX)) {
-        throw new Error("sortOrder باید عدد صحیح نامنفی معتبر باشد");
+      if (typeof val !== "boolean") {
+        throw new Error("فیلد isActive باید از نوع boolean باشد");
       }
       return true;
     }),
   handleValidation,
 ];
 
-export const updateSprintProjectValidator = [
-  param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه پروژه اسپرینت باید یک عدد صحیح مثبت باشد").toInt(),
-  ...updateSprintProjectBodyValidator,
+export const updateTaskMembersBodyValidator = [
+  rejectUnknownKeysMiddleware(["userIds"]),
+  strictPositiveIntArrayBody("userIds", "userIds", { required: true, max: MAX_BATCH_ROWS }),
+  handleValidation,
+];
+
+export const taskWorkSessionsQueryValidator = [
+  rejectUnknownQueryMiddleware(["date", "dateFrom", "dateTo", "approval", "userId", "page", "limit"]),
+  query("page").optional().isInt({ min: 1, max: INT32_MAX }).toInt(),
+  query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  query("userId").optional().isInt({ min: 1, max: INT32_MAX }).toInt(),
+  query("approval")
+    .optional()
+    .isIn(["ALL", "PENDING", "APPROVED", "REJECTED"])
+    .withMessage("approval باید ALL، PENDING، APPROVED یا REJECTED باشد"),
+  query("date").optional().custom(strictDateValidator),
+  query("dateFrom").optional().custom(strictDateValidator),
+  query("dateTo").optional().custom(strictDateValidator),
+  query().custom((_, { req }) => {
+    const { dateFrom, dateTo } = req.query || {};
+    if (
+      typeof dateFrom === "string" &&
+      typeof dateTo === "string" &&
+      dateFrom !== "" &&
+      dateTo !== "" &&
+      isIsoDateString(dateFrom) &&
+      isIsoDateString(dateTo) &&
+      toDateOnly(dateFrom).getTime() > toDateOnly(dateTo).getTime()
+    ) {
+      throw new Error("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد");
+    }
+    return true;
+  }),
+  handleValidation,
 ];
 
 export const batchKpiBodyValidator = [
@@ -690,8 +733,9 @@ export const batchEventsValidator = [
 ];
 
 export const scrumReportQueryValidator = [
-  rejectUnknownQueryMiddleware(["sprintId", "from", "to"]),
+  rejectUnknownQueryMiddleware(["sprintId", "taskId", "from", "to"]),
   query("sprintId").optional().isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه اسپرینت نامعتبر است").toInt(),
+  query("taskId").optional().isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه تسک نامعتبر است").toInt(),
   query("from").optional().custom(strictDateValidator),
   query("to").optional().custom(strictDateValidator),
   query().custom((_, { req }) => {
@@ -715,48 +759,6 @@ export const scrumReportQueryValidator = [
 export const scrumReportValidator = [
   param("id").isInt({ min: 1, max: INT32_MAX }).withMessage("شناسه اسکرام باید یک عدد صحیح مثبت باشد").toInt(),
   ...scrumReportQueryValidator,
-];
-
-export const createScrumProjectBodyValidator = [
-  rejectUnknownKeysMiddleware(["name", "description", "memberIds"]),
-  body("name")
-    .custom((val) => {
-      if (typeof val !== "string") {
-        throw new Error("نام پروژه الزامی و باید رشته متنی باشد");
-      }
-      const len = val.trim().length;
-      if (len < 2 || len > 100) {
-        throw new Error("نام پروژه باید بین ۲ تا ۱۰۰ کاراکتر باشد");
-      }
-      return true;
-    })
-    .customSanitizer((val) => (typeof val === "string" ? val.trim() : val)),
-  strictOptionalString("description", { max: 2000, nullable: true, messagePrefix: "توضیحات پروژه" }),
-  strictPositiveIntArrayBody("memberIds", "memberIds", { required: false, max: MAX_BATCH_ROWS }),
-  handleValidation,
-];
-
-export const availableScrumProjectsQueryValidator = [
-  rejectUnknownQueryMiddleware(["q"]),
-  query("q").optional().trim(),
-  handleValidation,
-];
-
-export const linkScrumProjectBodyValidator = [
-  rejectUnknownKeysMiddleware(["projectId"]),
-  body("projectId").custom((val) => {
-    if (!isStrictPositiveInt32(val)) {
-      throw new Error("projectId باید یک عدد صحیح مثبت معتبر باشد");
-    }
-    return true;
-  }),
-  handleValidation,
-];
-
-export const updateScrumProjectMembersBodyValidator = [
-  rejectUnknownKeysMiddleware(["userIds"]),
-  strictPositiveIntArrayBody("userIds", "userIds", { required: true, max: MAX_BATCH_ROWS }),
-  handleValidation,
 ];
 
 export const scrumLeaderboardQueryValidator = [

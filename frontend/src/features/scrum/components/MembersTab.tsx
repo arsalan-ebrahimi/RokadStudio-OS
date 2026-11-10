@@ -155,7 +155,7 @@ export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
             اعضای تیم اسکرام ({toPersianDigits(members.length)} نفر)
           </h3>
           <p className="text-xs text-ink-normal/65 dark:text-gray-400 mt-0.5 leading-relaxed">
-            اعضای این اسکرام به اسپرینت‌ها، پروژه‌ها، جلسات، رتبه‌بندی و شاخص‌های کلیدی دسترسی خواهند داشت.
+            اعضای این اسکرام به اسپرینت‌ها، تسک‌ها، جلسات، رتبه‌بندی و شاخص‌های کلیدی دسترسی خواهند داشت.
           </p>
         </div>
 
@@ -370,7 +370,7 @@ export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
       <ConfirmDialog
         isOpen={Boolean(removingMember)}
         title="حذف عضو از اسکرام"
-        message={`آیا از حذف «${removingMember?.name}» از این اسکرام اطمینان دارید؟ در صورت داشتن آیتم‌های اختصاص‌یافته در اسپرینت‌ها، آن آیتم‌ها به وضعیت «بدون مسئول» تغییر خواهند کرد ولی سشن‌های کاری قبلی دست‌نخورده باقی می‌مانند.`}
+        message={`آیا از حذف «${removingMember?.name}» از این اسکرام اطمینان دارید؟ دسترسی ایشان به تسک‌های اسکرام لغو می‌شود ولی سشن‌های کاری قبلی دست‌نخورده باقی می‌مانند.`}
         variant="danger"
         isLoading={syncMut.isPending}
         onConfirm={handleRemoveMember}

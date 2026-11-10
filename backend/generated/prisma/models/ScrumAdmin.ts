@@ -487,6 +487,14 @@ export type ScrumAdminUncheckedUpdateManyWithoutScrumNestedInput = {
   deleteMany?: Prisma.ScrumAdminScalarWhereInput | Prisma.ScrumAdminScalarWhereInput[]
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type ScrumAdminCreateWithoutUserInput = {
   assignedAt?: Date | string
   scrum: Prisma.ScrumCreateNestedOneWithoutAdminsInput

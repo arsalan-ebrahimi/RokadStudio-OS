@@ -17,6 +17,7 @@ interface PersianDatePickerProps {
   value: string; // ISO 'YYYY-MM-DD'
   onChange: (isoDate: string) => void;
   label?: string;
+  placeholder?: string;
   allowStep?: boolean;
   size?: 'sm' | 'md';
   containerClassName?: string;
@@ -26,6 +27,7 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
   value,
   onChange,
   label,
+  placeholder = 'انتخاب تاریخ',
   allowStep = true,
   size = 'md',
   containerClassName,
@@ -33,7 +35,8 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { jy, jm, jd } = isoToJalali(value);
+  const effectiveValue = value || getTehranTodayString();
+  const { jy, jm, jd } = isoToJalali(effectiveValue);
   const daysInMonth = jalaaliMonthLength(jy, jm);
 
   useEffect(() => {
@@ -101,7 +104,9 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
           className="flex-1 h-8 flex items-center justify-center gap-2 px-2.5 text-xs font-bold text-sec dark:text-white rounded-lg hover:bg-sec/[0.05] dark:hover:bg-gray-800 transition-colors whitespace-nowrap cursor-pointer"
         >
           <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span className="tabular-nums">{formatToJalali(value, false)}</span>
+          <span className={cn('tabular-nums', !value && 'text-sec/45 dark:text-gray-400 font-semibold')}>
+            {value ? formatToJalali(value, false) : placeholder}
+          </span>
         </button>
 
         {allowStep && (

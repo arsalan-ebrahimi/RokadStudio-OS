@@ -10,11 +10,11 @@ import {
 } from "./workSessionService.js";
 
 export const postWorkSession = catchAsync(async (req, res, next) => {
-  const { projectId, sprintProjectId, durationSeconds, startedAt, clientRequestId } = req.body;
+  const { projectId, taskId, durationSeconds, startedAt, clientRequestId } = req.body;
   const session = await logWorkSession({
     userId: req.userId,
     projectId: projectId ? Number(projectId) : null,
-    sprintProjectId: sprintProjectId ? Number(sprintProjectId) : null,
+    taskId: taskId ? Number(taskId) : null,
     durationSeconds: Number(durationSeconds),
     startedAt,
     clientRequestId,
@@ -23,7 +23,10 @@ export const postWorkSession = catchAsync(async (req, res, next) => {
   return res.status(200).json({
     success: true,
     message: "Work session logged successfully",
-    data: session,
+    data: {
+      ...session,
+      targetType: session.projectId ? "PROJECT" : "TASK",
+    },
   });
 });
 
@@ -59,17 +62,12 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
         project: {
           select: { id: true, name: true },
         },
-        sprintProject: {
+        task: {
           select: {
             id: true,
             name: true,
-            sprint: {
-              select: {
-                id: true,
-                number: true,
-                scrum: { select: { id: true, name: true } },
-              },
-            },
+            points: true,
+            scrum: { select: { id: true, name: true, color: true } },
           },
         },
         attendance: {
@@ -82,13 +80,14 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
 
   const formatted = sessions.map((s) => ({
     id: s.id,
+    targetType: s.projectId ? "PROJECT" : "TASK",
     projectId: s.projectId,
-    sprintProjectId: s.sprintProjectId,
+    project: s.project || null,
+    taskId: s.taskId,
+    task: s.task || null,
     projectName:
       s.project?.name ||
-      (s.sprintProject
-        ? `[${s.sprintProject.sprint.scrum.name} · S${s.sprintProject.sprint.number}] ${s.sprintProject.name}`
-        : undefined),
+      (s.task ? `[${s.task.scrum.name}] ${s.task.name}` : undefined),
     durationSeconds: s.durationSeconds,
     attendanceDate: formatDate(s.attendance?.date),
     workDate: formatDate(s.workDate),
@@ -109,12 +108,20 @@ export const getMeWorkSessions = catchAsync(async (req, res, next) => {
 
 export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
   const { page, limit, skip } = getPagination(req.query);
-  const { userId, projectId, date, dateFrom, dateTo, approval } = req.query;
+  const { userId, projectId, taskId, targetType, date, dateFrom, dateTo, approval } = req.query;
 
   const where = {};
 
   if (userId) where.userId = Number(userId);
-  if (projectId) where.projectId = Number(projectId);
+  if (projectId) {
+    where.projectId = Number(projectId);
+  } else if (taskId) {
+    where.taskId = Number(taskId);
+  } else if (targetType === "PROJECT") {
+    where.projectId = { not: null };
+  } else if (targetType === "TASK") {
+    where.taskId = { not: null };
+  }
   if (approval) where.approval = approval;
 
   if (date) {
@@ -142,17 +149,12 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
         project: {
           select: { id: true, name: true },
         },
-        sprintProject: {
+        task: {
           select: {
             id: true,
             name: true,
-            sprint: {
-              select: {
-                id: true,
-                number: true,
-                scrum: { select: { id: true, name: true } },
-              },
-            },
+            points: true,
+            scrum: { select: { id: true, name: true, color: true } },
           },
         },
         attendance: {
@@ -169,15 +171,11 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
   const formatted = sessions.map((s) => ({
     id: s.id,
     user: s.user,
-    project:
-      s.project ||
-      (s.sprintProject
-        ? {
-            id: s.sprintProject.id,
-            name: `[${s.sprintProject.sprint.scrum.name} · S${s.sprintProject.sprint.number}] ${s.sprintProject.name}`,
-          }
-        : null),
-    sprintProjectId: s.sprintProjectId,
+    targetType: s.projectId ? "PROJECT" : "TASK",
+    projectId: s.projectId,
+    project: s.project || null,
+    taskId: s.taskId,
+    task: s.task || null,
     durationSeconds: s.durationSeconds,
     attendanceDate: formatDate(s.attendance?.date),
     workDate: formatDate(s.workDate),
@@ -197,6 +195,45 @@ export const getAdminWorkSessions = catchAsync(async (req, res, next) => {
       sessions: formatted,
     },
     meta: formatPaginationMeta(page, limit, total),
+  });
+});
+
+export const getWorkSessionTargets = catchAsync(async (req, res, next) => {
+  const [projects, tasks] = await Promise.all([
+    prisma.project.findMany({
+      take: 200,
+      select: { id: true, name: true, isActive: true },
+      orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    }),
+    prisma.task.findMany({
+      take: 200,
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        points: true,
+        scrumId: true,
+        scrum: { select: { id: true, name: true, color: true } },
+      },
+      orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    }),
+  ]);
+
+  return res.status(200).json({
+    success: true,
+    message: "Work session targets fetched successfully",
+    data: {
+      projects,
+      tasks: tasks.map((t) => ({
+        id: t.id,
+        name: t.name,
+        isActive: t.isActive,
+        points: t.points,
+        scrumId: t.scrumId,
+        scrumName: t.scrum.name,
+        scrumColor: t.scrum.color,
+      })),
+    },
   });
 });
 

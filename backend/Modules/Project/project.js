@@ -3,6 +3,7 @@ import {
   getMineProjects,
   getAllProjects,
   getProjectById,
+  getProjectWorkSessions,
   createProject,
   updateProject,
   syncMembers,
@@ -14,6 +15,7 @@ import {
   updateProjectValidator,
   updateMembersValidator,
   getProjectsValidator,
+  getProjectWorkSessionsValidator,
 } from "./projectValidator.js";
 import { isLogin } from "../../Middlewares/isLogin.js";
 import { allowedRoles } from "../../Middlewares/allowedRoles.js";
@@ -39,6 +41,13 @@ projectRouter.post(
   allowedRoles("SUPER_ADMIN"),
   createProjectValidator,
   createProject
+);
+
+projectRouter.get(
+  "/:id/work-sessions",
+  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  getProjectWorkSessionsValidator,
+  getProjectWorkSessions
 );
 
 projectRouter.get(

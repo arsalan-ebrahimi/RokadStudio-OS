@@ -8,13 +8,20 @@ function escapeCsvField(field: string | number): string {
 }
 
 export function exportReportsToCsv(rows: WorkSessionSummaryRow[], filename = 'rokad-report.csv'): void {
-  const headers = ['نام کاربر', 'پروژه', 'تعداد دور', 'مجموع زمان (دقیقه)'];
+  const headers = ['نام کاربر', 'نوع', 'پروژه / تسک', 'تعداد دور', 'مجموع زمان (دقیقه)'];
   const csvLines = [headers.map(escapeCsvField).join(',')];
 
   for (const r of rows) {
+    const kindLabel = r.task ? 'تسک اسکرام' : r.project ? 'پروژه' : '-';
+    const targetLabel = r.task
+      ? r.task.scrum
+        ? `[${r.task.scrum.name}] ${r.task.name}`
+        : r.task.name
+      : r.project?.name || '-';
     const line = [
       escapeCsvField(r.user?.name || '-'),
-      escapeCsvField(r.project?.name || '-'),
+      escapeCsvField(kindLabel),
+      escapeCsvField(targetLabel),
       escapeCsvField(calculateCompletedRounds(r.totalSeconds)),
       escapeCsvField(Math.round(r.totalSeconds / 60)),
     ].join(',');

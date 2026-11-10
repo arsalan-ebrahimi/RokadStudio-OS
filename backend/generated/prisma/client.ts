@@ -77,10 +77,15 @@ export type ScrumMember = Prisma.ScrumMemberModel
  */
 export type Sprint = Prisma.SprintModel
 /**
- * Model SprintProject
+ * Model Task
  * 
  */
-export type SprintProject = Prisma.SprintProjectModel
+export type Task = Prisma.TaskModel
+/**
+ * Model TaskMember
+ * 
+ */
+export type TaskMember = Prisma.TaskMemberModel
 /**
  * Model ScrumKpi
  * 

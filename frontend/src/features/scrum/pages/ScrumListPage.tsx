@@ -89,7 +89,7 @@ export const ScrumListPage: React.FC = () => {
             </h1>
           </div>
           <p className="text-xs text-ink-normal/65 dark:text-gray-400 leading-relaxed">
-            فضای کاری چابک، مدیریت اسپرینت‌ها، پروژه‌های متصل و پیگیری شاخص‌های عملکرد
+            فضای کاری چابک، مدیریت اسپرینت‌ها، تسک‌ها و پیگیری شاخص‌های عملکرد
           </p>
         </div>
 

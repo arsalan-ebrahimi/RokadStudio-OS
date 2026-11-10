@@ -7,7 +7,7 @@ export * from './components/CreateScrumModal';
 export * from './components/EditScrumModal';
 export * from './components/ManageScrumAdminsModal';
 export * from './components/SprintsTab';
-export * from './components/ProjectsTab';
+export * from './components/TasksTab';
 export * from './components/KpiTab';
 export * from './components/EventsTab';
 export * from './components/MembersTab';

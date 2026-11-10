@@ -4,6 +4,7 @@ import {
   getMeWorkSessions,
   getAdminWorkSessions,
   getWorkSessionsSummary,
+  getWorkSessionTargets,
   patchWorkSessionDecision,
   deleteWorkSessionController,
 } from "./workSessionCn.js";
@@ -34,6 +35,13 @@ workSessionRouter.post(
 // Get own sessions (any logged-in user)
 workSessionRouter.get("/me", getMeWorkSessionsValidator, getMeWorkSessions);
 
+// Target selector options (projects + scrum tasks) for report filters
+workSessionRouter.get(
+  "/targets",
+  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  getWorkSessionTargets
+);
+
 // Summary aggregation for admins (registered before root GET /)
 workSessionRouter.get(
   "/summary",
@@ -50,10 +58,10 @@ workSessionRouter.get(
   getAdminWorkSessions
 );
 
-// Decision endpoint: approve or reject session (admins)
+// Decision endpoint: approve or reject session (ADMIN, SUPER_ADMIN, or assigned SCRUM_ADMIN for task sessions)
 workSessionRouter.patch(
   "/:id/decision",
-  allowedRoles("ADMIN", "SUPER_ADMIN"),
+  allowedRoles("ADMIN", "SUPER_ADMIN", "SCRUM_ADMIN"),
   decideWorkSessionValidator,
   patchWorkSessionDecision
 );

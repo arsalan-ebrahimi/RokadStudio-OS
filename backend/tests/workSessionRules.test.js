@@ -10,6 +10,9 @@ describe("WorkSession Business Rules & Database Integrity Tests", () => {
   let superAdminUser = null;
   let activeProject = null;
   let inactiveProject = null;
+  let testScrum = null;
+  let activeTask = null;
+  let inactiveTask = null;
 
   before(async () => {
     superAdminUser = await prisma.user.create({
@@ -59,14 +62,56 @@ describe("WorkSession Business Rules & Database Integrity Tests", () => {
         userId: memberUser.id,
       },
     });
+
+    // Seed a Scrum with zero active sprints + 1 active Task + 1 inactive Task
+    testScrum = await prisma.scrum.create({
+      data: {
+        name: "WS Test Scrum",
+        isActive: true,
+        members: {
+          create: [{ userId: memberUser.id }, { userId: nonMemberUser.id }],
+        },
+      },
+    });
+
+    activeTask = await prisma.task.create({
+      data: {
+        scrumId: testScrum.id,
+        name: "Active Scrum Task",
+        points: 5,
+        isActive: true,
+        members: {
+          create: [{ userId: memberUser.id, assignedById: superAdminUser.id }],
+        },
+      },
+    });
+
+    inactiveTask = await prisma.task.create({
+      data: {
+        scrumId: testScrum.id,
+        name: "Inactive Scrum Task",
+        points: 3,
+        isActive: false,
+        members: {
+          create: [{ userId: memberUser.id, assignedById: superAdminUser.id }],
+        },
+      },
+    });
   });
 
   after(async () => {
     const userIds = [memberUser?.id, nonMemberUser?.id, superAdminUser?.id].filter(Boolean);
     const projectIds = [activeProject?.id, inactiveProject?.id].filter(Boolean);
+    const taskIds = [activeTask?.id, inactiveTask?.id].filter(Boolean);
 
     await prisma.workSession.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.attendance.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.taskMember.deleteMany({ where: { taskId: { in: taskIds } } });
+    await prisma.task.deleteMany({ where: { id: { in: taskIds } } });
+    if (testScrum?.id) {
+      await prisma.scrumMember.deleteMany({ where: { scrumId: testScrum.id } });
+      await prisma.scrum.deleteMany({ where: { id: testScrum.id } });
+    }
     await prisma.projectMember.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.project.deleteMany({ where: { id: { in: projectIds } } });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
@@ -313,9 +358,9 @@ describe("WorkSession Business Rules & Database Integrity Tests", () => {
     await prisma.attendance.delete({ where: { id: att.id } });
   });
 
-  test("Rejects startedAt in the future beyond 2 minutes clock skew (400)", async () => {
+  test("Rejects startedAt in the future beyond 15 minutes clock skew (400)", async () => {
     const testNow = new Date();
-    const futureStartedAt = new Date(testNow.getTime() + 10 * 60 * 1000); // 10 minutes ahead
+    const futureStartedAt = new Date(testNow.getTime() + 20 * 60 * 1000); // 20 minutes ahead
 
     await assert.rejects(
       async () => {
@@ -425,5 +470,101 @@ describe("WorkSession Business Rules & Database Integrity Tests", () => {
         return true;
       }
     );
+  });
+
+  test("Logs WorkSession against active Scrum Task even with zero active sprints", async () => {
+    const testNow = new Date("2026-09-01T11:00:00.000Z");
+    const testDate = todayDate(testNow);
+
+    const att = await prisma.attendance.create({
+      data: {
+        userId: memberUser.id,
+        date: testDate,
+        status: "PRESENT",
+        approval: "PENDING",
+        source: "USER",
+      },
+    });
+
+    const session = await logWorkSession(
+      {
+        userId: memberUser.id,
+        taskId: activeTask.id,
+        durationSeconds: 1200,
+        startedAt: testNow.toISOString(),
+        clientRequestId: "a9b8c7d6-e5f4-4a3b-8c2d-1234567890ef",
+      },
+      testNow
+    );
+
+    assert.ok(session.id);
+    assert.equal(session.taskId, activeTask.id);
+    assert.equal(session.projectId, null);
+
+    await prisma.workSession.delete({ where: { id: session.id } });
+    await prisma.attendance.delete({ where: { id: att.id } });
+  });
+
+  test("Refuses logging on Task when user is unassigned (403) or Task is inactive (400)", async () => {
+    const testNow = new Date("2026-09-02T11:00:00.000Z");
+
+    await assert.rejects(
+      async () => {
+        await logWorkSession(
+          {
+            userId: nonMemberUser.id,
+            taskId: activeTask.id,
+            durationSeconds: 600,
+          },
+          testNow
+        );
+      },
+      (err) => {
+        assert.equal(err.statusCode, 403);
+        return true;
+      }
+    );
+
+    await assert.rejects(
+      async () => {
+        await logWorkSession(
+          {
+            userId: memberUser.id,
+            taskId: inactiveTask.id,
+            durationSeconds: 600,
+          },
+          testNow
+        );
+      },
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        return true;
+      }
+    );
+  });
+
+  test("DB-level CHECK constraint enforces XOR between projectId and taskId", async () => {
+    const testNow = new Date("2026-09-03T10:00:00.000Z");
+    const att = await prisma.attendance.create({
+      data: {
+        userId: memberUser.id,
+        date: todayDate(testNow),
+        status: "PRESENT",
+        approval: "PENDING",
+        source: "USER",
+      },
+    });
+
+    await assert.rejects(
+      async () => {
+        await prisma.$executeRaw`
+          INSERT INTO "WorkSession" ("userId", "projectId", "taskId", "attendanceId", "durationSeconds", "createdAt")
+          VALUES (${memberUser.id}, ${activeProject.id}, ${activeTask.id}, ${att.id}, 600, NOW())
+        `;
+      },
+      /WorkSession_project_or_task_check/
+    );
+
+    await prisma.attendance.delete({ where: { id: att.id } });
   });
 });

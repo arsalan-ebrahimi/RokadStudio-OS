@@ -65,15 +65,6 @@ export const SprintStatus = {
 export type SprintStatus = (typeof SprintStatus)[keyof typeof SprintStatus]
 
 
-export const ItemStatus = {
-  TODO: 'TODO',
-  DOING: 'DOING',
-  DONE: 'DONE'
-} as const
-
-export type ItemStatus = (typeof ItemStatus)[keyof typeof ItemStatus]
-
-
 export const EventScheduleType = {
   WEEKLY: 'WEEKLY',
   ONCE: 'ONCE'

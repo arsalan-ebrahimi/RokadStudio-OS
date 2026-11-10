@@ -43,8 +43,24 @@ function saveRecentTarget(userId: number | string, target: TimerTarget) {
   try {
     const key = getRecentStorageKey(userId);
     const raw = localStorage.getItem(key);
-    const existing: TimerTarget[] = raw ? JSON.parse(raw) : [];
-    const filtered = existing.filter((t) => !(t.kind === target.kind && t.id === target.id));
+    const parsed: unknown[] = raw ? JSON.parse(raw) : [];
+    const normalized: TimerTarget[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const obj = item as Record<string, unknown>;
+      const rawKind = obj.kind;
+      const kind = rawKind === 'STUDIO' ? 'PROJECT' : rawKind;
+      if ((kind === 'PROJECT' || kind === 'TASK') && typeof obj.id === 'number') {
+        normalized.push({
+          kind,
+          id: obj.id,
+          label: String(obj.label || ''),
+          points: typeof obj.points === 'number' ? obj.points : undefined,
+          scrumColor: typeof obj.scrumColor === 'string' ? obj.scrumColor : undefined,
+        });
+      }
+    }
+    const filtered = normalized.filter((t) => !(t.kind === target.kind && t.id === target.id));
     const next = [target, ...filtered].slice(0, 3);
     localStorage.setItem(key, JSON.stringify(next));
   } catch {
@@ -84,7 +100,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
   const normalizedInitial: TimerTarget | null =
     typeof initialTargetOrProjectId === 'number'
-      ? { kind: 'STUDIO', id: initialTargetOrProjectId, label: '' }
+      ? { kind: 'PROJECT', id: initialTargetOrProjectId, label: '' }
       : initialTargetOrProjectId || null;
 
   const [initialData] = useState(() => {
@@ -278,7 +294,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         const next = {
           ...prev,
           target: normalizedInitial,
-          projectId: normalizedInitial.kind === 'STUDIO' ? normalizedInitial.id : null,
+          projectId: normalizedInitial.kind === 'PROJECT' ? normalizedInitial.id : null,
         };
         persistState(next);
         return next;
@@ -344,7 +360,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
           const next = {
             ...prev,
             target: newTarget,
-            projectId: newTarget.kind === 'STUDIO' ? newTarget.id : null,
+            projectId: newTarget.kind === 'PROJECT' ? newTarget.id : null,
           };
           persistState(next);
           return next;
@@ -360,7 +376,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
   const handleSelectProject = useCallback(
     (newProjectId: number, projectName: string) => {
       handleSelectTarget({
-        kind: 'STUDIO',
+        kind: 'PROJECT',
         id: newProjectId,
         label: projectName,
       });
@@ -391,17 +407,17 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
           startedAt: string;
           clientRequestId: string;
           projectId?: number;
-          sprintProjectId?: number;
+          taskId?: number;
         } = {
           durationSeconds: currentDerived.workSeconds,
           startedAt,
           clientRequestId: clientReqId,
         };
 
-        if (current.target.kind === 'STUDIO') {
+        if (current.target.kind === 'PROJECT') {
           payload.projectId = current.target.id;
         } else {
-          payload.sprintProjectId = current.target.id;
+          payload.taskId = current.target.id;
         }
 
         const newSession = await submitWorkSession(payload);
@@ -444,9 +460,10 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
         queryClient.invalidateQueries({ queryKey: ['scrum'] });
-        queryClient.invalidateQueries({ queryKey: ['sprint'] });
+        queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-        toast.success('زمان پروژه ثبت و پروژه تغییر یافت');
+        toast.success('زمان هدف کاری ثبت و تغییر یافت');
       } catch (err: unknown) {
         let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
         if (err instanceof Error && err.message) {
@@ -510,17 +527,17 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
           startedAt: string;
           clientRequestId: string;
           projectId?: number;
-          sprintProjectId?: number;
+          taskId?: number;
         } = {
           durationSeconds: currentDerived.workSeconds,
           startedAt,
           clientRequestId: clientReqId,
         };
 
-        if (current.target.kind === 'STUDIO') {
+        if (current.target.kind === 'PROJECT') {
           payload.projectId = current.target.id;
         } else {
-          payload.sprintProjectId = current.target.id;
+          payload.taskId = current.target.id;
         }
 
         const newSession = await submitWorkSession(payload);
@@ -565,7 +582,8 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
         queryClient.invalidateQueries({ queryKey: ['scrum'] });
-        queryClient.invalidateQueries({ queryKey: ['sprint'] });
+        queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان کار با موفقیت ثبت شد');
       } catch (err: unknown) {
@@ -612,7 +630,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
     status: engineState.status,
     target: engineState.target,
     selectedTarget: engineState.target,
-    projectId: engineState.target?.kind === 'STUDIO' ? engineState.target.id : null,
+    projectId: engineState.target?.kind === 'PROJECT' ? engineState.target.id : null,
     workMs: derived.workMs,
     workSeconds: derived.workSeconds,
     pomodoroRemainingMs: derived.pomodoroRemainingMs,
@@ -631,7 +649,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
     registerButtonDisabled: derived.registerButtonDisabled || isOtherTabActive || isSubmitting,
     registerButtonDisabledReason: isOtherTabActive ? 'تایمر در تب دیگری فعال است.' : derived.registerButtonDisabledReason,
     isLocked: derived.projectSelectLocked || isSubmitting,
-    savedProjectId: engineState.target?.kind === 'STUDIO' ? engineState.target.id : null,
+    savedProjectId: engineState.target?.kind === 'PROJECT' ? engineState.target.id : null,
     isOtherTabActive,
     dismissOtherTabLock,
     isSubmitting,

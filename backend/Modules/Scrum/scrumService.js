@@ -1,7 +1,6 @@
 import { HandleERROR } from "vanta-api";
 import prisma from "../../config/prisma.js";
 import { todayDate, toDateOnly, formatDate, getTimezoneParts } from "../../Utils/date.js";
-import { invalidateAllProjectsCache } from "../../Utils/cache.js";
 import { getVisibleScrumsWhere } from "./scrumAccess.js";
 import { serializeKpiRows } from "./kpiSerializer.js";
 import { isEventRowEmpty } from "./scrumValidator.js";
@@ -73,7 +72,7 @@ const formatEventRow = (e) => ({
   sortOrder: e.sortOrder,
 });
 
-const formatSprintSummary = (sprint, stats = { totalPoints: 0, donePoints: 0, itemCount: 0 }) => ({
+const formatSprintSummary = (sprint) => ({
   id: sprint.id,
   scrumId: sprint.scrumId,
   number: sprint.number,
@@ -82,74 +81,11 @@ const formatSprintSummary = (sprint, stats = { totalPoints: 0, donePoints: 0, it
   startDate: formatDate(sprint.startDate),
   endDate: formatDate(sprint.endDate),
   status: sprint.status,
+  progressPercent: sprint.progressPercent ?? 0,
   completedAt: sprint.completedAt,
   createdAt: sprint.createdAt,
   updatedAt: sprint.updatedAt,
-  totalPoints: stats.totalPoints,
-  donePoints: stats.donePoints,
-  itemCount: stats.itemCount,
 });
-
-const formatSprintProjectItem = (item, stats = { totalSeconds: 0, sessionsCount: 0 }) => ({
-  id: item.id,
-  sprintId: item.sprintId,
-  projectId: item.project?.id ?? item.projectId ?? null,
-  project: item.project ? { id: item.project.id, name: item.project.name } : null,
-  name: item.name,
-  points: item.points,
-  status: item.status,
-  sortOrder: item.sortOrder,
-  createdAt: item.createdAt,
-  updatedAt: item.updatedAt,
-  assignee: item.assignee ? { id: item.assignee.id, name: item.assignee.name } : null,
-  totalTrackedSeconds: stats.totalSeconds,
-  sessionCount: stats.sessionsCount,
-});
-
-const getSprintStatsMap = async (db, sprintIds) => {
-  const statsMap = new Map();
-  if (!sprintIds || sprintIds.length === 0) return statsMap;
-
-  const grouped = await db.sprintProject.groupBy({
-    by: ["sprintId", "status"],
-    where: { sprintId: { in: sprintIds } },
-    _sum: { points: true },
-    _count: { id: true },
-  });
-
-  for (const row of grouped) {
-    if (!statsMap.has(row.sprintId)) {
-      statsMap.set(row.sprintId, { totalPoints: 0, donePoints: 0, itemCount: 0 });
-    }
-    const entry = statsMap.get(row.sprintId);
-    const pts = row._sum.points || 0;
-    const cnt = row._count.id || 0;
-    entry.totalPoints += pts;
-    entry.itemCount += cnt;
-    if (row.status === "DONE") {
-      entry.donePoints += pts;
-    }
-  }
-
-  return statsMap;
-};
-
-const assertValidSprintAssignee = async (db, scrumId, assigneeId) => {
-  const member = await db.scrumMember.findUnique({
-    where: {
-      scrumId_userId: { scrumId, userId: assigneeId },
-    },
-    select: {
-      user: {
-        select: { id: true, isActive: true, role: true },
-      },
-    },
-  });
-
-  if (!member || !member.user.isActive || member.user.role === "ADMIN") {
-    throw new HandleERROR("کاربر انتخاب‌شده عضو فعال این اسکرام نیست", 400);
-  }
-};
 
 export const listScrumsService = async (currentUser) => {
   const where = getVisibleScrumsWhere(currentUser);
@@ -177,7 +113,7 @@ export const listScrumsService = async (currentUser) => {
         orderBy: { user: { name: "asc" } },
       },
       _count: {
-        select: { members: true },
+        select: { members: true, tasks: true },
       },
       sprints: {
         where: { status: "ACTIVE" },
@@ -185,6 +121,7 @@ export const listScrumsService = async (currentUser) => {
           id: true,
           number: true,
           title: true,
+          progressPercent: true,
         },
         take: 1,
       },
@@ -208,6 +145,7 @@ export const listScrumsService = async (currentUser) => {
       isActive: s.isActive,
       admins,
       memberCount: s._count.members,
+      taskCount: s._count.tasks,
       ...meta,
       activeSprint: s.sprints[0] || null,
       createdAt: s.createdAt,
@@ -284,12 +222,16 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
         },
         orderBy: { user: { name: "asc" } },
       },
+      _count: {
+        select: { tasks: true },
+      },
       sprints: {
         where: { status: "ACTIVE" },
         select: {
           id: true,
           number: true,
           title: true,
+          progressPercent: true,
         },
         take: 1,
       },
@@ -315,6 +257,7 @@ export const getScrumDetailsService = async (scrumId, currentUser) => {
     isActive: scrum.isActive,
     admins,
     memberCount: scrum.members.length,
+    taskCount: scrum._count.tasks,
     ...meta,
     activeSprint: scrum.sprints[0] || null,
     createdAt: scrum.createdAt,
@@ -407,17 +350,15 @@ export const deleteScrumService = async (scrumId) => {
   await prisma.$transaction(async (tx) => {
     const sessionCount = await tx.workSession.count({
       where: {
-        sprintProject: {
-          sprint: {
-            scrumId,
-          },
+        task: {
+          scrumId,
         },
       },
     });
 
     if (sessionCount > 0) {
       throw new HandleERROR(
-        "امکان حذف این اسکرام به دلیل وجود سشن‌های کاری ثبت‌شده وجود ندارد. می‌توانید آن را غیرفعال (آرشیو) کنید.",
+        "امکان حذف این اسکرام به دلیل وجود سشن‌های کاری ثبت‌شده روی تسک‌های آن وجود ندارد. می‌توانید آن را غیرفعال (آرشیو) کنید.",
         409
       );
     }
@@ -426,8 +367,6 @@ export const deleteScrumService = async (scrumId) => {
       where: { id: scrumId },
     });
   });
-
-  await invalidateAllProjectsCache();
 };
 
 export const syncScrumMembersService = async (scrumId, memberList = []) => {
@@ -465,12 +404,11 @@ export const syncScrumMembersService = async (scrumId, memberList = []) => {
     const removedIds = existing.map((e) => e.userId).filter((id) => !targetSet.has(id));
 
     if (removedIds.length > 0) {
-      await tx.sprintProject.updateMany({
+      await tx.taskMember.deleteMany({
         where: {
-          sprint: { scrumId },
-          assigneeId: { in: removedIds },
+          task: { scrumId },
+          userId: { in: removedIds },
         },
-        data: { assigneeId: null },
       });
 
       await tx.scrumMember.deleteMany({
@@ -539,6 +477,7 @@ export const listSprintsService = async (scrumId) => {
       startDate: true,
       endDate: true,
       status: true,
+      progressPercent: true,
       completedAt: true,
       createdAt: true,
       updatedAt: true,
@@ -546,15 +485,13 @@ export const listSprintsService = async (scrumId) => {
     orderBy: { number: "asc" },
   });
 
-  const statsMap = await getSprintStatsMap(
-    prisma,
-    sprints.map((s) => s.id)
-  );
-
-  return sprints.map((s) => formatSprintSummary(s, statsMap.get(s.id)));
+  return sprints.map(formatSprintSummary);
 };
 
-export const createSprintService = async (scrumId, { title, description, startDate, endDate }) => {
+export const createSprintService = async (
+  scrumId,
+  { title, description, startDate, endDate, progressPercent }
+) => {
   const sDate = startDate ? toDateOnly(startDate) : null;
   const eDate = endDate ? toDateOnly(endDate) : null;
 
@@ -584,6 +521,7 @@ export const createSprintService = async (scrumId, { title, description, startDa
             startDate: sDate,
             endDate: eDate,
             status: "PLANNED",
+            progressPercent: progressPercent !== undefined ? Number(progressPercent) : 0,
           },
         });
       });
@@ -598,18 +536,7 @@ export const createSprintService = async (scrumId, { title, description, startDa
   }
 };
 
-const assertValidLinkedProjectForSprint = async (db, scrumId, projectId) => {
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-    select: { id: true, scrumId: true },
-  });
-
-  if (!project || project.scrumId !== scrumId) {
-    throw new HandleERROR("پروژه انتخاب‌شده به این اسکرام متصل نیست", 422);
-  }
-};
-
-export const getSprintDetailsService = async (sprintId, currentUser, canEdit) => {
+export const getSprintDetailsService = async (sprintId) => {
   const sprint = await prisma.sprint.findUnique({
     where: { id: sprintId },
     select: {
@@ -621,35 +548,10 @@ export const getSprintDetailsService = async (sprintId, currentUser, canEdit) =>
       startDate: true,
       endDate: true,
       status: true,
+      progressPercent: true,
       completedAt: true,
       createdAt: true,
       updatedAt: true,
-      projects: {
-        select: {
-          id: true,
-          sprintId: true,
-          projectId: true,
-          name: true,
-          points: true,
-          status: true,
-          sortOrder: true,
-          createdAt: true,
-          updatedAt: true,
-          project: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          assignee: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      },
     },
   });
 
@@ -657,57 +559,13 @@ export const getSprintDetailsService = async (sprintId, currentUser, canEdit) =>
     throw new HandleERROR("اسپرینت یافت نشد", 404);
   }
 
-  // Plain members only see their own tracked seconds; owners/SA see team totals.
-  const projectIds = sprint.projects.map((p) => p.id);
-  const trackedAggs =
-    projectIds.length > 0
-      ? await prisma.workSession.groupBy({
-          by: ["sprintProjectId"],
-          where: {
-            sprintProjectId: { in: projectIds },
-            approval: { not: "REJECTED" },
-            ...(canEdit ? {} : { userId: currentUser.id }),
-          },
-          _sum: { durationSeconds: true },
-          _count: { id: true },
-        })
-      : [];
-
-  const trackedMap = new Map(
-    trackedAggs.map((a) => [
-      a.sprintProjectId,
-      {
-        totalSeconds: a._sum.durationSeconds || 0,
-        sessionsCount: a._count.id || 0,
-      },
-    ])
-  );
-
-  const formattedProjects = sprint.projects.map((p) =>
-    formatSprintProjectItem(p, trackedMap.get(p.id))
-  );
-
-  let totalPoints = 0;
-  let donePoints = 0;
-  let totalSeconds = 0;
-  for (const p of formattedProjects) {
-    totalPoints += p.points || 0;
-    if (p.status === "DONE") donePoints += p.points || 0;
-    totalSeconds += p.totalTrackedSeconds;
-  }
-
-  return {
-    ...formatSprintSummary(sprint, {
-      totalPoints,
-      donePoints,
-      itemCount: formattedProjects.length,
-    }),
-    totalTrackedSeconds: totalSeconds,
-    projects: formattedProjects,
-  };
+  return formatSprintSummary(sprint);
 };
 
-export const updateSprintService = async (sprintId, { title, description, startDate, endDate }) => {
+export const updateSprintService = async (
+  sprintId,
+  { title, description, startDate, endDate, progressPercent }
+) => {
   return await prisma.$transaction(async (tx) => {
     const current = await tx.sprint.findUnique({
       where: { id: sprintId },
@@ -733,14 +591,14 @@ export const updateSprintService = async (sprintId, { title, description, startD
     }
     if (startDate !== undefined) data.startDate = sDate;
     if (endDate !== undefined) data.endDate = eDate;
+    if (progressPercent !== undefined) data.progressPercent = Number(progressPercent);
 
     const updated = await tx.sprint.update({
       where: { id: sprintId },
       data,
     });
 
-    const statsMap = await getSprintStatsMap(tx, [sprintId]);
-    return formatSprintSummary(updated, statsMap.get(sprintId));
+    return formatSprintSummary(updated);
   });
 };
 
@@ -749,22 +607,11 @@ export const updateSprintStatusService = async (sprintId, newStatus) => {
     return await prisma.$transaction(async (tx) => {
       const current = await tx.sprint.findUnique({
         where: { id: sprintId },
-        select: { id: true, scrumId: true, status: true },
+        select: { id: true, scrumId: true, status: true, completedAt: true },
       });
 
       if (!current) {
         throw new HandleERROR("اسپرینت یافت نشد", 404);
-      }
-
-      const isValidTransition =
-        (current.status === "PLANNED" && newStatus === "ACTIVE") ||
-        (current.status === "ACTIVE" && newStatus === "COMPLETED");
-
-      if (!isValidTransition) {
-        throw new HandleERROR(
-          "تغییر وضعیت نامعتبر است. فقط انتقال از برنامه‌ریزی به فعال یا از فعال به تمام‌شده مجاز است",
-          400
-        );
       }
 
       if (newStatus === "ACTIVE") {
@@ -787,7 +634,9 @@ export const updateSprintStatusService = async (sprintId, newStatus) => {
 
       const data = { status: newStatus };
       if (newStatus === "COMPLETED") {
-        data.completedAt = new Date();
+        data.completedAt = current.status === "COMPLETED" && current.completedAt ? current.completedAt : new Date();
+      } else {
+        data.completedAt = null;
       }
 
       const updated = await tx.sprint.update({
@@ -795,8 +644,7 @@ export const updateSprintStatusService = async (sprintId, newStatus) => {
         data,
       });
 
-      const statsMap = await getSprintStatsMap(tx, [sprintId]);
-      return formatSprintSummary(updated, statsMap.get(sprintId));
+      return formatSprintSummary(updated);
     });
   } catch (err) {
     if (err?.code === "P2002") {
@@ -807,215 +655,8 @@ export const updateSprintStatusService = async (sprintId, newStatus) => {
 };
 
 export const deleteSprintService = async (sprintId) => {
-  await prisma.$transaction(async (tx) => {
-    const sessionCount = await tx.workSession.count({
-      where: {
-        sprintProject: {
-          sprintId,
-        },
-      },
-    });
-
-    if (sessionCount > 0) {
-      throw new HandleERROR(
-        "امکان حذف اسپرینت به دلیل وجود سشن‌های کاری ثبت‌شده روی پروژه‌های آن وجود ندارد",
-        409
-      );
-    }
-
-    await tx.sprint.delete({
-      where: { id: sprintId },
-    });
-  });
-};
-
-export const createSprintProjectService = async (
-  sprintId,
-  { name, points = 0, assigneeId, projectId }
-) => {
-  const created = await prisma.$transaction(async (tx) => {
-    const sprint = await tx.sprint.findUnique({
-      where: { id: sprintId },
-      select: { id: true, scrumId: true },
-    });
-
-    if (!sprint) {
-      throw new HandleERROR("اسپرینت یافت نشد", 404);
-    }
-
-    let resolvedAssigneeId = null;
-    if (assigneeId !== undefined && assigneeId !== null) {
-      await assertValidSprintAssignee(tx, sprint.scrumId, assigneeId);
-      resolvedAssigneeId = assigneeId;
-    }
-
-    let resolvedProjectId = null;
-    if (projectId !== undefined && projectId !== null) {
-      await assertValidLinkedProjectForSprint(tx, sprint.scrumId, projectId);
-      resolvedProjectId = projectId;
-    }
-
-    const lastItem = await tx.sprintProject.findFirst({
-      where: { sprintId },
-      orderBy: { sortOrder: "desc" },
-      select: { sortOrder: true },
-    });
-
-    const nextSort = (lastItem?.sortOrder ?? -1) + 1;
-
-    return await tx.sprintProject.create({
-      data: {
-        sprintId,
-        projectId: resolvedProjectId,
-        name: name.trim(),
-        points: points != null ? Number(points) : 0,
-        assigneeId: resolvedAssigneeId,
-        sortOrder: nextSort,
-        status: "TODO",
-      },
-      select: {
-        id: true,
-        sprintId: true,
-        projectId: true,
-        name: true,
-        points: true,
-        status: true,
-        sortOrder: true,
-        createdAt: true,
-        updatedAt: true,
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        assignee: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-  });
-
-  return formatSprintProjectItem(created);
-};
-
-export const updateSprintProjectService = async (
-  itemId,
-  body,
-  { canEdit, isAssignee, currentUser }
-) => {
-  return await prisma.$transaction(async (tx) => {
-    const current = await tx.sprintProject.findUnique({
-      where: { id: itemId },
-      select: {
-        id: true,
-        sprint: {
-          select: {
-            scrumId: true,
-          },
-        },
-      },
-    });
-
-    if (!current) {
-      throw new HandleERROR("پروژه اسپرینت یافت نشد", 404);
-    }
-
-    const data = {};
-
-    if (!canEdit) {
-      if (!isAssignee) {
-        throw new HandleERROR("شما دسترسی ویرایش این پروژه اسپرینت را ندارید", 403);
-      }
-
-      const disallowedKeys = Object.keys(body).filter((k) => k !== "status");
-      if (disallowedKeys.length > 0) {
-        throw new HandleERROR("شما فقط مجاز به تغییر وضعیت این تسک هستید", 403);
-      }
-
-      data.status = body.status;
-    } else {
-      if (body.name !== undefined) data.name = body.name.trim();
-      if (body.points !== undefined) data.points = Number(body.points);
-      if (body.status !== undefined) data.status = body.status;
-      if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder);
-
-      if (body.assigneeId !== undefined) {
-        if (body.assigneeId === null) {
-          data.assigneeId = null;
-        } else {
-          const aid = Number(body.assigneeId);
-          await assertValidSprintAssignee(tx, current.sprint.scrumId, aid);
-          data.assigneeId = aid;
-        }
-      }
-
-      if (body.projectId !== undefined) {
-        if (body.projectId === null) {
-          data.projectId = null;
-        } else {
-          const pid = Number(body.projectId);
-          await assertValidLinkedProjectForSprint(tx, current.sprint.scrumId, pid);
-          data.projectId = pid;
-        }
-      }
-    }
-
-    const [updated, trackedAgg] = await Promise.all([
-      tx.sprintProject.update({
-        where: { id: itemId },
-        data,
-        select: {
-          id: true,
-          sprintId: true,
-          projectId: true,
-          name: true,
-          points: true,
-          status: true,
-          sortOrder: true,
-          createdAt: true,
-          updatedAt: true,
-          project: { select: { id: true, name: true } },
-          assignee: { select: { id: true, name: true } },
-        },
-      }),
-      tx.workSession.aggregate({
-        where: {
-          sprintProjectId: itemId,
-          approval: { not: "REJECTED" },
-          ...(canEdit ? {} : { userId: currentUser.id }),
-        },
-        _sum: { durationSeconds: true },
-        _count: { id: true },
-      }),
-    ]);
-
-    return formatSprintProjectItem(updated, {
-      totalSeconds: trackedAgg._sum.durationSeconds || 0,
-      sessionsCount: trackedAgg._count.id || 0,
-    });
-  });
-};
-
-export const deleteSprintProjectService = async (projectId) => {
-  await prisma.$transaction(async (tx) => {
-    const sessionCount = await tx.workSession.count({
-      where: { sprintProjectId: projectId },
-    });
-
-    if (sessionCount > 0) {
-      throw new HandleERROR(
-        "امکان حذف این پروژه اسپرینت به دلیل وجود سشن‌های کاری ثبت‌شده روی آن وجود ندارد",
-        409
-      );
-    }
-
-    await tx.sprintProject.delete({
-      where: { id: projectId },
-    });
+  await prisma.sprint.delete({
+    where: { id: sprintId },
   });
 };
 
@@ -1249,7 +890,7 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
   const isAttendanceAdmin = currentUser.role === "ADMIN";
 
-  // 1. Fetch active candidate projects visible to user (ADMIN uses studio projects via this too)
+  // 1. Fetch active studio projects visible to user
   const candidateProjects = await prisma.project.findMany({
     where: {
       isActive: true,
@@ -1261,28 +902,42 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
       name: true,
       description: true,
       createdAt: true,
-      scrumId: true,
-      members: {
-        where: { userId },
-        select: { userId: true },
-      },
     },
     orderBy: { name: "asc" },
   });
 
-  const trackableProjectIds = new Set(candidateProjects.map((p) => p.id));
+  const studioProjects = candidateProjects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    createdAt: p.createdAt,
+  }));
+  const trackableProjectIds = new Set(studioProjects.map((p) => p.id));
 
-  // 2. scrums: ADMIN has zero access to Scrum targets
-  let scrumsFormatted = [];
-  let memberScrumIds = new Set();
-  const excludedFromStudioIds = new Set();
-  const linkedProjectScrumMap = new Map();
+  // 2. Scrum Tasks assigned to current user (ADMIN has zero access to Scrum targets)
+  const scrumsFormatted = [];
+  const trackableTaskIds = new Set();
 
   if (!isAttendanceAdmin) {
+    const scrumParticipationFilter = isSuperAdmin
+      ? {}
+      : {
+          OR: [
+            { members: { some: { userId } } },
+            { admins: { some: { userId } } },
+          ],
+        };
+
     const userScrums = await prisma.scrum.findMany({
       where: {
         isActive: true,
-        members: { some: { userId } },
+        ...scrumParticipationFilter,
+        tasks: {
+          some: {
+            isActive: true,
+            members: { some: { userId } },
+          },
+        },
       },
       take: MAX_LIST_LIMIT,
       select: {
@@ -1295,103 +950,77 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
             id: true,
             number: true,
             title: true,
-            projects: {
-              where: { assigneeId: userId },
-              select: {
-                id: true,
-                name: true,
-                points: true,
-                status: true,
-              },
-              orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-            },
           },
           take: 1,
+        },
+        tasks: {
+          where: {
+            isActive: true,
+            members: { some: { userId } },
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            points: true,
+          },
+          orderBy: [{ name: "asc" }],
         },
       },
       orderBy: { name: "asc" },
     });
 
-    memberScrumIds = new Set(userScrums.map((s) => s.id));
-
     for (const s of userScrums) {
-      const activeSprint = s.sprints[0] || null;
-      const items = activeSprint
-        ? activeSprint.projects.map((p) => ({
-            id: p.id,
-            name: p.name,
-            points: p.points,
-            status: p.status,
-          }))
-        : [];
-
-      // Linked active projects where caller has a ProjectMember row move into this scrum group
-      const linkedProjectsForScrum = candidateProjects
-        .filter((p) => p.scrumId === s.id && p.members.length > 0)
-        .map((p) => {
-          excludedFromStudioIds.add(p.id);
-          linkedProjectScrumMap.set(p.id, s.name);
-          return {
-            id: p.id,
-            name: p.name,
-          };
-        });
-
-      if (items.length > 0 || linkedProjectsForScrum.length > 0) {
-        scrumsFormatted.push({
-          scrum: {
-            id: s.id,
-            name: s.name,
-            color: s.color,
-          },
-          sprint: activeSprint
-            ? {
-                id: activeSprint.id,
-                number: activeSprint.number,
-                title: activeSprint.title,
-              }
-            : null,
-          items,
-          projects: linkedProjectsForScrum,
-        });
+      if (s.tasks.length === 0) continue;
+      for (const t of s.tasks) {
+        trackableTaskIds.add(t.id);
       }
+
+      const activeSprint = s.sprints[0] || null;
+      scrumsFormatted.push({
+        scrum: {
+          id: s.id,
+          name: s.name,
+          color: s.color,
+        },
+        sprint: activeSprint
+          ? {
+              id: activeSprint.id,
+              number: activeSprint.number,
+              title: activeSprint.title,
+            }
+          : null,
+        tasks: s.tasks.map((t) => ({
+          id: t.id,
+          name: t.name,
+          description: t.description,
+          points: t.points,
+        })),
+      });
     }
   }
 
-  // Remaining projects appear in studioProjects (plus any unlinked, inactive-scrum, or non-scrum-member projects)
-  const studioProjects = candidateProjects
-    .filter((p) => !excludedFromStudioIds.has(p.id))
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      createdAt: p.createdAt,
-    }));
-
-  // 3. recent targets: up to 3 most recently used still-trackable targets
+  // 3. Recent targets: up to 3 most recently used still-trackable targets
   const recentSessions = await prisma.workSession.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: 20,
     select: {
       projectId: true,
-      sprintProjectId: true,
+      taskId: true,
       project: { select: { id: true, name: true, isActive: true } },
-      sprintProject: {
+      task: {
         select: {
           id: true,
           name: true,
           points: true,
-          status: true,
-          assigneeId: true,
-          sprint: {
+          isActive: true,
+          scrum: {
             select: {
               id: true,
-              number: true,
-              title: true,
-              status: true,
-              completedAt: true,
-              scrum: { select: { id: true, name: true, color: true, isActive: true } },
+              name: true,
+              color: true,
+              isActive: true,
             },
           },
         },
@@ -1401,59 +1030,36 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
 
   const recent = [];
   const seen = new Set();
-  const nowMs = now.getTime();
 
   for (const s of recentSessions) {
     if (recent.length >= 3) break;
 
-    if (s.sprintProjectId && s.sprintProject && !isAttendanceAdmin) {
-      const sp = s.sprintProject;
-      const sprint = sp.sprint;
-      const scrum = sprint?.scrum;
-      const isSprintTrackable =
-        sprint?.status === "ACTIVE" ||
-        (sprint?.status === "COMPLETED" &&
-          sprint.completedAt &&
-          nowMs - new Date(sprint.completedAt).getTime() <= 60 * 60 * 1000);
-
-      const isTrackableTarget =
-        Boolean(scrum?.isActive) &&
-        memberScrumIds.has(scrum.id) &&
-        sp.assigneeId === userId &&
-        isSprintTrackable;
-
-      const key = `SPRINT_${s.sprintProjectId}`;
-      if (!seen.has(key) && isTrackableTarget) {
+    if (s.taskId && s.task && !isAttendanceAdmin) {
+      const key = `TASK_${s.taskId}`;
+      if (!seen.has(key) && s.task.isActive && s.task.scrum.isActive && trackableTaskIds.has(s.taskId)) {
         seen.add(key);
         recent.push({
-          kind: "SPRINT",
-          id: sp.id,
-          name: sp.name,
-          points: sp.points,
-          status: sp.status,
-          pathLabel: `[${scrum.name} · S${sprint.number}] ${sp.name}`,
+          kind: "TASK",
+          id: s.task.id,
+          name: s.task.name,
+          points: s.task.points,
+          pathLabel: `[${s.task.scrum.name}] ${s.task.name}`,
           scrum: {
-            id: scrum.id,
-            name: scrum.name,
-            color: scrum.color,
-          },
-          sprint: {
-            id: sprint.id,
-            number: sprint.number,
-            title: sprint.title,
+            id: s.task.scrum.id,
+            name: s.task.scrum.name,
+            color: s.task.scrum.color,
           },
         });
       }
     } else if (s.projectId && s.project) {
-      const key = `STUDIO_${s.projectId}`;
+      const key = `PROJECT_${s.projectId}`;
       if (!seen.has(key) && s.project.isActive && trackableProjectIds.has(s.projectId)) {
         seen.add(key);
-        const scrumName = linkedProjectScrumMap.get(s.projectId);
         recent.push({
-          kind: "STUDIO",
+          kind: "PROJECT",
           id: s.project.id,
           name: s.project.name,
-          pathLabel: scrumName ? `[${scrumName}] ${s.project.name}` : s.project.name,
+          pathLabel: s.project.name,
         });
       }
     }
@@ -1468,98 +1074,105 @@ export const getWorkTargetsMineService = async (currentUser, now = new Date()) =
 
 export const getScrumReportService = async (
   scrumId,
-  { sprintId, from, to },
+  { sprintId, taskId, from, to },
   currentUser,
   canEdit
 ) => {
-  const sprintWhere = { scrumId };
-  if (sprintId) sprintWhere.id = Number(sprintId);
-
-  const [sprints, linkedProjects] = await Promise.all([
+  const [sprints, tasks] = await Promise.all([
     prisma.sprint.findMany({
-      where: sprintWhere,
+      where: { scrumId },
       take: MAX_LIST_LIMIT,
       select: {
         id: true,
         number: true,
         title: true,
-        projects: {
-          select: {
-            id: true,
-            name: true,
-            points: true,
-            status: true,
-            project: { select: { id: true, name: true } },
-            assignee: { select: { id: true, name: true } },
-          },
-          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        },
+        status: true,
+        progressPercent: true,
+        startDate: true,
+        endDate: true,
+        completedAt: true,
       },
       orderBy: { number: "asc" },
     }),
-    sprintId
-      ? []
-      : prisma.project.findMany({
-          where: { scrumId },
-          take: MAX_LIST_LIMIT,
-          select: { id: true, name: true },
-          orderBy: { name: "asc" },
-        }),
+    prisma.task.findMany({
+      where: {
+        scrumId,
+        ...(taskId ? { id: Number(taskId) } : {}),
+      },
+      take: MAX_LIST_LIMIT,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        points: true,
+        isActive: true,
+        members: {
+          select: {
+            user: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { user: { name: "asc" } },
+        },
+      },
+      orderBy: [{ isActive: "desc" }, { createdAt: "asc" }],
+    }),
   ]);
 
-  if (sprintId && sprints.length === 0) {
-    throw new HandleERROR("اسپرینت یافت نشد", 404);
+  if (taskId && tasks.length === 0) {
+    throw new HandleERROR("تسک یافت نشد", 404);
   }
 
-  const allSprintItemIds = sprints.flatMap((s) => s.projects.map((p) => p.id));
-  const linkedProjectIds = linkedProjects.map((p) => p.id);
+  let effectiveFrom = from ? toDateOnly(from) : null;
+  let effectiveTo = to ? toDateOnly(to) : null;
+
+  if (sprintId) {
+    const targetSprint = sprints.find((sp) => sp.id === Number(sprintId));
+    if (!targetSprint) {
+      throw new HandleERROR("اسپرینت یافت نشد", 404);
+    }
+    const sprintFrom = targetSprint.startDate ? toDateOnly(targetSprint.startDate) : null;
+    const sprintTo = targetSprint.endDate
+      ? toDateOnly(targetSprint.endDate)
+      : targetSprint.completedAt
+      ? toDateOnly(targetSprint.completedAt)
+      : null;
+
+    if (sprintFrom && (!effectiveFrom || sprintFrom.getTime() > effectiveFrom.getTime())) {
+      effectiveFrom = sprintFrom;
+    }
+    if (sprintTo && (!effectiveTo || sprintTo.getTime() < effectiveTo.getTime())) {
+      effectiveTo = sprintTo;
+    }
+  }
 
   let workDateFilter;
-  if (from || to) {
+  if (effectiveFrom || effectiveTo) {
     workDateFilter = {};
-    if (from) workDateFilter.gte = toDateOnly(from);
-    if (to) workDateFilter.lte = toDateOnly(to);
+    if (effectiveFrom) workDateFilter.gte = effectiveFrom;
+    if (effectiveTo) workDateFilter.lte = effectiveTo;
   }
 
-  const baseSessionFilter = {
-    approval: { not: "REJECTED" },
-    ...(canEdit ? {} : { userId: currentUser.id }),
-    ...(workDateFilter ? { workDate: workDateFilter } : {}),
-  };
+  const taskIds = tasks.map((t) => t.id);
 
   // DB groupBy aggregations scoped by userId when !canEdit so plain members
   // never see teammates' tracked seconds or session counts anywhere in the report.
-  const [groupedSprintSessions, groupedProjectSessions] = await Promise.all([
-    allSprintItemIds.length > 0
-      ? prisma.workSession.groupBy({
-          by: ["sprintProjectId", "userId"],
+  const groupedTaskSessions =
+    taskIds.length > 0
+      ? await prisma.workSession.groupBy({
+          by: ["taskId", "userId"],
           where: {
-            ...baseSessionFilter,
-            sprintProjectId: { in: allSprintItemIds },
+            approval: { not: "REJECTED" },
+            ...(canEdit ? {} : { userId: currentUser.id }),
+            ...(workDateFilter ? { workDate: workDateFilter } : {}),
+            taskId: { in: taskIds },
           },
           _sum: { durationSeconds: true },
           _count: { id: true },
         })
-      : [],
-    linkedProjectIds.length > 0
-      ? prisma.workSession.groupBy({
-          by: ["projectId", "userId"],
-          where: {
-            ...baseSessionFilter,
-            projectId: { in: linkedProjectIds },
-          },
-          _sum: { durationSeconds: true },
-          _count: { id: true },
-        })
-      : [],
-  ]);
+      : [];
 
-  const sessionUserIds = [
-    ...new Set([
-      ...groupedSprintSessions.map((g) => g.userId),
-      ...groupedProjectSessions.map((g) => g.userId),
-    ]),
-  ];
+  const sessionUserIds = [...new Set(groupedTaskSessions.map((g) => g.userId))];
   const sessionUsers =
     sessionUserIds.length > 0
       ? await prisma.user.findMany({
@@ -1569,25 +1182,12 @@ export const getScrumReportService = async (
       : [];
   const userNameMap = new Map(sessionUsers.map((u) => [u.id, u.name]));
 
-  const itemSessionsMap = new Map();
-  for (const g of groupedSprintSessions) {
-    if (!itemSessionsMap.has(g.sprintProjectId)) {
-      itemSessionsMap.set(g.sprintProjectId, []);
+  const taskSessionsMap = new Map();
+  for (const g of groupedTaskSessions) {
+    if (!taskSessionsMap.has(g.taskId)) {
+      taskSessionsMap.set(g.taskId, []);
     }
-    itemSessionsMap.get(g.sprintProjectId).push({
-      userId: g.userId,
-      userName: userNameMap.get(g.userId) || "Unknown",
-      sessionCount: g._count.id || 0,
-      totalSeconds: g._sum.durationSeconds || 0,
-    });
-  }
-
-  const projectSessionsMap = new Map();
-  for (const g of groupedProjectSessions) {
-    if (!projectSessionsMap.has(g.projectId)) {
-      projectSessionsMap.set(g.projectId, []);
-    }
-    projectSessionsMap.get(g.projectId).push({
+    taskSessionsMap.get(g.taskId).push({
       userId: g.userId,
       userName: userNameMap.get(g.userId) || "Unknown",
       sessionCount: g._count.id || 0,
@@ -1596,131 +1196,94 @@ export const getScrumReportService = async (
   }
 
   const rows = [];
-  const sprintAggregates = [];
+  const taskAggregates = [];
   let grandTotalPoints = 0;
-  let grandDonePoints = 0;
   let grandTotalSeconds = 0;
   let grandSessionCount = 0;
+  let activeTasksCount = 0;
 
-  for (const sp of sprints) {
-    let sprintTotalPoints = 0;
-    let sprintDonePoints = 0;
-    let sprintTotalSeconds = 0;
-    let sprintSessionCount = 0;
+  for (const task of tasks) {
+    const taskPoints = task.points || 0;
+    grandTotalPoints += taskPoints;
+    if (task.isActive) activeTasksCount += 1;
 
-    for (const item of sp.projects) {
-      sprintTotalPoints += item.points || 0;
-      if (item.status === "DONE") {
-        sprintDonePoints += item.points || 0;
+    const assignedMembers = task.members.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+    }));
+
+    const taskSummaryBase = {
+      id: task.id,
+      name: task.name,
+      points: taskPoints,
+      isActive: task.isActive,
+    };
+
+    const entries = (taskSessionsMap.get(task.id) || []).sort((a, b) =>
+      b.totalSeconds - a.totalSeconds || a.userName.localeCompare(b.userName)
+    );
+
+    let taskTotalSeconds = 0;
+    let taskSessionCount = 0;
+
+    if (entries.length === 0) {
+      const isMyTask = assignedMembers.some((m) => m.id === currentUser.id);
+      if (canEdit || isMyTask) {
+        rows.push({
+          task: taskSummaryBase,
+          member: !canEdit && isMyTask
+            ? { id: currentUser.id, name: currentUser.name }
+            : assignedMembers[0] || null,
+          assignedMembersCount: assignedMembers.length,
+          sessionCount: 0,
+          totalSeconds: 0,
+          secondsPerPoint: null,
+        });
       }
+    } else {
+      for (const entry of entries) {
+        taskTotalSeconds += entry.totalSeconds;
+        taskSessionCount += entry.sessionCount;
 
-      const itemEntries = itemSessionsMap.get(item.id) || [];
-      const linkedProjSummary = item.project ? { id: item.project.id, name: item.project.name } : null;
-
-      if (itemEntries.length === 0) {
-        const assignee = item.assignee;
-        const isMyRow = assignee?.id === currentUser.id;
-
-        if (canEdit || isMyRow) {
-          rows.push({
-            kind: "SPRINT_ITEM",
-            member: assignee ? { id: assignee.id, name: assignee.name } : null,
-            item: {
-              id: item.id,
-              name: item.name,
-              points: item.points,
-              status: item.status,
-              sprint: {
-                id: sp.id,
-                number: sp.number,
-                title: sp.title,
-              },
-            },
-            project: linkedProjSummary,
-            sessionCount: 0,
-            totalSeconds: 0,
-            secondsPerPoint: null,
-          });
-        }
-      } else {
-        for (const entry of itemEntries) {
-          sprintTotalSeconds += entry.totalSeconds;
-          sprintSessionCount += entry.sessionCount;
-
-          rows.push({
-            kind: "SPRINT_ITEM",
-            member: {
-              id: entry.userId,
-              name: entry.userName,
-            },
-            item: {
-              id: item.id,
-              name: item.name,
-              points: item.points,
-              status: item.status,
-              sprint: {
-                id: sp.id,
-                number: sp.number,
-                title: sp.title,
-              },
-            },
-            project: linkedProjSummary,
-            sessionCount: entry.sessionCount,
-            totalSeconds: entry.totalSeconds,
-            secondsPerPoint: item.points > 0 ? Math.round(entry.totalSeconds / item.points) : null,
-          });
-        }
+        rows.push({
+          task: taskSummaryBase,
+          member: {
+            id: entry.userId,
+            name: entry.userName,
+          },
+          assignedMembersCount: assignedMembers.length,
+          sessionCount: entry.sessionCount,
+          totalSeconds: entry.totalSeconds,
+          secondsPerPoint:
+            taskPoints > 0 && entry.totalSeconds > 0
+              ? Math.round(entry.totalSeconds / taskPoints)
+              : null,
+        });
       }
     }
 
-    sprintAggregates.push({
-      sprintId: sp.id,
-      sprintNumber: sp.number,
-      sprintTitle: sp.title,
-      totalPoints: sprintTotalPoints,
-      donePoints: sprintDonePoints,
-      totalSeconds: sprintTotalSeconds,
-      sessionCount: sprintSessionCount,
+    taskAggregates.push({
+      taskId: task.id,
+      taskName: task.name,
+      points: taskPoints,
+      isActive: task.isActive,
+      memberCount: assignedMembers.length,
+      totalSeconds: taskTotalSeconds,
+      sessionCount: taskSessionCount,
     });
 
-    grandTotalPoints += sprintTotalPoints;
-    grandDonePoints += sprintDonePoints;
-    grandTotalSeconds += sprintTotalSeconds;
-    grandSessionCount += sprintSessionCount;
-  }
-
-  for (const proj of linkedProjects) {
-    const entries = projectSessionsMap.get(proj.id) || [];
-    entries.sort((a, b) => a.userName.localeCompare(b.userName));
-
-    for (const entry of entries) {
-      grandTotalSeconds += entry.totalSeconds;
-      grandSessionCount += entry.sessionCount;
-
-      rows.push({
-        kind: "PROJECT",
-        member: {
-          id: entry.userId,
-          name: entry.userName,
-        },
-        item: null,
-        project: {
-          id: proj.id,
-          name: proj.name,
-        },
-        sessionCount: entry.sessionCount,
-        totalSeconds: entry.totalSeconds,
-        secondsPerPoint: null,
-      });
-    }
+    grandTotalSeconds += taskTotalSeconds;
+    grandSessionCount += taskSessionCount;
   }
 
   return {
     rows,
-    sprintAggregates,
+    taskAggregates,
+    sprints: sprints.map(formatSprintSummary),
     total: {
+      totalTasks: tasks.length,
+      activeTasks: activeTasksCount,
       totalPoints: grandTotalPoints,
-      donePoints: grandDonePoints,
       totalSeconds: grandTotalSeconds,
       sessionCount: grandSessionCount,
     },

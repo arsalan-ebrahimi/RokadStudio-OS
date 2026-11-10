@@ -56,19 +56,19 @@ export const getVisibleScrumsWhere = (user, extraWhere = {}) => {
 };
 
 /**
- * Central Scrum access resolver used by all Scrum, Sprint, and SprintProject handlers.
+ * Central Scrum access resolver used by all Scrum, Sprint, and Task handlers.
  * Unrelated authenticated users receive 404 so resource existence is never leaked.
  *
  * @param {object} user - req.user ({ id, role, ... })
- * @param {{ scrumId?: number, sprintId?: number, sprintProjectId?: number }} target
- * @returns {Promise<{ scrum: object, sprint?: object, sprintProject?: object, isSuperAdmin: boolean, isScrumAdmin: boolean, isMember: boolean, isAssignee: boolean, canEditContent: boolean, canManageAdmins: boolean, canArchive: boolean, canEdit: boolean }>}
+ * @param {{ scrumId?: number, sprintId?: number, taskId?: number }} target
+ * @returns {Promise<{ scrum: object, sprint?: object, task?: object, isSuperAdmin: boolean, isScrumAdmin: boolean, isMember: boolean, isTaskMember: boolean, canEditContent: boolean, canManageAdmins: boolean, canArchive: boolean, canEdit: boolean }>}
  */
 export const getScrumAccess = async (user, target = {}) => {
   assertScrumRoleAllowed(user);
 
   let scrum = null;
   let sprint = null;
-  let sprintProject = null;
+  let task = null;
   let notFoundMessage = "اسکرام یافت نشد";
 
   if (target.scrumId !== undefined) {
@@ -115,6 +115,7 @@ export const getScrumAccess = async (user, target = {}) => {
         startDate: true,
         endDate: true,
         status: true,
+        progressPercent: true,
         completedAt: true,
         createdAt: true,
         updatedAt: true,
@@ -122,6 +123,7 @@ export const getScrumAccess = async (user, target = {}) => {
           select: {
             id: true,
             name: true,
+            color: true,
             isActive: true,
             admins: {
               where: { userId: user.id },
@@ -141,58 +143,50 @@ export const getScrumAccess = async (user, target = {}) => {
       sprint = sprintData;
       scrum = parentScrum;
     }
-  } else if (target.sprintProjectId !== undefined) {
-    notFoundMessage = "پروژه اسپرینت یافت نشد";
-    const sprintProjectId = Number(target.sprintProjectId);
-    if (!Number.isInteger(sprintProjectId) || sprintProjectId < 1) {
-      throw new HandleERROR("شناسه پروژه اسپرینت نامعتبر است", 400);
+  } else if (target.taskId !== undefined) {
+    notFoundMessage = "تسک یافت نشد";
+    const taskId = Number(target.taskId);
+    if (!Number.isInteger(taskId) || taskId < 1) {
+      throw new HandleERROR("شناسه تسک نامعتبر است", 400);
     }
 
-    const loadedItem = await prisma.sprintProject.findUnique({
-      where: { id: sprintProjectId },
+    const loadedTask = await prisma.task.findUnique({
+      where: { id: taskId },
       select: {
         id: true,
-        sprintId: true,
-        projectId: true,
+        scrumId: true,
         name: true,
+        description: true,
         points: true,
-        assigneeId: true,
-        status: true,
-        sortOrder: true,
+        isActive: true,
         createdAt: true,
         updatedAt: true,
-        sprint: {
+        members: {
+          where: { userId: user.id },
+          select: { userId: true },
+        },
+        scrum: {
           select: {
             id: true,
-            scrumId: true,
-            number: true,
-            title: true,
-            status: true,
-            scrum: {
-              select: {
-                id: true,
-                name: true,
-                isActive: true,
-                admins: {
-                  where: { userId: user.id },
-                  select: { userId: true },
-                },
-                members: {
-                  where: { userId: user.id },
-                  select: { userId: true, label: true },
-                },
-              },
+            name: true,
+            color: true,
+            isActive: true,
+            admins: {
+              where: { userId: user.id },
+              select: { userId: true },
+            },
+            members: {
+              where: { userId: user.id },
+              select: { userId: true, label: true },
             },
           },
         },
       },
     });
 
-    if (loadedItem) {
-      const { sprint: parentSprint, ...itemData } = loadedItem;
-      const { scrum: parentScrum, ...sprintData } = parentSprint;
-      sprintProject = itemData;
-      sprint = sprintData;
+    if (loadedTask) {
+      const { scrum: parentScrum, members: myMembership, ...taskData } = loadedTask;
+      task = { ...taskData, isTaskMember: myMembership.length > 0 };
       scrum = parentScrum;
     }
   } else {
@@ -210,9 +204,9 @@ export const getScrumAccess = async (user, target = {}) => {
   const canManageAdmins = isSuperAdmin;
   const canArchive = isSuperAdmin;
   const canEdit = canEditContent;
-  const isAssignee = Boolean(sprintProject && sprintProject.assigneeId === user.id);
+  const isTaskMember = Boolean(task && task.isTaskMember);
 
-  // Outsiders receive 404 so Scrum/Sprint/Item existence is never leaked
+  // Outsiders receive 404 so Scrum/Sprint/Task existence is never leaked
   if (!isSuperAdmin && !isScrumAdmin && !isMember) {
     throw new HandleERROR(notFoundMessage, 404);
   }
@@ -220,11 +214,11 @@ export const getScrumAccess = async (user, target = {}) => {
   return {
     scrum,
     sprint,
-    sprintProject,
+    task,
     isSuperAdmin,
     isScrumAdmin,
     isMember,
-    isAssignee,
+    isTaskMember,
     canEditContent,
     canManageAdmins,
     canArchive,
@@ -292,30 +286,25 @@ export const requireSprintAccess = (mode = "member") => {
 };
 
 /**
- * Checks access for SprintProject (item) endpoints.
- * mode: 'update' (editor/SA or assignee) | 'editor' (editor/SA only, e.g. delete)
+ * Checks access for Scrum Task endpoints.
+ * mode: 'member' (scrum member, assigned SCRUM_ADMIN, SA) | 'editor' (assigned SCRUM_ADMIN or SA)
  */
-export const requireSprintProjectAccess = (mode = "update") => {
+export const requireTaskAccess = (mode = "member") => {
   return async (req, res, next) => {
     try {
-      const sprintProjectId = req.validatedParams?.id ?? Number(req.params.id);
-      const access = await getScrumAccess(req.user, { sprintProjectId });
+      const taskId = req.validatedParams?.id ?? Number(req.params.id || req.params.taskId);
+      const access = await getScrumAccess(req.user, { taskId });
 
       if ((mode === "editor" || mode === "owner") && !access.canEditContent) {
-        return next(new HandleERROR("شما دسترسی حذف این پروژه اسپرینت را ندارید", 403));
-      }
-
-      if (mode === "update" && !access.canEditContent && !access.isAssignee) {
-        return next(new HandleERROR("شما دسترسی ویرایش این پروژه اسپرینت را ندارید", 403));
+        return next(new HandleERROR("شما دسترسی مدیریت این تسک را ندارید", 403));
       }
 
       req.scrumAccess = access;
-      req.sprintProject = access.sprintProject;
-      req.sprint = access.sprint;
+      req.task = access.task;
       req.scrum = access.scrum;
       req.canEdit = access.canEditContent;
       req.canEditContent = access.canEditContent;
-      req.isAssignee = access.isAssignee;
+      req.isTaskMember = access.isTaskMember;
       next();
     } catch (err) {
       next(err);

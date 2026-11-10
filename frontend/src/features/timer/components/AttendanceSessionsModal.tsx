@@ -57,6 +57,10 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       toast.success('وضعیت سشن با موفقیت تغییر کرد');
     },
     onError: (err: Error) => {
@@ -88,6 +92,10 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
     },
     onError: (err: Error) => {
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
@@ -115,7 +123,12 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
           ) : (
             <div className="space-y-2.5">
               {sessions.map((s: WorkSession) => {
-                const projectTitle = s.project?.name || s.projectName || 'پروژه';
+                const projectTitle =
+                  s.targetType === 'TASK' && s.task
+                    ? s.task.scrum
+                      ? `[${s.task.scrum.name}] ${s.task.name}`
+                      : s.task.name
+                    : s.project?.name || s.projectName || 'پروژه';
                 const sessionInfo = `${projectTitle} (${formatDurationToHoursMins(s.durationSeconds)})`;
 
                 return (

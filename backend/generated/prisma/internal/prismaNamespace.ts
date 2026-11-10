@@ -404,7 +404,8 @@ export const ModelName = {
   ScrumAdmin: 'ScrumAdmin',
   ScrumMember: 'ScrumMember',
   Sprint: 'Sprint',
-  SprintProject: 'SprintProject',
+  Task: 'Task',
+  TaskMember: 'TaskMember',
   ScrumKpi: 'ScrumKpi',
   ScrumEvent: 'ScrumEvent',
   Attendance: 'Attendance',
@@ -424,7 +425,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "project" | "projectMember" | "scrum" | "scrumAdmin" | "scrumMember" | "sprint" | "sprintProject" | "scrumKpi" | "scrumEvent" | "attendance" | "workSession"
+    modelProps: "user" | "project" | "projectMember" | "scrum" | "scrumAdmin" | "scrumMember" | "sprint" | "task" | "taskMember" | "scrumKpi" | "scrumEvent" | "attendance" | "workSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -946,77 +947,151 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    SprintProject: {
-      payload: Prisma.$SprintProjectPayload<ExtArgs>
-      fields: Prisma.SprintProjectFieldRefs
+    Task: {
+      payload: Prisma.$TaskPayload<ExtArgs>
+      fields: Prisma.TaskFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.SprintProjectFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload> | null
+          args: Prisma.TaskFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.SprintProjectFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+          args: Prisma.TaskFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
         }
         findFirst: {
-          args: Prisma.SprintProjectFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload> | null
+          args: Prisma.TaskFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.SprintProjectFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+          args: Prisma.TaskFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
         }
         findMany: {
-          args: Prisma.SprintProjectFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>[]
+          args: Prisma.TaskFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>[]
         }
         create: {
-          args: Prisma.SprintProjectCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+          args: Prisma.TaskCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
         }
         createMany: {
-          args: Prisma.SprintProjectCreateManyArgs<ExtArgs>
+          args: Prisma.TaskCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.SprintProjectCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>[]
+          args: Prisma.TaskCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>[]
         }
         delete: {
-          args: Prisma.SprintProjectDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+          args: Prisma.TaskDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
         }
         update: {
-          args: Prisma.SprintProjectUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+          args: Prisma.TaskUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
         }
         deleteMany: {
-          args: Prisma.SprintProjectDeleteManyArgs<ExtArgs>
+          args: Prisma.TaskDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.SprintProjectUpdateManyArgs<ExtArgs>
+          args: Prisma.TaskUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.SprintProjectUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>[]
+          args: Prisma.TaskUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>[]
         }
         upsert: {
-          args: Prisma.SprintProjectUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SprintProjectPayload>
+          args: Prisma.TaskUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
         }
         aggregate: {
-          args: Prisma.SprintProjectAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSprintProject>
+          args: Prisma.TaskAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTask>
         }
         groupBy: {
-          args: Prisma.SprintProjectGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SprintProjectGroupByOutputType>[]
+          args: Prisma.TaskGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TaskGroupByOutputType>[]
         }
         count: {
-          args: Prisma.SprintProjectCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SprintProjectCountAggregateOutputType> | number
+          args: Prisma.TaskCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TaskCountAggregateOutputType> | number
+        }
+      }
+    }
+    TaskMember: {
+      payload: Prisma.$TaskMemberPayload<ExtArgs>
+      fields: Prisma.TaskMemberFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TaskMemberFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TaskMemberFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>
+        }
+        findFirst: {
+          args: Prisma.TaskMemberFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TaskMemberFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>
+        }
+        findMany: {
+          args: Prisma.TaskMemberFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>[]
+        }
+        create: {
+          args: Prisma.TaskMemberCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>
+        }
+        createMany: {
+          args: Prisma.TaskMemberCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TaskMemberCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>[]
+        }
+        delete: {
+          args: Prisma.TaskMemberDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>
+        }
+        update: {
+          args: Prisma.TaskMemberUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>
+        }
+        deleteMany: {
+          args: Prisma.TaskMemberDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TaskMemberUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TaskMemberUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>[]
+        }
+        upsert: {
+          args: Prisma.TaskMemberUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskMemberPayload>
+        }
+        aggregate: {
+          args: Prisma.TaskMemberAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTaskMember>
+        }
+        groupBy: {
+          args: Prisma.TaskMemberGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TaskMemberGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TaskMemberCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TaskMemberCountAggregateOutputType> | number
         }
       }
     }
@@ -1374,7 +1449,6 @@ export const ProjectScalarFieldEnum = {
   description: 'description',
   isActive: 'isActive',
   createdById: 'createdById',
-  scrumId: 'scrumId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1433,6 +1507,7 @@ export const SprintScalarFieldEnum = {
   startDate: 'startDate',
   endDate: 'endDate',
   status: 'status',
+  progressPercent: 'progressPercent',
   completedAt: 'completedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1441,20 +1516,28 @@ export const SprintScalarFieldEnum = {
 export type SprintScalarFieldEnum = (typeof SprintScalarFieldEnum)[keyof typeof SprintScalarFieldEnum]
 
 
-export const SprintProjectScalarFieldEnum = {
+export const TaskScalarFieldEnum = {
   id: 'id',
-  sprintId: 'sprintId',
-  projectId: 'projectId',
+  scrumId: 'scrumId',
   name: 'name',
+  description: 'description',
   points: 'points',
-  assigneeId: 'assigneeId',
-  status: 'status',
-  sortOrder: 'sortOrder',
+  isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type SprintProjectScalarFieldEnum = (typeof SprintProjectScalarFieldEnum)[keyof typeof SprintProjectScalarFieldEnum]
+export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+
+
+export const TaskMemberScalarFieldEnum = {
+  taskId: 'taskId',
+  userId: 'userId',
+  assignedAt: 'assignedAt',
+  assignedById: 'assignedById'
+} as const
+
+export type TaskMemberScalarFieldEnum = (typeof TaskMemberScalarFieldEnum)[keyof typeof TaskMemberScalarFieldEnum]
 
 
 export const ScrumKpiScalarFieldEnum = {
@@ -1513,7 +1596,7 @@ export const WorkSessionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   projectId: 'projectId',
-  sprintProjectId: 'sprintProjectId',
+  taskId: 'taskId',
   attendanceId: 'attendanceId',
   durationSeconds: 'durationSeconds',
   clientRequestId: 'clientRequestId',
@@ -1647,20 +1730,6 @@ export type EnumSprintStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
  * Reference to a field of type 'SprintStatus[]'
  */
 export type ListEnumSprintStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SprintStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'ItemStatus'
- */
-export type EnumItemStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ItemStatus'>
-    
-
-
-/**
- * Reference to a field of type 'ItemStatus[]'
- */
-export type ListEnumItemStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ItemStatus[]'>
     
 
 
@@ -1905,7 +1974,8 @@ export type GlobalOmitConfig = {
   scrumAdmin?: Prisma.ScrumAdminOmit
   scrumMember?: Prisma.ScrumMemberOmit
   sprint?: Prisma.SprintOmit
-  sprintProject?: Prisma.SprintProjectOmit
+  task?: Prisma.TaskOmit
+  taskMember?: Prisma.TaskMemberOmit
   scrumKpi?: Prisma.ScrumKpiOmit
   scrumEvent?: Prisma.ScrumEventOmit
   attendance?: Prisma.AttendanceOmit

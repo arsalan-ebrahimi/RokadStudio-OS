@@ -6,13 +6,12 @@ import {
   requireNonAttendanceAdmin,
   requireScrumAccess,
   requireSprintAccess,
-  requireSprintProjectAccess,
+  requireTaskAccess,
 } from "./scrumAccess.js";
 import {
   scrumIdValidator,
-  scrumAndProjectIdValidator,
   sprintIdValidator,
-  sprintProjectIdValidator,
+  taskIdValidator,
   createScrumValidator,
   updateScrumAdminsBodyValidator,
   updateScrumBodyValidator,
@@ -20,15 +19,14 @@ import {
   createSprintBodyValidator,
   updateSprintBodyValidator,
   updateSprintStatusBodyValidator,
-  createSprintProjectBodyValidator,
-  updateSprintProjectBodyValidator,
+  listScrumTasksQueryValidator,
+  createTaskBodyValidator,
+  updateTaskBodyValidator,
+  updateTaskMembersBodyValidator,
+  taskWorkSessionsQueryValidator,
   batchKpiBodyValidator,
   batchEventsBodyValidator,
   scrumReportQueryValidator,
-  createScrumProjectBodyValidator,
-  availableScrumProjectsQueryValidator,
-  linkScrumProjectBodyValidator,
-  updateScrumProjectMembersBodyValidator,
   scrumLeaderboardQueryValidator,
 } from "./scrumValidator.js";
 import {
@@ -45,9 +43,13 @@ import {
   updateSprint,
   updateSprintStatus,
   deleteSprint,
-  createSprintProject,
-  updateSprintProject,
-  deleteSprintProject,
+  listScrumTasks,
+  createScrumTask,
+  getTaskById,
+  updateScrumTask,
+  syncTaskMembers,
+  deleteScrumTask,
+  getTaskWorkSessions,
   getKpis,
   batchUpdateKpis,
   getEvents,
@@ -55,12 +57,6 @@ import {
   getTodayEvents,
   getWorkTargetsMine,
   getScrumReport,
-  listScrumProjects,
-  createScrumProject,
-  getAvailableScrumProjects,
-  linkProjectToScrum,
-  unlinkProjectFromScrum,
-  syncScrumProjectMembers,
   getScrumLeaderboard,
   getScrumAdminDashboard,
 } from "./scrumCn.js";
@@ -134,55 +130,22 @@ scrumRouter.put(
   syncScrumMembers
 );
 
-// Linked studio projects under scrum
+// Tasks under scrum
 scrumRouter.get(
-  "/:id/projects/available",
-  scrumIdValidator,
-  requireScrumAccess("editor"),
-  availableScrumProjectsQueryValidator,
-  getAvailableScrumProjects
-);
-
-scrumRouter.post(
-  "/:id/projects/link",
-  scrumWriteRateLimiter,
-  scrumIdValidator,
-  requireScrumAccess("editor"),
-  linkScrumProjectBodyValidator,
-  linkProjectToScrum
-);
-
-scrumRouter.get(
-  "/:id/projects",
+  "/:id/tasks",
   scrumIdValidator,
   requireScrumAccess("member"),
-  listScrumProjects
+  listScrumTasksQueryValidator,
+  listScrumTasks
 );
 
 scrumRouter.post(
-  "/:id/projects",
+  "/:id/tasks",
   scrumWriteRateLimiter,
   scrumIdValidator,
   requireScrumAccess("editor"),
-  createScrumProjectBodyValidator,
-  createScrumProject
-);
-
-scrumRouter.delete(
-  "/:id/projects/:projectId/link",
-  scrumWriteRateLimiter,
-  scrumAndProjectIdValidator,
-  requireScrumAccess("editor"),
-  unlinkProjectFromScrum
-);
-
-scrumRouter.put(
-  "/:id/projects/:projectId/members",
-  scrumWriteRateLimiter,
-  scrumAndProjectIdValidator,
-  requireScrumAccess("editor"),
-  updateScrumProjectMembersBodyValidator,
-  syncScrumProjectMembers
+  createTaskBodyValidator,
+  createScrumTask
 );
 
 // List sprints of a scrum
@@ -263,7 +226,7 @@ scrumRouter.get(
 export const sprintRouter = express.Router();
 sprintRouter.use(isLogin, requireNonAttendanceAdmin);
 
-// Get sprint details + sprint projects
+// Get sprint details (simplified Sprint metadata, status & manual progressPercent)
 sprintRouter.get(
   "/:id",
   sprintIdValidator,
@@ -271,7 +234,7 @@ sprintRouter.get(
   getSprintById
 );
 
-// Update sprint metadata (editor / SA)
+// Update sprint metadata / manual progressPercent (editor / SA)
 sprintRouter.patch(
   "/:id",
   scrumWriteRateLimiter,
@@ -281,7 +244,7 @@ sprintRouter.patch(
   updateSprint
 );
 
-// Update sprint status: PLANNED -> ACTIVE -> COMPLETED (editor / SA)
+// Update sprint phase: bidirectional PLANNED <-> ACTIVE <-> COMPLETED (editor / SA)
 sprintRouter.patch(
   "/:id/status",
   scrumWriteRateLimiter,
@@ -300,39 +263,51 @@ sprintRouter.delete(
   deleteSprint
 );
 
-// Create sprint project item (editor / SA)
-sprintRouter.post(
-  "/:id/projects",
-  scrumWriteRateLimiter,
-  sprintIdValidator,
-  requireSprintAccess("editor"),
-  createSprintProjectBodyValidator,
-  createSprintProject
+// ==========================================
+// 3. Tasks Router (/api/tasks)
+// ==========================================
+export const taskRouter = express.Router();
+taskRouter.use(isLogin, requireNonAttendanceAdmin);
+
+taskRouter.get(
+  "/:id/work-sessions",
+  taskIdValidator,
+  requireTaskAccess("member"),
+  taskWorkSessionsQueryValidator,
+  getTaskWorkSessions
 );
 
-// ==========================================
-// 3. Sprint Projects Router (/api/sprint-projects)
-// ==========================================
-export const sprintProjectRouter = express.Router();
-sprintProjectRouter.use(isLogin, requireNonAttendanceAdmin);
-
-// Update sprint project item (editor/SA or assignee)
-sprintProjectRouter.patch(
+taskRouter.get(
   "/:id",
-  scrumWriteRateLimiter,
-  sprintProjectIdValidator,
-  requireSprintProjectAccess("update"),
-  updateSprintProjectBodyValidator,
-  updateSprintProject
+  taskIdValidator,
+  requireTaskAccess("member"),
+  getTaskById
 );
 
-// Delete sprint project item (editor / SA)
-sprintProjectRouter.delete(
+taskRouter.patch(
   "/:id",
   scrumWriteRateLimiter,
-  sprintProjectIdValidator,
-  requireSprintProjectAccess("editor"),
-  deleteSprintProject
+  taskIdValidator,
+  requireTaskAccess("editor"),
+  updateTaskBodyValidator,
+  updateScrumTask
+);
+
+taskRouter.put(
+  "/:id/members",
+  scrumWriteRateLimiter,
+  taskIdValidator,
+  requireTaskAccess("editor"),
+  updateTaskMembersBodyValidator,
+  syncTaskMembers
+);
+
+taskRouter.delete(
+  "/:id",
+  scrumWriteRateLimiter,
+  taskIdValidator,
+  requireTaskAccess("editor"),
+  deleteScrumTask
 );
 
 // ==========================================

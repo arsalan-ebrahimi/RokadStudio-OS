@@ -17,7 +17,7 @@ import workSessionRouter from "./Modules/WorkSession/workSession.js";
 import {
   scrumRouter,
   sprintRouter,
-  sprintProjectRouter,
+  taskRouter,
   workTargetsRouter,
   scrumAdminRouter,
 } from "./Modules/Scrum/scrum.js";
@@ -131,7 +131,7 @@ app.use("/api/attendance", attendanceRouter);
 app.use("/api/work-sessions", workSessionRouter);
 app.use("/api/scrums", scrumRouter);
 app.use("/api/sprints", sprintRouter);
-app.use("/api/sprint-projects", sprintProjectRouter);
+app.use("/api/tasks", taskRouter);
 app.use("/api/work-targets", workTargetsRouter);
 app.use("/api/scrum-admin", scrumAdminRouter);
 

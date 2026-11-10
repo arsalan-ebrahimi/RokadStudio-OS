@@ -7,21 +7,17 @@ import {
   deleteScrum,
   syncScrumAdmins,
   syncScrumMembers,
-  fetchScrumProjects,
-  createScrumProject,
-  fetchAvailableScrumProjects,
-  linkProjectToScrum,
-  unlinkProjectFromScrum,
-  syncScrumProjectMembers,
+  fetchScrumTasks,
+  createScrumTask,
+  updateScrumTask,
+  syncTaskMembers,
+  deleteScrumTask,
   fetchSprints,
   createSprint,
   fetchSprintById,
   updateSprint,
   updateSprintStatus,
   deleteSprint,
-  createSprintProject,
-  updateSprintProject,
-  deleteSprintProject,
   fetchKpis,
   batchUpdateKpis,
   fetchEvents,
@@ -40,7 +36,6 @@ import type {
   ScrumEvent,
   ScrumColor,
   SprintStatus,
-  ItemStatus,
   LeaderboardPeriod,
 } from '../types/scrum-types';
 import { toast } from '@/shared/ui';
@@ -116,8 +111,8 @@ export function useUpdateScrum(scrumId: number) {
       );
       queryClient.invalidateQueries({ queryKey: ['scrums'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
       toast.success('تغییرات اسکرام ذخیره شد');
     },
     onError: (err: Error) => {
@@ -133,8 +128,8 @@ export function useDeleteScrum() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scrums'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
       toast.success('اسکرام با موفقیت حذف شد');
     },
     onError: (err: Error) => {
@@ -180,100 +175,110 @@ export function useSyncScrumMembers(scrumId: number) {
   });
 }
 
-export function useScrumProjects(scrumId: number, options?: { enabled?: boolean }) {
+export function useScrumTasks(
+  scrumId: number,
+  params?: { isActive?: boolean; search?: string },
+  options?: { enabled?: boolean }
+) {
   return useQuery({
-    queryKey: ['scrum', scrumId, 'projects'],
-    queryFn: () => fetchScrumProjects(scrumId),
+    queryKey: ['scrum-tasks', scrumId, params?.isActive ?? 'all', params?.search || ''],
+    queryFn: () => fetchScrumTasks(scrumId, params),
     enabled: Boolean(scrumId && !isNaN(scrumId)) && (options?.enabled ?? true),
     staleTime: 20_000,
   });
 }
 
-export function useAvailableScrumProjects(
-  scrumId: number,
-  q?: string,
-  options?: { enabled?: boolean }
-) {
-  return useQuery({
-    queryKey: ['scrum', scrumId, 'projects', 'available', q || ''],
-    queryFn: () => fetchAvailableScrumProjects(scrumId, q),
-    enabled: Boolean(scrumId && !isNaN(scrumId)) && (options?.enabled ?? true),
-    staleTime: 15_000,
-  });
-}
-
-export function useCreateScrumProject(scrumId: number) {
+export function useCreateScrumTask(scrumId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { name: string; description?: string | null; memberIds?: number[] }) =>
-      createScrumProject(scrumId, payload),
+    mutationFn: (payload: {
+      name: string;
+      description?: string | null;
+      points?: number;
+      isActive?: boolean;
+      memberIds?: number[];
+    }) => createScrumTask(scrumId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'projects'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
-      toast.success('پروژه جدید ایجاد و به اسکرام متصل شد');
+      queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
+      toast.success('تسک جدید با موفقیت ایجاد شد');
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'خطا در ایجاد پروژه اسکرام');
+      toast.error(err.message || 'خطا در ایجاد تسک');
     },
   });
 }
 
-export function useLinkProjectToScrum(scrumId: number) {
+export function useUpdateScrumTask(scrumId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (projectId: number) => linkProjectToScrum(scrumId, projectId),
+    mutationFn: ({
+      taskId,
+      payload,
+    }: {
+      taskId: number;
+      payload: {
+        name?: string;
+        description?: string | null;
+        points?: number;
+        isActive?: boolean;
+      };
+    }) => updateScrumTask(taskId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'projects'] });
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'projects', 'available'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['work-target-sessions', 'TASK'] });
+      queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
+      toast.success('تغییرات تسک ذخیره شد');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'خطا در ویرایش تسک');
+    },
+  });
+}
+
+export function useSyncTaskMembers(scrumId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, userIds }: { taskId: number; userIds: number[] }) =>
+      syncTaskMembers(taskId, userIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'leaderboard'] });
-      toast.success('پروژه به اسکرام متصل شد');
+      toast.success('اعضای تسک بروزرسانی شدند');
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'خطا در اتصال پروژه به اسکرام');
+      toast.error(err.message || 'خطا در تخصیص اعضای تسک');
     },
   });
 }
 
-export function useUnlinkProjectFromScrum(scrumId: number) {
+export function useDeleteScrumTask(scrumId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (projectId: number) => unlinkProjectFromScrum(scrumId, projectId),
+    mutationFn: (taskId: number) => deleteScrumTask(taskId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'projects'] });
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'projects', 'available'] });
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'sprints'] });
-      queryClient.invalidateQueries({ queryKey: ['sprint'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
-      toast.success('اتصال پروژه از اسکرام جدا شد');
+      toast.success('تسک با موفقیت حذف شد');
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'خطا در جدا کردن پروژه از اسکرام');
-    },
-  });
-}
-
-export function useSyncScrumProjectMembers(scrumId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ projectId, userIds }: { projectId: number; userIds: number[] }) =>
-      syncScrumProjectMembers(scrumId, projectId, userIds),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'projects'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
-      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
-      toast.success('اعضای پروژه بروزرسانی شدند');
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || 'خطا در تخصیص اعضای پروژه');
+      toast.error(err.message || 'خطا در حذف تسک');
     },
   });
 }
@@ -299,11 +304,17 @@ export function useSprint(sprintId: number | null) {
 export function useCreateSprint(scrumId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload?: { title?: string; description?: string; startDate?: string; endDate?: string }) =>
-      createSprint(scrumId, payload),
+    mutationFn: (payload?: {
+      title?: string;
+      description?: string | null;
+      startDate?: string | null;
+      endDate?: string | null;
+      progressPercent?: number;
+    }) => createSprint(scrumId, payload),
     onSuccess: (newSprint: Sprint) => {
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'sprints'] });
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       toast.success(`اسپرینت ${newSprint.number} با موفقیت ایجاد شد`);
     },
@@ -318,13 +329,17 @@ export function useUpdateSprint(sprintId: number, scrumId: number) {
   return useMutation({
     mutationFn: (payload: {
       title?: string;
-      description?: string;
+      description?: string | null;
       startDate?: string | null;
       endDate?: string | null;
+      progressPercent?: number;
     }) => updateSprint(sprintId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprint', sprintId] });
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'sprints'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       toast.success('اطلاعات اسپرینت بروزرسانی شد');
     },
@@ -346,6 +361,7 @@ export function useUpdateSprintStatus(sprintId: number, scrumId: number) {
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
       toast.success(
         `وضعیت اسپرینت به «${updated.status === 'ACTIVE' ? 'فعال' : updated.status === 'COMPLETED' ? 'تمام‌شده' : 'برنامه‌ریزی'}» تغییر یافت`
       );
@@ -364,86 +380,12 @@ export function useDeleteSprint(scrumId: number) {
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'sprints'] });
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
       queryClient.invalidateQueries({ queryKey: ['scrums'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'report'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       toast.success('اسپرینت با موفقیت حذف شد');
     },
     onError: (err: Error) => {
       toast.error(err.message || 'خطا در حذف اسپرینت');
-    },
-  });
-}
-
-export function useCreateSprintProject(sprintId: number, scrumId?: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: {
-      name: string;
-      points?: number;
-      assigneeId?: number | null;
-      projectId?: number | null;
-    }) => createSprintProject(sprintId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sprint', sprintId] });
-      if (scrumId) {
-        queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'sprints'] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
-      toast.success('آیتم جدید با موفقیت به اسپرینت اضافه شد');
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || 'خطا در ایجاد آیتم اسپرینت');
-    },
-  });
-}
-
-export function useUpdateSprintProject(sprintId: number, scrumId?: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: number;
-      payload: {
-        name?: string;
-        points?: number;
-        assigneeId?: number | null;
-        projectId?: number | null;
-        status?: ItemStatus;
-        sortOrder?: number;
-      };
-    }) => updateSprintProject(id, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sprint', sprintId] });
-      if (scrumId) {
-        queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'sprints'] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
-      toast.success('تغییرات آیتم اسپرینت ذخیره شد');
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || 'خطا در ویرایش آیتم اسپرینت');
-    },
-  });
-}
-
-export function useDeleteSprintProject(sprintId: number, scrumId?: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => deleteSprintProject(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sprint', sprintId] });
-      if (scrumId) {
-        queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'sprints'] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
-      toast.success('آیتم اسپرینت حذف شد');
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || 'خطا در حذف آیتم اسپرینت');
     },
   });
 }
@@ -517,10 +459,10 @@ export function useWorkTargetsMine(options?: { enabled?: boolean }) {
 
 export function useScrumReport(
   scrumId: number,
-  params?: { sprintId?: number; from?: string; to?: string }
+  params?: { sprintId?: number; taskId?: number; from?: string; to?: string }
 ) {
   return useQuery({
-    queryKey: ['scrum', scrumId, 'report', params?.sprintId, params?.from, params?.to],
+    queryKey: ['scrum', scrumId, 'report', params?.sprintId, params?.taskId, params?.from, params?.to],
     queryFn: () => fetchScrumReport(scrumId, params),
     enabled: Boolean(scrumId && !isNaN(scrumId)),
     staleTime: 30_000,

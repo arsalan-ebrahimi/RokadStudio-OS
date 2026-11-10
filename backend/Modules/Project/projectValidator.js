@@ -1,4 +1,5 @@
 import { body, param, query, validationResult } from "express-validator";
+import { isIsoDateString, toDateOnly } from "../../Utils/date.js";
 
 export const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
@@ -16,6 +17,14 @@ export const handleValidation = (req, res, next) => {
   next();
 };
 
+const optionalDateValidator = (val) => {
+  if (!val) return true;
+  if (!isIsoDateString(val)) {
+    throw new Error("Date must be in valid YYYY-MM-DD format");
+  }
+  return true;
+};
+
 export const projectIdValidator = [
   param("id")
     .isInt({ min: 1 })
@@ -23,14 +32,6 @@ export const projectIdValidator = [
     .toInt(),
   handleValidation,
 ];
-
-const strictNullablePositiveInt = (val) => {
-  if (val === null || val === undefined) return true;
-  if (typeof val !== "number" || !Number.isInteger(val) || val < 1 || val > 2147483647) {
-    throw new Error("scrumId must be a positive integer or null");
-  }
-  return true;
-};
 
 export const createProjectValidator = [
   body("name")
@@ -42,9 +43,6 @@ export const createProjectValidator = [
   body("description")
     .optional({ nullable: true })
     .customSanitizer((val) => (val === null ? null : typeof val === "string" ? val.trim() : val)),
-  body("scrumId")
-    .optional({ nullable: true })
-    .custom(strictNullablePositiveInt),
   body("memberIds")
     .optional()
     .isArray()
@@ -74,9 +72,6 @@ export const updateProjectValidator = [
   body("description")
     .optional({ nullable: true })
     .customSanitizer((val) => (val === null ? null : typeof val === "string" ? val.trim() : val)),
-  body("scrumId")
-    .optional({ nullable: true })
-    .custom(strictNullablePositiveInt),
   body("isActive")
     .optional()
     .isBoolean()
@@ -109,5 +104,38 @@ export const getProjectsValidator = [
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
   query("isActive").optional().isBoolean().toBoolean(),
   query("search").optional().trim(),
+  handleValidation,
+];
+
+export const getProjectWorkSessionsValidator = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("Project ID must be a positive integer")
+    .toInt(),
+  query("page").optional().isInt({ min: 1 }).toInt(),
+  query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  query("userId").optional().isInt({ min: 1 }).toInt(),
+  query("approval")
+    .optional()
+    .isIn(["ALL", "PENDING", "APPROVED", "REJECTED"])
+    .withMessage("approval must be ALL, PENDING, APPROVED, or REJECTED"),
+  query("date").optional().custom(optionalDateValidator),
+  query("dateFrom").optional().custom(optionalDateValidator),
+  query("dateTo").optional().custom(optionalDateValidator),
+  query().custom((_, { req }) => {
+    const { dateFrom, dateTo } = req.query || {};
+    if (
+      typeof dateFrom === "string" &&
+      typeof dateTo === "string" &&
+      dateFrom &&
+      dateTo &&
+      isIsoDateString(dateFrom) &&
+      isIsoDateString(dateTo) &&
+      toDateOnly(dateFrom).getTime() > toDateOnly(dateTo).getTime()
+    ) {
+      throw new Error("dateFrom cannot be after dateTo");
+    }
+    return true;
+  }),
   handleValidation,
 ];

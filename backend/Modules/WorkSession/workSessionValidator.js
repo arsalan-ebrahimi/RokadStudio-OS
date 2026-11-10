@@ -1,12 +1,12 @@
 import { body, query, param, validationResult } from "express-validator";
-import { isIsoDateString } from "../../Utils/date.js";
+import { isIsoDateString, toDateOnly } from "../../Utils/date.js";
 
 export const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorList = errors.array();
     const isExactlyOneError = errorList.some(
-      (err) => err.msg && err.msg.includes("باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود")
+      (err) => err.msg && err.msg.includes("باید دقیقاً یکی از projectId یا taskId ارسال شود")
     );
     const statusCode = isExactlyOneError ? 422 : 400;
     return res.status(statusCode).json({
@@ -37,10 +37,10 @@ export const MAX_SESSION_SECONDS = parseInt(
 export const createWorkSessionValidator = [
   body().custom((_, { req }) => {
     const hasProject = req.body.projectId !== undefined && req.body.projectId !== null && req.body.projectId !== "";
-    const hasSprintProject = req.body.sprintProjectId !== undefined && req.body.sprintProjectId !== null && req.body.sprintProjectId !== "";
+    const hasTask = req.body.taskId !== undefined && req.body.taskId !== null && req.body.taskId !== "";
 
-    if ((hasProject && hasSprintProject) || (!hasProject && !hasSprintProject)) {
-      throw new Error("باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود");
+    if ((hasProject && hasTask) || (!hasProject && !hasTask)) {
+      throw new Error("باید دقیقاً یکی از projectId یا taskId ارسال شود");
     }
     return true;
   }),
@@ -49,10 +49,10 @@ export const createWorkSessionValidator = [
     .isInt({ min: 1 })
     .withMessage("projectId must be a positive integer")
     .toInt(),
-  body("sprintProjectId")
+  body("taskId")
     .optional({ nullable: true })
     .isInt({ min: 1 })
-    .withMessage("sprintProjectId must be a positive integer")
+    .withMessage("taskId must be a positive integer")
     .toInt(),
   body("durationSeconds")
     .notEmpty()
@@ -103,21 +103,51 @@ export const getMeWorkSessionsValidator = [
   handleValidation,
 ];
 
+const targetFilterValidation = query().custom((_, { req }) => {
+  const { projectId, taskId, targetType, dateFrom, dateTo } = req.query || {};
+  if (projectId && taskId) {
+    throw new Error("نمی‌توان همزمان بر اساس projectId و taskId فیلتر کرد");
+  }
+  if (targetType === "PROJECT" && taskId) {
+    throw new Error("با نوع PROJECT نمی‌توان بر اساس taskId فیلتر کرد");
+  }
+  if (targetType === "TASK" && projectId) {
+    throw new Error("با نوع TASK نمی‌توان بر اساس projectId فیلتر کرد");
+  }
+  if (
+    typeof dateFrom === "string" &&
+    typeof dateTo === "string" &&
+    dateFrom &&
+    dateTo &&
+    isIsoDateString(dateFrom) &&
+    isIsoDateString(dateTo) &&
+    toDateOnly(dateFrom).getTime() > toDateOnly(dateTo).getTime()
+  ) {
+    throw new Error("dateFrom cannot be after dateTo");
+  }
+  return true;
+});
+
 export const getAdminWorkSessionsValidator = [
   query("page").optional().isInt({ min: 1 }).toInt(),
   query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
   query("userId").optional().isInt({ min: 1 }).toInt(),
   query("projectId").optional().isInt({ min: 1 }).toInt(),
+  query("taskId").optional().isInt({ min: 1 }).toInt(),
+  query("targetType").optional().isIn(["ALL", "PROJECT", "TASK"]).withMessage("targetType must be ALL, PROJECT, or TASK"),
   query("approval").optional().isIn(["PENDING", "APPROVED", "REJECTED"]).withMessage("approval must be PENDING, APPROVED, or REJECTED"),
   query("date").optional().custom(dateValidator),
   query("dateFrom").optional().custom(dateValidator),
   query("dateTo").optional().custom(dateValidator),
+  targetFilterValidation,
   handleValidation,
 ];
 
 export const getWorkSessionsSummaryValidator = [
   query("userId").optional().isInt({ min: 1 }).toInt(),
   query("projectId").optional().isInt({ min: 1 }).toInt(),
+  query("taskId").optional().isInt({ min: 1 }).toInt(),
+  query("targetType").optional().isIn(["ALL", "PROJECT", "TASK"]).withMessage("targetType must be ALL, PROJECT, or TASK"),
   query("approval").optional().isIn(["PENDING", "APPROVED", "REJECTED"]).withMessage("approval must be PENDING, APPROVED, or REJECTED"),
   query("date").optional().custom(dateValidator),
   query("dateFrom").optional().custom(dateValidator),
@@ -126,6 +156,7 @@ export const getWorkSessionsSummaryValidator = [
     .optional()
     .isIn(["user", "project", "user_project"])
     .withMessage("groupBy must be user, project, or user_project"),
+  targetFilterValidation,
   handleValidation,
 ];
 

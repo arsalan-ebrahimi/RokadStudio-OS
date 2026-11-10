@@ -7,6 +7,7 @@ import {
   updateProjectById,
   syncProjectMembers,
   deleteProjectSafe,
+  getProjectWorkSessionsById,
 } from "./projectService.js";
 import { mapPrismaError } from "../../Utils/prismaErrors.js";
 
@@ -78,16 +79,8 @@ export const getAllProjects = catchAsync(async (req, res, next) => {
         description: true,
         isActive: true,
         createdById: true,
-        scrumId: true,
         createdAt: true,
         updatedAt: true,
-        scrum: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-          },
-        },
         _count: {
           select: { members: true },
         },
@@ -102,8 +95,6 @@ export const getAllProjects = catchAsync(async (req, res, next) => {
     description: p.description,
     isActive: p.isActive,
     createdById: p.createdById,
-    scrumId: p.scrumId,
-    scrum: p.scrum || null,
     memberCount: p._count.members,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
@@ -123,13 +114,6 @@ export const getProjectById = catchAsync(async (req, res, next) => {
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      scrum: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
       members: {
         select: {
           user: {
@@ -153,8 +137,6 @@ export const getProjectById = catchAsync(async (req, res, next) => {
     description: project.description,
     isActive: project.isActive,
     createdById: project.createdById,
-    scrumId: project.scrumId,
-    scrum: project.scrum || null,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     members: project.members.map((m) => ({
@@ -167,6 +149,17 @@ export const getProjectById = catchAsync(async (req, res, next) => {
     success: true,
     message: "Project fetched successfully",
     data: formatted,
+  });
+});
+
+export const getProjectWorkSessions = catchAsync(async (req, res, next) => {
+  const id = Number(req.params.id);
+  const result = await getProjectWorkSessionsById(id, req.query, req.user);
+  return res.status(200).json({
+    success: true,
+    message: "سشن‌های کاری پروژه با موفقیت دریافت شد",
+    data: result.data,
+    meta: formatPaginationMeta(result.page, result.limit, result.total),
   });
 });
 

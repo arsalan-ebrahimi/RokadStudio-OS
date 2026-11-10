@@ -45,12 +45,6 @@ enum SprintStatus {
   COMPLETED
 }
 
-enum ItemStatus {
-  TODO
-  DOING
-  DONE
-}
-
 enum EventScheduleType {
   WEEKLY
   ONCE
@@ -74,7 +68,8 @@ model User {
   scrumAdmins            ScrumAdmin[]    @relation("ScrumAdminUser")
   assignedScrumAdmins    ScrumAdmin[]    @relation("ScrumAdminAssignedBy")
   scrumMembers           ScrumMember[]   @relation("ScrumMemberUser")
-  assignedSprintProjects SprintProject[] @relation("SprintProjectAssignee")
+  assignedTasks          TaskMember[]    @relation("TaskMemberUser")
+  assignedTaskMembers    TaskMember[]    @relation("TaskMemberAssignedBy")
 }
 
 model Project {
@@ -83,17 +78,12 @@ model Project {
   description String?
   isActive    Boolean         @default(true)
   createdById Int
-  scrumId     Int?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  createdBy      User            @relation("CreatedProjects", fields: [createdById], references: [id], onDelete: Restrict)
-  scrum          Scrum?          @relation(fields: [scrumId], references: [id], onDelete: SetNull)
-  members        ProjectMember[]
-  workSessions   WorkSession[]
-  sprintProjects SprintProject[]
-
-  @@index([scrumId])
+  createdBy    User            @relation("CreatedProjects", fields: [createdById], references: [id], onDelete: Restrict)
+  members      ProjectMember[]
+  workSessions WorkSession[]
 }
 
 model ProjectMember {
@@ -118,12 +108,12 @@ model Scrum {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  admins      ScrumAdmin[]
-  members     ScrumMember[]
-  projects    Project[]
-  sprints     Sprint[]
-  kpis        ScrumKpi[]
-  events      ScrumEvent[]
+  admins  ScrumAdmin[]
+  members ScrumMember[]
+  sprints Sprint[]
+  tasks   Task[]
+  kpis    ScrumKpi[]
+  events  ScrumEvent[]
 
   @@index([isActive])
 }
@@ -156,45 +146,56 @@ model ScrumMember {
 }
 
 model Sprint {
-  id          Int          @id @default(autoincrement())
-  scrumId     Int
-  number      Int
-  title       String
-  description String?
-  startDate   DateTime?    @db.Date
-  endDate     DateTime?    @db.Date
-  status      SprintStatus @default(PLANNED)
-  completedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id              Int          @id @default(autoincrement())
+  scrumId         Int
+  number          Int
+  title           String
+  description     String?
+  startDate       DateTime?    @db.Date
+  endDate         DateTime?    @db.Date
+  status          SprintStatus @default(PLANNED)
+  progressPercent Int          @default(0)
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  scrum       Scrum           @relation(fields: [scrumId], references: [id], onDelete: Cascade)
-  projects    SprintProject[]
+  scrum Scrum @relation(fields: [scrumId], references: [id], onDelete: Cascade)
 
   @@unique([scrumId, number])
   @@index([scrumId, status])
 }
 
-model SprintProject {
-  id         Int        @id @default(autoincrement())
-  sprintId   Int
-  projectId  Int?
-  name       String
-  points     Int        @default(0)
-  assigneeId Int?
-  status     ItemStatus @default(TODO)
-  sortOrder  Int        @default(0)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+model Task {
+  id          Int          @id @default(autoincrement())
+  scrumId     Int
+  name        String
+  description String?
+  points      Int          @default(0)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  sprint       Sprint        @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  assignee     User?         @relation("SprintProjectAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  scrum        Scrum         @relation(fields: [scrumId], references: [id], onDelete: Cascade)
+  members      TaskMember[]
   workSessions WorkSession[]
 
-  @@index([sprintId])
-  @@index([projectId])
-  @@index([assigneeId])
+  @@index([scrumId])
+  @@index([isActive])
+}
+
+model TaskMember {
+  taskId       Int
+  userId       Int
+  assignedAt   DateTime @default(now())
+  assignedById Int?
+
+  task       Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       User  @relation("TaskMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy User? @relation("TaskMemberAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@id([taskId, userId])
+  @@index([userId])
+  @@index([assignedById])
 }
 
 model ScrumKpi {
@@ -261,7 +262,7 @@ model WorkSession {
   id              Int            @id @default(autoincrement())
   userId          Int
   projectId       Int?
-  sprintProjectId Int?
+  taskId          Int?
   attendanceId    Int
   durationSeconds Int
   clientRequestId String?        @db.VarChar(64)
@@ -273,16 +274,16 @@ model WorkSession {
   startedAt       DateTime?
   createdAt       DateTime       @default(now())
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project       Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sprintProject SprintProject? @relation(fields: [sprintProjectId], references: [id], onDelete: Restrict)
-  attendance    Attendance     @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  decidedBy     User?          @relation("WorkSessionDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task       Task?      @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  decidedBy  User?      @relation("WorkSessionDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
 
   @@unique([userId, clientRequestId])
   @@index([attendanceId])
   @@index([projectId])
-  @@index([sprintProjectId])
+  @@index([taskId])
   @@index([userId, createdAt])
   @@index([workDate])
   @@index([approval])

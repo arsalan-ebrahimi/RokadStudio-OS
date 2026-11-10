@@ -1,7 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, Check, X, Trash2, Clock, FolderKanban, ArrowLeft } from 'lucide-react';
 import {
+  Download,
+  Check,
+  X,
+  Trash2,
+  Clock,
+  FolderKanban,
+  ArrowLeft,
+  ListChecks,
+} from 'lucide-react';
+import {
+  Badge,
   Button,
   Card,
   DataTable,
@@ -15,14 +25,15 @@ import {
   type DataTableColumn,
 } from '@/shared/ui';
 import { fetchWorkSessionsSummary } from '@/features/reports/api/reports-api';
-import { fetchAllProjects } from '@/features/projects/api/projects-api';
 import { searchActiveUsers } from '@/features/users/api/users-api';
 import { exportReportsToCsv } from '@/features/reports/lib/export-csv';
 import {
   fetchAdminWorkSessions,
+  fetchWorkSessionTargets,
   decideWorkSession,
   deleteWorkSession,
 } from '@/features/timer/api/timer-api';
+import { SCRUM_COLOR_MAP } from '@/features/scrum';
 import { SessionBadge } from '@/features/timer/components/SessionBadge';
 import { SessionDecisionDialog } from '@/features/timer/components/SessionDecisionDialog';
 import { DeleteSessionDialog } from '@/features/timer/components/DeleteSessionDialog';
@@ -37,7 +48,9 @@ export const AdminReportsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'sessions' | 'summary'>('sessions');
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
+  const [targetType, setTargetType] = useState<'ALL' | 'PROJECT' | 'TASK'>('ALL');
   const [projectId, setProjectId] = useState<number | undefined>(undefined);
+  const [taskId, setTaskId] = useState<number | undefined>(undefined);
   const [userId, setUserId] = useState<number | undefined>(undefined);
   const [groupBy, setGroupBy] = useState<'user' | 'project' | 'user_project'>('user_project');
   const [sessionStatusFilter, setSessionStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
@@ -45,13 +58,14 @@ export const AdminReportsPage: React.FC = () => {
   const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; info: string } | null>(null);
   const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
 
-  // Projects list for filter
-  const { data: projectsRes } = useQuery({
-    queryKey: ['admin-projects-list'],
-    queryFn: () => fetchAllProjects({ limit: 100, isActive: true }),
+  // Unified projects + Scrum tasks targets list for filter
+  const { data: targetsData } = useQuery({
+    queryKey: ['work-session-targets'],
+    queryFn: fetchWorkSessionTargets,
     staleTime: 30_000,
   });
-  const projects = projectsRes?.data || [];
+  const targetProjects = targetsData?.projects || [];
+  const targetTasks = targetsData?.tasks || [];
 
   // Users list for filter
   const { data: activeUsers = [] } = useQuery({
@@ -60,21 +74,34 @@ export const AdminReportsPage: React.FC = () => {
     staleTime: 30_000,
   });
 
+  const effectiveTargetType = targetType === 'ALL' ? undefined : targetType;
+
   // Summary aggregation query (always loaded for instant KPI overview and fast tab switching)
   const { data: rows = [], isLoading: isSummaryLoading } = useQuery({
-    queryKey: ['reports-summary', dateFrom, dateTo, groupBy, projectId],
-    queryFn: () => fetchWorkSessionsSummary({ dateFrom, dateTo, groupBy, projectId }),
+    queryKey: ['reports-summary', dateFrom, dateTo, groupBy, targetType, projectId, taskId, userId],
+    queryFn: () =>
+      fetchWorkSessionsSummary({
+        dateFrom,
+        dateTo,
+        groupBy,
+        targetType: effectiveTargetType,
+        projectId,
+        taskId,
+        userId,
+      }),
     staleTime: 30_000,
   });
 
   // Individual work sessions query
   const { data: sessionsRes, isLoading: isSessionsLoading } = useQuery({
-    queryKey: ['admin-work-sessions', dateFrom, dateTo, projectId, userId, sessionStatusFilter],
+    queryKey: ['admin-work-sessions', dateFrom, dateTo, targetType, projectId, taskId, userId, sessionStatusFilter],
     queryFn: () =>
       fetchAdminWorkSessions({
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
+        targetType: effectiveTargetType,
         projectId: projectId || undefined,
+        taskId: taskId || undefined,
         userId: userId || undefined,
         approval: sessionStatusFilter === 'ALL' ? undefined : sessionStatusFilter,
         limit: 100,
@@ -107,6 +134,8 @@ export const AdminReportsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       toast.success('وضعیت سشن با موفقیت تغییر کرد');
@@ -141,6 +170,8 @@ export const AdminReportsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
     },
@@ -181,6 +212,19 @@ export const AdminReportsPage: React.FC = () => {
   const isWeekSelected = !isTodaySelected && dateFrom === weekRange.from && dateTo === weekRange.to;
   const isMonthSelected = !isTodaySelected && !isWeekSelected && dateFrom === monthRange.from && dateTo === monthRange.to;
 
+  const formatSummaryTargetName = (row: WorkSessionSummaryRow): string => {
+    if (row.task) {
+      return row.task.scrum ? `[${row.task.scrum.name}] ${row.task.name}` : row.task.name;
+    }
+    return row.project?.name || '';
+  };
+
+  const formatSummaryRowLabel = (row: WorkSessionSummaryRow): string => {
+    const targetName = formatSummaryTargetName(row);
+    if (row.user && targetName) return `${row.user.name} (${targetName})`;
+    return row.user?.name || targetName || '—';
+  };
+
   const summaryColumns: DataTableColumn<WorkSessionSummaryRow>[] = useMemo(
     () => [
       {
@@ -189,11 +233,17 @@ export const AdminReportsPage: React.FC = () => {
         minWidth: '210px',
         isSticky: true,
         cell: (row) => {
-          const label =
-            row.user && row.project
-              ? `${row.user.name} (${row.project.name})`
-              : row.user?.name || row.project?.name || '—';
-          return <span className="font-bold text-sec dark:text-white">{label}</span>;
+          const label = formatSummaryRowLabel(row);
+          return (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sec dark:text-white">{label}</span>
+              {row.task && (
+                <Badge variant="college" className="text-[10px]">
+                  تسک اسکرام
+                </Badge>
+              )}
+            </div>
+          );
         },
       },
       {
@@ -224,9 +274,38 @@ export const AdminReportsPage: React.FC = () => {
   );
 
   const inspectSummaryRow = (row: WorkSessionSummaryRow) => {
-    if (row.project?.id) setProjectId(row.project.id);
+    if (row.task?.id) {
+      setTargetType('TASK');
+      setTaskId(row.task.id);
+      setProjectId(undefined);
+    } else if (row.project?.id) {
+      setTargetType('PROJECT');
+      setProjectId(row.project.id);
+      setTaskId(undefined);
+    }
     if (row.user?.id) setUserId(row.user.id);
     setActiveTab('sessions');
+  };
+
+  const selectedTargetValue = projectId
+    ? `P:${projectId}`
+    : taskId
+      ? `T:${taskId}`
+      : '';
+
+  const handleTargetSelectionChange = (val: string) => {
+    if (!val) {
+      setProjectId(undefined);
+      setTaskId(undefined);
+      return;
+    }
+    if (val.startsWith('P:')) {
+      setProjectId(Number(val.slice(2)));
+      setTaskId(undefined);
+    } else if (val.startsWith('T:')) {
+      setTaskId(Number(val.slice(2)));
+      setProjectId(undefined);
+    }
   };
 
   return (
@@ -357,10 +436,10 @@ export const AdminReportsPage: React.FC = () => {
 
           <div className="h-6 w-px bg-sec/15 dark:bg-gray-700 hidden lg:block self-center" />
 
-          {/* Project & User Filters */}
-          <div className="flex items-center gap-2.5 flex-col sm:flex-row w-full lg:w-auto">
+          {/* Target Type, Project/Task & User Filters */}
+          <div className="flex items-center gap-2.5 flex-col sm:flex-row flex-wrap w-full lg:w-auto">
             {/* Personnel Filter */}
-            <div className="w-full sm:w-44">
+            <div className="w-full sm:w-40">
               <Select
                 aria-label="فیلتر پرسنل"
                 value={userId ?? ''}
@@ -375,19 +454,76 @@ export const AdminReportsPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Project Filter */}
-            <div className="w-full sm:w-44">
+            {/* Target Type Filter */}
+            <div className="w-full sm:w-40">
               <Select
-                aria-label="فیلتر پروژه"
-                value={projectId ?? ''}
-                onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : undefined)}
+                aria-label="فیلتر نوع"
+                value={targetType}
+                onChange={(e) => {
+                  const nextType = e.target.value as 'ALL' | 'PROJECT' | 'TASK';
+                  setTargetType(nextType);
+                  setProjectId(undefined);
+                  setTaskId(undefined);
+                }}
               >
-                <option value="">همه پروژه‌ها</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                <option value="ALL">همه انواع</option>
+                <option value="PROJECT">پروژه‌های استودیو</option>
+                <option value="TASK">تسک‌های اسکرام</option>
+              </Select>
+            </div>
+
+            {/* Project / Task Filter */}
+            <div className="w-full sm:w-52">
+              <Select
+                aria-label="فیلتر پروژه یا تسک"
+                value={selectedTargetValue}
+                onChange={(e) => handleTargetSelectionChange(e.target.value)}
+              >
+                <option value="">
+                  {targetType === 'PROJECT'
+                    ? 'همه پروژه‌ها'
+                    : targetType === 'TASK'
+                      ? 'همه تسک‌ها'
+                      : 'همه پروژه‌ها و تسک‌ها'}
+                </option>
+                {targetType !== 'TASK' && targetProjects.length > 0 && (
+                  targetType === 'ALL' ? (
+                    <optgroup label="پروژه‌های استودیو">
+                      {targetProjects.map((p) => (
+                        <option key={`P:${p.id}`} value={`P:${p.id}`}>
+                          {p.name}
+                          {p.isActive ? '' : ' (تمام‌شده)'}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : (
+                    targetProjects.map((p) => (
+                      <option key={`P:${p.id}`} value={`P:${p.id}`}>
+                        {p.name}
+                        {p.isActive ? '' : ' (تمام‌شده)'}
+                      </option>
+                    ))
+                  )
+                )}
+                {targetType !== 'PROJECT' && targetTasks.length > 0 && (
+                  targetType === 'ALL' ? (
+                    <optgroup label="تسک‌های اسکرام">
+                      {targetTasks.map((t) => (
+                        <option key={`T:${t.id}`} value={`T:${t.id}`}>
+                          [{t.scrumName}] {t.name}
+                          {t.isActive ? '' : ' (غیرفعال)'}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : (
+                    targetTasks.map((t) => (
+                      <option key={`T:${t.id}`} value={`T:${t.id}`}>
+                        [{t.scrumName}] {t.name}
+                        {t.isActive ? '' : ' (غیرفعال)'}
+                      </option>
+                    ))
+                  )
+                )}
               </Select>
             </div>
 
@@ -398,9 +534,9 @@ export const AdminReportsPage: React.FC = () => {
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value as 'user' | 'project' | 'user_project')}
                 >
-                  <option value="user_project">کاربر و پروژه</option>
+                  <option value="user_project">کاربر و پروژه/تسک</option>
                   <option value="user">تفکیک کاربر</option>
-                  <option value="project">تفکیک پروژه</option>
+                  <option value="project">تفکیک پروژه/تسک</option>
                 </Select>
               </div>
             )}
@@ -524,16 +660,26 @@ export const AdminReportsPage: React.FC = () => {
             <div className="space-y-3">
               {sessions.map((s: WorkSession) => {
                 const userName = s.user?.name || 'کاربر';
-                const projectName = s.project?.name || s.projectName || 'پروژه';
+                const isTask = s.targetType === 'TASK' && Boolean(s.task);
+                const scrumMeta =
+                  isTask && s.task?.scrum
+                    ? SCRUM_COLOR_MAP[s.task.scrum.color] || SCRUM_COLOR_MAP.ECOSYSTEM
+                    : null;
+                const targetName =
+                  isTask && s.task
+                    ? s.task.scrum
+                      ? `[${s.task.scrum.name}] ${s.task.name}`
+                      : s.task.name
+                    : s.project?.name || s.projectName || 'پروژه';
                 const sessionDate = s.workDate || s.attendanceDate || s.createdAt;
-                const sessionInfo = `${userName} - ${projectName} (${formatDurationToHoursMins(s.durationSeconds)})`;
+                const sessionInfo = `${userName} - ${targetName} (${formatDurationToHoursMins(s.durationSeconds)})`;
 
                 return (
                   <Card
                     key={s.id}
                     className="p-4 sm:p-5 rounded-3xl flex flex-col md:grid md:grid-cols-12 md:items-center gap-3.5 md:gap-4 transition-all"
                   >
-                    {/* Right: User Avatar + Name + Project Tag + Date & Status */}
+                    {/* Right: User Avatar + Name + Project/Task Tag + Date & Status */}
                     <div className="md:col-span-6 flex items-center gap-3.5 min-w-0">
                       <div className="w-11 h-11 rounded-2xl bg-[#ECF7F5] dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-sm shrink-0 border-[1.5px] border-sec/25 dark:border-gray-700 shadow-hard-sm">
                         {userName.slice(0, 1)}
@@ -543,10 +689,24 @@ export const AdminReportsPage: React.FC = () => {
                           <p className="text-sm sm:text-base font-black text-sec dark:text-white truncate" title={userName}>
                             {userName}
                           </p>
-                          <span className="text-[11px] font-bold text-sec dark:text-ecosystem-light bg-ecosystem-light dark:bg-primary/15 px-2.5 py-0.5 rounded-full border border-primary/35 flex items-center gap-1.5 max-w-full">
-                            <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
-                            <span className="truncate">{projectName}</span>
-                          </span>
+                          {isTask && s.task ? (
+                            <span className="inline-flex items-center gap-1.5 max-w-full flex-wrap">
+                              {s.task.scrum && scrumMeta && (
+                                <Badge variant={scrumMeta.badgeVariant} className="text-[10px]">
+                                  {s.task.scrum.name}
+                                </Badge>
+                              )}
+                              <span className="text-[11px] font-bold text-sec dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 rounded-full border border-sec/20 dark:border-gray-700 flex items-center gap-1.5 max-w-full">
+                                <ListChecks className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span className="truncate">{s.task.name}</span>
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-sec dark:text-ecosystem-light bg-ecosystem-light dark:bg-primary/15 px-2.5 py-0.5 rounded-full border border-primary/35 flex items-center gap-1.5 max-w-full">
+                              <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="truncate">{targetName}</span>
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap text-xs text-sec/65 dark:text-gray-400 font-medium">
                           <SessionBadge approval={s.approval} />
@@ -639,7 +799,7 @@ export const AdminReportsPage: React.FC = () => {
                       key={idx}
                       style={{ width: `${pct}%` }}
                       className={cn('h-full transition-all duration-500', colors[idx % colors.length])}
-                      title={`${row.user?.name || row.project?.name || ''}: ${pct.toFixed(0)}%`}
+                      title={`${formatSummaryRowLabel(row)}: ${pct.toFixed(0)}%`}
                     />
                   );
                 })}
@@ -647,16 +807,13 @@ export const AdminReportsPage: React.FC = () => {
 
               <div className="flex items-center gap-4 flex-wrap text-[11px] font-bold">
                 {rows.slice(0, 4).map((row, idx) => {
-                  const label =
-                    row.user && row.project
-                      ? `${row.user.name} - ${row.project.name}`
-                      : row.user?.name || row.project?.name || '—';
+                  const label = formatSummaryRowLabel(row);
                   const dotColors = ['bg-primary', 'bg-girl', 'bg-third', 'bg-[#612B89]'];
                   const pct = Math.round((row.totalSeconds / totalSeconds) * 100);
                   return (
                     <div key={idx} className="flex items-center gap-1.5 text-sec/75 dark:text-gray-300">
                       <span className={cn('w-2 h-2 rounded-full', dotColors[idx % dotColors.length])} />
-                      <span className="truncate max-w-[140px]">{label}</span>
+                      <span className="truncate max-w-[160px]">{label}</span>
                       <span className="text-sec/55 dark:text-gray-400 font-bold tabular-nums">({toPersianDigits(pct)}٪)</span>
                     </div>
                   );
@@ -669,7 +826,7 @@ export const AdminReportsPage: React.FC = () => {
             columns={summaryColumns}
             data={rows}
             getRowKey={(row, idx) =>
-              `summary_${row.user?.id ?? 'u'}_${row.project?.id ?? 'p'}_${idx}`
+              `summary_${row.user?.id ?? 'u'}_${row.project?.id ?? (row.task?.id ? `t${row.task.id}` : 'p')}_${idx}`
             }
             showIndex={false}
             isLoading={isSummaryLoading}

@@ -7,8 +7,19 @@ import {
   toDateOnly,
 } from "../../Utils/date.js";
 
+const taskInclude = {
+  select: {
+    id: true,
+    name: true,
+    points: true,
+    scrum: {
+      select: { id: true, name: true, color: true },
+    },
+  },
+};
+
 export const logWorkSession = async (
-  { userId, projectId, sprintProjectId, durationSeconds, startedAt, clientRequestId },
+  { userId, projectId, taskId, durationSeconds, startedAt, clientRequestId },
   now = new Date()
 ) => {
   // Idempotency: return existing session if clientRequestId already processed
@@ -24,19 +35,7 @@ export const logWorkSession = async (
         project: {
           select: { id: true, name: true },
         },
-        sprintProject: {
-          select: {
-            id: true,
-            name: true,
-            sprint: {
-              select: {
-                id: true,
-                number: true,
-                scrum: { select: { id: true, name: true } },
-              },
-            },
-          },
-        },
+        task: taskInclude,
       },
     });
     if (existing) {
@@ -73,7 +72,7 @@ export const logWorkSession = async (
     throw new HandleERROR("startedAt cannot be older than 2 days", 400);
   }
 
-  // 3. Target verification (Project or SprintProject)
+  // 3. Target verification (Project or Scrum Task)
   if (projectId) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -105,42 +104,65 @@ export const logWorkSession = async (
         throw new HandleERROR("You are not an assigned member of this project", 403);
       }
     }
-  } else if (sprintProjectId) {
-    const sprintProject = await prisma.sprintProject.findUnique({
-      where: { id: sprintProjectId },
-      include: {
-        sprint: {
-          include: {
-            scrum: { select: { id: true, name: true, isActive: true } },
+  } else if (taskId) {
+    const [task, user] = await Promise.all([
+      prisma.task.findUnique({
+        where: { id: taskId },
+        include: {
+          scrum: {
+            select: {
+              id: true,
+              name: true,
+              isActive: true,
+              admins: {
+                where: { userId },
+                select: { userId: true },
+              },
+              members: {
+                where: { userId },
+                select: { userId: true },
+              },
+            },
+          },
+          members: {
+            where: { userId },
+            select: { userId: true },
           },
         },
-      },
-    });
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, role: true },
+      }),
+    ]);
 
-    if (!sprintProject) {
-      throw new HandleERROR("پروژه اسپرینت یافت نشد", 404);
+    if (!task) {
+      throw new HandleERROR("تسک یافت نشد", 404);
     }
 
-    if (!sprintProject.sprint.scrum.isActive) {
+    if (user?.role === "ADMIN") {
+      throw new HandleERROR("دسترسی به ماژول اسکرام برای این نقش مجاز نیست", 403);
+    }
+
+    if (!task.scrum.isActive) {
       throw new HandleERROR("اسکرام مربوطه غیرفعال است", 400);
     }
 
-    if (sprintProject.assigneeId !== userId) {
-      throw new HandleERROR("این پروژه اسپرینت به شما اختصاص ندارد", 403);
+    if (!task.isActive) {
+      throw new HandleERROR("این تسک غیرفعال است", 400);
     }
 
-    const sprint = sprintProject.sprint;
-    const isSprintActive = sprint.status === "ACTIVE";
-    const isRecentlyCompleted =
-      sprint.status === "COMPLETED" &&
-      sprint.completedAt &&
-      now.getTime() - new Date(sprint.completedAt).getTime() <= 60 * 60 * 1000;
+    const isAssignedToTask = task.members.length > 0;
+    const isScrumParticipant =
+      user?.role === "SUPER_ADMIN" ||
+      task.scrum.members.length > 0 ||
+      (user?.role === "SCRUM_ADMIN" && task.scrum.admins.length > 0);
 
-    if (!isSprintActive && !isRecentlyCompleted) {
-      throw new HandleERROR("اسپرینت این تسک فعال نیست", 400);
+    if (!isAssignedToTask || !isScrumParticipant) {
+      throw new HandleERROR("این تسک به شما اختصاص ندارد", 403);
     }
   } else {
-    throw new HandleERROR("باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود", 422);
+    throw new HandleERROR("باید دقیقاً یکی از projectId یا taskId ارسال شود", 422);
   }
 
   // 4. Resolve Attendance for workDate: derived using same day boundary helper as attendance
@@ -221,7 +243,7 @@ export const logWorkSession = async (
         data: {
           userId,
           projectId: projectId || null,
-          sprintProjectId: sprintProjectId || null,
+          taskId: taskId || null,
           attendanceId: lockedAttendance.id,
           durationSeconds,
           clientRequestId: clientRequestId || null,
@@ -233,19 +255,7 @@ export const logWorkSession = async (
           project: {
             select: { id: true, name: true },
           },
-          sprintProject: {
-            select: {
-              id: true,
-              name: true,
-              sprint: {
-                select: {
-                  id: true,
-                  number: true,
-                  scrum: { select: { id: true, name: true } },
-                },
-              },
-            },
-          },
+          task: taskInclude,
         },
       });
 
@@ -266,19 +276,7 @@ export const logWorkSession = async (
           project: {
             select: { id: true, name: true },
           },
-          sprintProject: {
-            select: {
-              id: true,
-              name: true,
-              sprint: {
-                select: {
-                  id: true,
-                  number: true,
-                  scrum: { select: { id: true, name: true } },
-                },
-              },
-            },
-          },
+          task: taskInclude,
         },
       });
       if (existing) return existing;
@@ -290,6 +288,8 @@ export const logWorkSession = async (
 export const getWorkSessionsSummaryAgg = async ({
   userId,
   projectId,
+  taskId,
+  targetType,
   date,
   dateFrom,
   dateTo,
@@ -299,7 +299,16 @@ export const getWorkSessionsSummaryAgg = async ({
   const where = {};
 
   if (userId) where.userId = Number(userId);
-  if (projectId) where.projectId = Number(projectId);
+  if (projectId) {
+    where.projectId = Number(projectId);
+  } else if (taskId) {
+    where.taskId = Number(taskId);
+  } else if (targetType === "PROJECT") {
+    where.projectId = { not: null };
+  } else if (targetType === "TASK") {
+    where.taskId = { not: null };
+  }
+
   if (approval) {
     where.approval = approval;
   } else {
@@ -321,9 +330,9 @@ export const getWorkSessionsSummaryAgg = async ({
   if (groupBy === "user") {
     byFields = ["userId"];
   } else if (groupBy === "project") {
-    byFields = ["projectId", "sprintProjectId"];
+    byFields = ["projectId", "taskId"];
   } else {
-    byFields = ["userId", "projectId", "sprintProjectId"];
+    byFields = ["userId", "projectId", "taskId"];
   }
 
   // Database groupBy aggregation
@@ -337,9 +346,9 @@ export const getWorkSessionsSummaryAgg = async ({
   // Batch load names to prevent N+1
   const userIds = [...new Set(grouped.map((g) => g.userId).filter(Boolean))];
   const projectIds = [...new Set(grouped.map((g) => g.projectId).filter(Boolean))];
-  const sprintProjectIds = [...new Set(grouped.map((g) => g.sprintProjectId).filter(Boolean))];
+  const taskIds = [...new Set(grouped.map((g) => g.taskId).filter(Boolean))];
 
-  const [users, projects, sprintProjects] = await Promise.all([
+  const [users, projects, tasks] = await Promise.all([
     userIds.length > 0
       ? prisma.user.findMany({
           where: { id: { in: userIds } },
@@ -352,31 +361,22 @@ export const getWorkSessionsSummaryAgg = async ({
           select: { id: true, name: true },
         })
       : [],
-    sprintProjectIds.length > 0
-      ? prisma.sprintProject.findMany({
-          where: { id: { in: sprintProjectIds } },
+    taskIds.length > 0
+      ? prisma.task.findMany({
+          where: { id: { in: taskIds } },
           select: {
             id: true,
             name: true,
-            sprint: {
-              select: {
-                number: true,
-                scrum: { select: { name: true } },
-              },
-            },
+            points: true,
+            scrum: { select: { id: true, name: true, color: true } },
           },
         })
       : [],
   ]);
 
   const userMap = new Map(users.map((u) => [u.id, u.name]));
-  const projectMap = new Map(projects.map((p) => [p.id, p.name]));
-  const sprintProjectMap = new Map(
-    sprintProjects.map((sp) => [
-      sp.id,
-      `[${sp.sprint.scrum.name} · S${sp.sprint.number}] ${sp.name}`,
-    ])
-  );
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
+  const taskMap = new Map(tasks.map((t) => [t.id, t]));
 
   const rows = grouped.map((g) => {
     const row = {
@@ -392,15 +392,30 @@ export const getWorkSessionsSummaryAgg = async ({
     }
 
     if (g.projectId) {
+      const p = projectMap.get(g.projectId);
+      row.targetType = "PROJECT";
       row.project = {
         id: g.projectId,
-        name: projectMap.get(g.projectId) || "Unknown",
+        name: p?.name || "Unknown",
       };
-    } else if (g.sprintProjectId) {
-      row.project = {
-        id: g.sprintProjectId,
-        name: sprintProjectMap.get(g.sprintProjectId) || "Unknown",
-      };
+      row.task = null;
+    } else if (g.taskId) {
+      const t = taskMap.get(g.taskId);
+      row.targetType = "TASK";
+      row.project = null;
+      row.task = t
+        ? {
+            id: t.id,
+            name: t.name,
+            points: t.points,
+            scrum: t.scrum,
+          }
+        : {
+            id: g.taskId,
+            name: "Unknown",
+            points: 0,
+            scrum: null,
+          };
     }
 
     return row;
@@ -409,7 +424,7 @@ export const getWorkSessionsSummaryAgg = async ({
   return rows;
 };
 
-export const decideWorkSessionRecord = async (sessionId, decision, adminUser, now = new Date()) => {
+export const decideWorkSessionRecord = async (sessionId, decision, actorUser, now = new Date()) => {
   const session = await prisma.workSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -426,6 +441,25 @@ export const decideWorkSessionRecord = async (sessionId, decision, adminUser, no
           name: true,
         },
       },
+      task: {
+        select: {
+          id: true,
+          name: true,
+          points: true,
+          scrumId: true,
+          scrum: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              admins: {
+                where: { userId: actorUser.id },
+                select: { userId: true },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -433,9 +467,18 @@ export const decideWorkSessionRecord = async (sessionId, decision, adminUser, no
     throw new HandleERROR("سشن کاری یافت نشد", 404);
   }
 
-  // Guard: ADMIN may not decide a SUPER_ADMIN's record
-  if (adminUser.role === "ADMIN" && session.user.role === "SUPER_ADMIN") {
-    throw new HandleERROR("مدیران اجازه بررسی و تغییر وضعیت سشن سوپرادمین را ندارند", 403);
+  if (actorUser.role === "SCRUM_ADMIN") {
+    if (!session.taskId || !session.task) {
+      throw new HandleERROR("ادمین اسکرام فقط مجاز به تغییر وضعیت سشن‌های تسک‌های اسکرام است", 403);
+    }
+    if (!session.task.scrum?.admins || session.task.scrum.admins.length === 0) {
+      throw new HandleERROR("شما ادمین اسکرام مربوط به این تسک نیستید", 403);
+    }
+  }
+
+  // Guard: Non-SUPER_ADMIN may not decide a SUPER_ADMIN's record
+  if (actorUser.role !== "SUPER_ADMIN" && session.user.role === "SUPER_ADMIN") {
+    throw new HandleERROR("شما اجازه بررسی و تغییر وضعیت سشن سوپرادمین را ندارید", 403);
   }
 
   if (decision !== "APPROVED" && decision !== "REJECTED") {
@@ -447,17 +490,27 @@ export const decideWorkSessionRecord = async (sessionId, decision, adminUser, no
     data: {
       approval: decision,
       source: "ADMIN",
-      decidedById: adminUser.id,
+      decidedById: actorUser.id,
       decidedAt: now,
     },
     include: {
-      user: { select: { id: true, name: true, role: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          ...(actorUser.role !== "SCRUM_ADMIN" ? { role: true } : {}),
+        },
+      },
       project: { select: { id: true, name: true } },
+      task: taskInclude,
       decidedBy: { select: { id: true, name: true } },
     },
   });
 
-  return updated;
+  return {
+    ...updated,
+    targetType: updated.projectId ? "PROJECT" : "TASK",
+  };
 };
 
 export const deleteWorkSession = async (sessionId, currentUser) => {

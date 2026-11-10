@@ -7,5 +7,6 @@ export * from './components/ProjectChangeDialog';
 export * from './components/SessionBadge';
 export * from './components/SessionDecisionDialog';
 export * from './components/DeleteSessionDialog';
+export * from './components/WorkTargetSessionsModal';
 export * from './config/timer-constants';
 export * from './lib/timer-engine';

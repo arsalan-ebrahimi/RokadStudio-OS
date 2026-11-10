@@ -5,7 +5,7 @@ import {
   Users,
   Zap,
   Target,
-  FolderKanban,
+  ListChecks,
   Calendar,
   Clock,
   ArrowLeft,
@@ -133,20 +133,18 @@ export const ScrumAdminDashboardPage: React.FC = () => {
 
         <Card className="p-5 rounded-3xl space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-sec/65 dark:text-gray-400">پوینت انجام‌شده/کل</span>
+            <span className="text-xs font-bold text-sec/65 dark:text-gray-400">تسک‌های فعال / کل</span>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-[#007A52] dark:text-emerald-300 flex items-center justify-center">
               <Target className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <p className="text-2xl sm:text-3xl font-black text-sec dark:text-white tabular-nums">
-              {toPersianDigits(totals.donePoints)} / {toPersianDigits(totals.totalPoints)}
+              {toPersianDigits(totals.activeTasks)} / {toPersianDigits(totals.totalTasks)}
             </p>
-            {totals.openItems > 0 && (
-              <span className="text-[11px] font-bold text-sec/55 dark:text-gray-400 tabular-nums">
-                ({toPersianDigits(totals.openItems)} باز)
-              </span>
-            )}
+            <span className="text-[11px] font-bold text-sec/55 dark:text-gray-400 tabular-nums">
+              ({toPersianDigits(totals.totalTaskPoints)} پوینت)
+            </span>
           </div>
         </Card>
       </div>
@@ -215,13 +213,13 @@ export const ScrumAdminDashboardPage: React.FC = () => {
                                 </span>
                                 · {sp.title}
                               </span>
-                              <span className="text-[11px] font-bold text-sec/65 dark:text-gray-400 shrink-0 tabular-nums">
-                                {toPersianDigits(sp.donePoints)} / {toPersianDigits(sp.totalPoints)} پوینت
+                              <span className="text-[11px] font-black text-sec dark:text-primary shrink-0 tabular-nums">
+                                {toPersianDigits(sp.progressPercent)}٪
                               </span>
                             </div>
                             <ProgressBar
-                              value={sp.donePoints}
-                              max={sp.totalPoints || 1}
+                              value={sp.progressPercent}
+                              max={100}
                               barClassName={colorMeta.barText}
                               size="sm"
                               aria-label={`پیشرفت اسپرینت ${sp.title}`}
@@ -230,7 +228,7 @@ export const ScrumAdminDashboardPage: React.FC = () => {
                               <span>
                                 پایان: {sp.endDate ? formatToJalali(sp.endDate) : 'تعیین نشده'}
                               </span>
-                              <span>{toPersianDigits(sp.openItems)} تسک باز</span>
+                              <span>{toPersianDigits(s.totalTaskPoints)} پوینت کل</span>
                             </div>
                           </>
                         ) : (
@@ -266,8 +264,8 @@ export const ScrumAdminDashboardPage: React.FC = () => {
                         <span>{toPersianDigits(s.memberCount)} عضو</span>
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <FolderKanban className="w-3.5 h-3.5 text-club-normal dark:text-purple-300" />
-                        <span>{toPersianDigits(s.linkedProjectCount)} پروژه متصل</span>
+                        <ListChecks className="w-3.5 h-3.5 text-club-normal dark:text-purple-300" />
+                        <span>{toPersianDigits(s.activeTaskCount)} / {toPersianDigits(s.taskCount)} تسک</span>
                       </span>
                     </div>
                   </Card>

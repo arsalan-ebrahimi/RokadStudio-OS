@@ -15,10 +15,15 @@ export interface User {
   createdAt?: string;
 }
 
-export interface ProjectScrumSummary {
+export type ScrumColor = 'ECOSYSTEM' | 'MALE' | 'FEMALE' | 'COLLEGE' | 'CLUB';
+
+export type WorkTargetKind = 'PROJECT' | 'TASK';
+
+export interface ScrumBrief {
   id: number;
   name: string;
-  color: 'ECOSYSTEM' | 'MALE' | 'FEMALE' | 'COLLEGE' | 'CLUB';
+  color: ScrumColor;
+  isActive?: boolean;
 }
 
 export interface Project {
@@ -26,10 +31,15 @@ export interface Project {
   name: string;
   description?: string | null;
   isActive?: boolean;
-  scrumId?: number | null;
-  scrum?: ProjectScrumSummary | null;
   memberCount?: number;
   createdAt?: string;
+}
+
+export interface TaskSummary {
+  id: number;
+  name: string;
+  points?: number;
+  scrum?: ScrumBrief | null;
 }
 
 export interface Attendance {
@@ -51,8 +61,9 @@ export interface Attendance {
 export interface WorkSession {
   id: number;
   userId?: number;
+  targetType?: WorkTargetKind;
   projectId?: number | null;
-  sprintProjectId?: number | null;
+  taskId?: number | null;
   projectName?: string;
   durationSeconds: number;
   clientRequestId?: string;
@@ -64,14 +75,94 @@ export interface WorkSession {
   decidedAt?: string | null;
   startedAt?: string | null;
   createdAt: string;
-  user?: Pick<User, 'id' | 'name' | 'role'>;
+  user?: { id: number; name: string; role?: Role };
   project?: Pick<Project, 'id' | 'name'> | null;
+  task?: TaskSummary | null;
+  canModerate?: boolean;
+  canDelete?: boolean;
 }
 
 export interface WorkSessionSummaryRow {
   totalSeconds: number;
   sessionsCount: number;
+  targetType?: WorkTargetKind;
   user?: { id: number; name: string };
-  project?: { id: number; name: string };
+  project?: { id: number; name: string } | null;
+  task?: TaskSummary | null;
+}
+
+export interface WorkSessionTargetProject {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
+export interface WorkSessionTargetTask {
+  id: number;
+  name: string;
+  isActive: boolean;
+  points: number;
+  scrumId: number;
+  scrumName: string;
+  scrumColor: ScrumColor;
+}
+
+export interface WorkSessionTargetsResponse {
+  projects: WorkSessionTargetProject[];
+  tasks: WorkSessionTargetTask[];
+}
+
+export interface WorkTargetSessionsTarget {
+  kind: WorkTargetKind;
+  id: number;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  points?: number;
+  scrum?: ScrumBrief;
+}
+
+export interface WorkTargetSessionsPermissions {
+  canViewAllUsers: boolean;
+  canModerate: boolean;
+  canDelete: boolean;
+}
+
+export interface WorkTargetSummaryByUser {
+  user: { id: number; name: string };
+  totalSeconds: number;
+  approvedSeconds: number;
+  pendingSeconds: number;
+  rejectedSeconds: number;
+  sessionCount: number;
+}
+
+export interface WorkTargetSessionsSummary {
+  totalSeconds: number;
+  approvedSeconds: number;
+  pendingSeconds: number;
+  rejectedSeconds: number;
+  sessionCount: number;
+  approvedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+  byUser: WorkTargetSummaryByUser[];
+}
+
+export interface WorkTargetSessionsData {
+  target: WorkTargetSessionsTarget;
+  permissions: WorkTargetSessionsPermissions;
+  summary: WorkTargetSessionsSummary;
+  sessions: WorkSession[];
+}
+
+export interface WorkTargetSessionsQuery {
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  approval?: ApprovalStatus | 'ALL';
+  userId?: number;
+  page?: number;
+  limit?: number;
 }
 

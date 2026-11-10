@@ -7,7 +7,7 @@ import {
 export type TimerStatus = 'IDLE' | 'RUNNING' | 'PAUSED';
 export type PomodoroMode = 'FOCUS' | 'BREAK';
 
-export type TimerTargetKind = 'STUDIO' | 'SPRINT';
+export type TimerTargetKind = 'PROJECT' | 'TASK';
 
 export interface TimerTarget {
   kind: TimerTargetKind;
@@ -63,13 +63,13 @@ export interface DerivedTimerState {
 export function createInitialTimerState(initial: TimerTarget | number | null = null): TimerEngineState {
   const target: TimerTarget | null =
     typeof initial === 'number'
-      ? { kind: 'STUDIO', id: initial, label: '' }
+      ? { kind: 'PROJECT', id: initial, label: '' }
       : initial || null;
 
   return {
     status: 'IDLE',
     target,
-    projectId: target?.kind === 'STUDIO' ? target.id : null,
+    projectId: target?.kind === 'PROJECT' ? target.id : null,
     work: {
       accumulatedMs: 0,
       runningSince: null,
@@ -157,7 +157,7 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
   return {
     status: state.status,
     target: state.target || null,
-    projectId: state.target?.kind === 'STUDIO' ? state.target.id : (typeof state.projectId === 'number' ? state.projectId : null),
+    projectId: state.target?.kind === 'PROJECT' ? state.target.id : (typeof state.projectId === 'number' ? state.projectId : null),
     workMs: currentWorkMs,
     workSeconds,
     pomodoroMode: isBreakActive ? 'BREAK' : 'FOCUS',
@@ -361,7 +361,7 @@ export function changeTarget(
     ...state,
     status: 'PAUSED',
     target: newTarget,
-    projectId: newTarget.kind === 'STUDIO' ? newTarget.id : null,
+    projectId: newTarget.kind === 'PROJECT' ? newTarget.id : null,
     work: {
       accumulatedMs: 0,
       runningSince: null,
@@ -383,7 +383,7 @@ export function changeProject(
   newProjectId: number,
   mode: 'continue' | 'finish' = 'continue'
 ): TimerEngineState {
-  return changeTarget(state, { kind: 'STUDIO', id: newProjectId, label: '' }, mode);
+  return changeTarget(state, { kind: 'PROJECT', id: newProjectId, label: '' }, mode);
 }
 
 export function restoreTimerState(
@@ -393,7 +393,7 @@ export function restoreTimerState(
 ): { state: TimerEngineState; wasRecovered: boolean } {
   const normalizedFallback: TimerTarget | null =
     typeof fallbackTarget === 'number'
-      ? { kind: 'STUDIO', id: fallbackTarget, label: '' }
+      ? { kind: 'PROJECT', id: fallbackTarget, label: '' }
       : fallbackTarget || null;
 
   if (!raw || typeof raw !== 'object') {
@@ -406,25 +406,35 @@ export function restoreTimerState(
 
     let status: TimerStatus = data.status === 'RUNNING' || data.status === 'PAUSED' ? data.status : 'IDLE';
 
-    // Target migration
+    // Target migration ('STUDIO' -> 'PROJECT', drop legacy 'SPRINT')
     let target: TimerTarget | null = null;
+    let droppedLegacySprint = false;
     if (data.target && typeof data.target === 'object' && data.target.id && data.target.kind) {
-      target = {
-        kind: data.target.kind === 'SPRINT' ? 'SPRINT' : 'STUDIO',
-        id: Number(data.target.id),
-        label: String(data.target.label || ''),
-        points: typeof data.target.points === 'number' ? data.target.points : undefined,
-        scrumColor: data.target.scrumColor,
-      };
+      if (data.target.kind === 'SPRINT') {
+        droppedLegacySprint = true;
+        target = normalizedFallback;
+      } else {
+        target = {
+          kind: data.target.kind === 'TASK' ? 'TASK' : 'PROJECT',
+          id: Number(data.target.id),
+          label: String(data.target.label || ''),
+          points: typeof data.target.points === 'number' ? data.target.points : undefined,
+          scrumColor: data.target.scrumColor,
+        };
+      }
     } else if (typeof data.projectId === 'number') {
-      target = { kind: 'STUDIO', id: data.projectId, label: '' };
+      target = { kind: 'PROJECT', id: data.projectId, label: '' };
     } else if (typeof data.selectedProjectId === 'number') {
-      target = { kind: 'STUDIO', id: data.selectedProjectId, label: '' };
+      target = { kind: 'PROJECT', id: data.selectedProjectId, label: '' };
     } else if (normalizedFallback) {
       target = normalizedFallback;
     }
 
-    const projectId = target?.kind === 'STUDIO' ? target.id : null;
+    if (droppedLegacySprint) {
+      return { state: createInitialTimerState(target), wasRecovered: false };
+    }
+
+    const projectId = target?.kind === 'PROJECT' ? target.id : null;
 
     let accumulatedMs = Number(data.work?.accumulatedMs) || 0;
     const runningSince = typeof data.work?.runningSince === 'number' ? data.work.runningSince : null;

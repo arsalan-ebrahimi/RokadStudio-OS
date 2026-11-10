@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet, RotateCcw } from 'lucide-react';
 import {
-  Badge,
   Button,
   Card,
   DataTable,
@@ -14,7 +13,7 @@ import {
   type DataTableColumn,
 } from '@/shared/ui';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
-import { useScrumReport, useSprints } from '../hooks/use-scrum';
+import { useScrumReport, useScrumTasks, useSprints } from '../hooks/use-scrum';
 import type { Scrum, ScrumReportRow } from '../types/scrum-types';
 
 interface ScrumReportTabProps {
@@ -30,12 +29,10 @@ function escapeCsv(field: string | number | null | undefined): string {
 
 function exportScrumReportCsv(rows: ScrumReportRow[], scrumName: string): void {
   const headers = [
-    'نوع',
-    'نام عضو',
-    'عنوان',
-    'پروژه مرتبط',
-    'اسپرینت',
-    'وضعیت',
+    'نام تسک',
+    'وضعیت تسک',
+    'عضو',
+    'تعداد مسئولین',
     'پوینت',
     'تعداد سشن',
     'مجموع زمان (دقیقه)',
@@ -45,27 +42,12 @@ function exportScrumReportCsv(rows: ScrumReportRow[], scrumName: string): void {
   const lines = [headers.map(escapeCsv).join(',')];
 
   for (const r of rows) {
-    const isProjectRow = r.kind === 'PROJECT';
-    const typeLabel = isProjectRow ? 'پروژه' : 'آیتم اسپرینت';
-    const title = isProjectRow ? r.project?.name || '-' : r.item?.name || '-';
-    const linkedProject = r.project?.name || '-';
-    const sprintLabel = r.item?.sprint ? `اسپرینت ${r.item.sprint.number}` : '-';
-    const statusLabel = r.item
-      ? r.item.status === 'DONE'
-        ? 'انجام‌شده'
-        : r.item.status === 'DOING'
-          ? 'در حال انجام'
-          : 'در انتظار'
-      : '-';
-
     const line = [
-      escapeCsv(typeLabel),
-      escapeCsv(r.member?.name || 'بدون مسئول'),
-      escapeCsv(title),
-      escapeCsv(linkedProject),
-      escapeCsv(sprintLabel),
-      escapeCsv(statusLabel),
-      escapeCsv(r.item ? r.item.points : '-'),
+      escapeCsv(r.task.name),
+      escapeCsv(r.task.isActive ? 'فعال' : 'غیرفعال'),
+      escapeCsv(r.member?.name || 'تجمیعی'),
+      escapeCsv(r.assignedMembersCount),
+      escapeCsv(r.task.points),
       escapeCsv(r.sessionCount),
       escapeCsv(Math.round(r.totalSeconds / 60)),
       escapeCsv(r.secondsPerPoint != null ? Math.round(r.secondsPerPoint / 60) : '-'),
@@ -85,8 +67,10 @@ function exportScrumReportCsv(rows: ScrumReportRow[], scrumName: string): void {
 
 export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
   const { data: sprints = [] } = useSprints(scrum.id);
+  const { data: tasks = [] } = useScrumTasks(scrum.id);
 
   const [selectedSprintId, setSelectedSprintId] = useState<number | undefined>(undefined);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | undefined>(undefined);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -98,77 +82,48 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
     refetch,
   } = useScrumReport(scrum.id, {
     sprintId: selectedSprintId,
+    taskId: selectedTaskId,
     from: dateFrom || undefined,
     to: dateTo || undefined,
   });
 
   const rows = report?.rows || [];
-  const total = report?.total || { totalPoints: 0, donePoints: 0, totalSeconds: 0, sessionCount: 0 };
+  const total = report?.total || {
+    totalTasks: 0,
+    activeTasks: 0,
+    totalPoints: 0,
+    totalSeconds: 0,
+    sessionCount: 0,
+  };
+
+  const hasFilters = Boolean(selectedSprintId || selectedTaskId || dateFrom || dateTo);
 
   const columns: DataTableColumn<ScrumReportRow>[] = useMemo(
     () => [
       {
+        id: 'task',
+        header: 'عنوان تسک',
+        minWidth: '210px',
+        isSticky: true,
+        mobileFullWidth: true,
+        cell: (row) => (
+          <ExpandableTextCell
+            text={row.task.name}
+            className="font-bold text-sec dark:text-white"
+          />
+        ),
+      },
+      {
         id: 'member',
         header: 'عضو',
         minWidth: '150px',
-        isSticky: true,
         cell: (row) =>
           row.member?.name ? (
             <span className="font-bold text-sec dark:text-white">{row.member.name}</span>
           ) : (
-            <span className="text-sec/45 dark:text-gray-400 font-bold">بدون مسئول</span>
-          ),
-      },
-      {
-        id: 'kind',
-        header: 'نوع',
-        minWidth: '130px',
-        cell: (row) => {
-          const isProjectRow = row.kind === 'PROJECT';
-          return (
-            <Badge dot variant={isProjectRow ? 'college' : 'ecosystem'}>
-              {isProjectRow ? 'پروژه' : 'آیتم اسپرینت'}
-            </Badge>
-          );
-        },
-      },
-      {
-        id: 'title',
-        header: 'عنوان تسک / پروژه',
-        minWidth: '220px',
-        mobileFullWidth: true,
-        cell: (row) => {
-          const isProjectRow = row.kind === 'PROJECT';
-          const title = isProjectRow ? row.project?.name || '—' : row.item?.name || '—';
-          return (
-            <div className="space-y-0.5 min-w-0">
-              <ExpandableTextCell
-                text={title}
-                className="font-bold text-sec dark:text-white"
-              />
-              {!isProjectRow && row.project && (
-                <span className="block text-[11px] font-semibold text-sec/55 dark:text-gray-400">
-                  پروژه: {row.project.name}
-                </span>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        id: 'sprint',
-        header: 'اسپرینت',
-        minWidth: '170px',
-        cell: (row) =>
-          row.item?.sprint ? (
-            <span className="text-sec/75 dark:text-gray-300 font-bold">
-              <span className="font-mono font-black text-sec dark:text-primary me-1">
-                S{toPersianDigits(row.item.sprint.number)}
-              </span>
-              · {row.item.sprint.title}
+            <span className="text-sec/55 dark:text-gray-400 font-bold">
+              {row.assignedMembersCount > 0 ? 'سایر اعضا' : 'تجمیعی تسک'}
             </span>
-          ) : (
-            <span className="text-sec/35 dark:text-gray-500">—</span>
           ),
       },
       {
@@ -176,31 +131,24 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
         header: 'پوینت',
         minWidth: '95px',
         align: 'center',
-        cell: (row) =>
-          row.item ? (
-            <span className="inline-flex items-center gap-1 font-black text-sec dark:text-white tabular-nums">
-              <span>{toPersianDigits(row.item.points)}</span>
-              <UnitChip unit="pt" />
-            </span>
-          ) : (
-            <span className="text-sec/35 dark:text-gray-500">—</span>
-          ),
+        cell: (row) => (
+          <span className="inline-flex items-center gap-1 font-black text-sec dark:text-white tabular-nums">
+            <span>{toPersianDigits(row.task.points)}</span>
+            <UnitChip unit="pt" />
+          </span>
+        ),
       },
       {
         id: 'status',
-        header: 'وضعیت',
-        minWidth: '130px',
+        header: 'وضعیت تسک',
+        minWidth: '120px',
         align: 'center',
-        cell: (row) => {
-          if (!row.item) return <span className="text-sec/35 dark:text-gray-500">—</span>;
-          if (row.item.status === 'DONE') {
-            return <StatusDotPill tone="success" label="انجام‌شده" />;
-          }
-          if (row.item.status === 'DOING') {
-            return <StatusDotPill tone="warning" label="در حال انجام" />;
-          }
-          return <StatusDotPill tone="neutral" label="در انتظار" />;
-        },
+        cell: (row) =>
+          row.task.isActive ? (
+            <StatusDotPill tone="success" label="فعال" />
+          ) : (
+            <StatusDotPill tone="neutral" label="غیرفعال" />
+          ),
       },
       {
         id: 'sessionCount',
@@ -245,12 +193,33 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
   return (
     <div className="space-y-6">
       {/* Filters bar */}
-      <Card className="p-4 sm:p-5 rounded-3xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-          {/* Sprint Filter */}
+      <Card className="p-4 sm:p-5 rounded-3xl space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+          {/* Task Filter */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-sec/80 dark:text-gray-300">
-              انتخاب اسپرینت
+              فیلتر تسک
+            </label>
+            <Select
+              value={selectedTaskId || ''}
+              onChange={(e) =>
+                setSelectedTaskId(e.target.value ? Number(e.target.value) : undefined)
+              }
+            >
+              <option value="">همه تسک‌ها</option>
+              {tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                  {t.isActive ? '' : ' (غیرفعال)'}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Sprint Date Preset Filter */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-sec/80 dark:text-gray-300">
+              بازه اسپرینت
             </label>
             <Select
               value={selectedSprintId || ''}
@@ -258,7 +227,7 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
                 setSelectedSprintId(e.target.value ? Number(e.target.value) : undefined)
               }
             >
-              <option value="">همه اسپرینت‌ها و پروژه‌ها</option>
+              <option value="">همه بازه‌ها</option>
               {sprints.map((s) => (
                 <option key={s.id} value={s.id}>
                   اسپرینت {toPersianDigits(s.number)} ({s.title})
@@ -284,7 +253,7 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
           />
 
           {/* Export CSV button */}
-          <div>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               onClick={() => exportScrumReportCsv(rows, scrum.name)}
@@ -296,6 +265,24 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
             </Button>
           </div>
         </div>
+
+        {hasFilters && (
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSprintId(undefined);
+                setSelectedTaskId(undefined);
+                setDateFrom('');
+                setDateTo('');
+              }}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sec/70 dark:text-gray-300 hover:text-sec dark:hover:text-white cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>پاک کردن همه فیلترها</span>
+            </button>
+          </div>
+        )}
       </Card>
 
       {isError ? (
@@ -310,19 +297,22 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card className="p-4 rounded-3xl text-center space-y-1">
               <span className="block text-[11px] text-sec/60 dark:text-gray-400 font-bold">
-                کل پوینت‌ها
+                تعداد تسک‌ها
               </span>
               <span className="text-xl sm:text-2xl font-black text-sec dark:text-white tabular-nums block">
-                {toPersianDigits(total.totalPoints)}
+                {toPersianDigits(total.totalTasks)}
+              </span>
+              <span className="block text-[10px] font-bold text-[#007A52] dark:text-emerald-400 tabular-nums">
+                {toPersianDigits(total.activeTasks)} فعال
               </span>
             </Card>
 
             <Card className="p-4 rounded-3xl text-center space-y-1">
               <span className="block text-[11px] text-sec/60 dark:text-gray-400 font-bold">
-                پوینت‌های انجام‌شده
+                مجموع پوینت تسک‌ها
               </span>
-              <span className="text-xl sm:text-2xl font-black text-[#007A52] dark:text-emerald-400 tabular-nums block">
-                {toPersianDigits(total.donePoints)}
+              <span className="text-xl sm:text-2xl font-black text-sec dark:text-white tabular-nums block">
+                {toPersianDigits(total.totalPoints)}
               </span>
             </Card>
 
@@ -349,12 +339,10 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
           <DataTable<ScrumReportRow>
             columns={columns}
             data={rows}
-            getRowKey={(row, idx) =>
-              `${row.kind}_${row.item?.id ?? row.project?.id ?? idx}_${row.member?.id ?? 'none'}_${idx}`
-            }
+            getRowKey={(row, idx) => `${row.task.id}_${row.member?.id ?? 'none'}_${idx}`}
             isLoading={isLoading}
             emptyTitle="هیچ داده‌ای مطابق فیلترهای انتخابی یافت نشد"
-            emptyDescription="بازه تاریخ یا اسپرینت انتخابی را تغییر دهید تا داده‌های مرتبط نمایش داده شوند."
+            emptyDescription="بازه تاریخ یا فیلتر تسک و اسپرینت را تغییر دهید تا داده‌های مرتبط نمایش داده شوند."
             footnote="* بر اساس سشن‌های کاری تأییدشده / در انتظار"
           />
         </>

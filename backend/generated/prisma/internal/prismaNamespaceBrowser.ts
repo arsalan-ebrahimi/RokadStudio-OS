@@ -58,7 +58,8 @@ export const ModelName = {
   ScrumAdmin: 'ScrumAdmin',
   ScrumMember: 'ScrumMember',
   Sprint: 'Sprint',
-  SprintProject: 'SprintProject',
+  Task: 'Task',
+  TaskMember: 'TaskMember',
   ScrumKpi: 'ScrumKpi',
   ScrumEvent: 'ScrumEvent',
   Attendance: 'Attendance',
@@ -100,7 +101,6 @@ export const ProjectScalarFieldEnum = {
   description: 'description',
   isActive: 'isActive',
   createdById: 'createdById',
-  scrumId: 'scrumId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -159,6 +159,7 @@ export const SprintScalarFieldEnum = {
   startDate: 'startDate',
   endDate: 'endDate',
   status: 'status',
+  progressPercent: 'progressPercent',
   completedAt: 'completedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -167,20 +168,28 @@ export const SprintScalarFieldEnum = {
 export type SprintScalarFieldEnum = (typeof SprintScalarFieldEnum)[keyof typeof SprintScalarFieldEnum]
 
 
-export const SprintProjectScalarFieldEnum = {
+export const TaskScalarFieldEnum = {
   id: 'id',
-  sprintId: 'sprintId',
-  projectId: 'projectId',
+  scrumId: 'scrumId',
   name: 'name',
+  description: 'description',
   points: 'points',
-  assigneeId: 'assigneeId',
-  status: 'status',
-  sortOrder: 'sortOrder',
+  isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type SprintProjectScalarFieldEnum = (typeof SprintProjectScalarFieldEnum)[keyof typeof SprintProjectScalarFieldEnum]
+export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+
+
+export const TaskMemberScalarFieldEnum = {
+  taskId: 'taskId',
+  userId: 'userId',
+  assignedAt: 'assignedAt',
+  assignedById: 'assignedById'
+} as const
+
+export type TaskMemberScalarFieldEnum = (typeof TaskMemberScalarFieldEnum)[keyof typeof TaskMemberScalarFieldEnum]
 
 
 export const ScrumKpiScalarFieldEnum = {
@@ -239,7 +248,7 @@ export const WorkSessionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   projectId: 'projectId',
-  sprintProjectId: 'sprintProjectId',
+  taskId: 'taskId',
   attendanceId: 'attendanceId',
   durationSeconds: 'durationSeconds',
   clientRequestId: 'clientRequestId',

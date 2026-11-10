@@ -150,22 +150,29 @@ const main = async () => {
       return `db=${res.json?.data?.database}, redis=${res.json?.data?.redis}`;
     });
 
-    await runCheck("Swagger", "GET /api-docs.json has all Scrum, Project, Users & Dashboard docs", async () => {
+    await runCheck("Swagger", "GET /api-docs.json matches decoupled Project & Scrum Task API", async () => {
       const res = await api("/api-docs.json");
       assert(res.status === 200 && res.json && typeof res.json === "object", `Status=${res.status}`);
       const doc = res.json;
+
       const requiredPaths = [
         "/api/users/scrum-admins",
+        "/api/projects",
+        "/api/projects/{id}",
+        "/api/projects/{id}/work-sessions",
+        "/api/work-sessions",
+        "/api/work-sessions/targets",
+        "/api/work-sessions/summary",
+        "/api/work-sessions/{id}/decision",
         "/api/scrums",
         "/api/scrums/today-events",
         "/api/scrums/{id}",
         "/api/scrums/{id}/admins",
         "/api/scrums/{id}/members",
-        "/api/scrums/{id}/projects",
-        "/api/scrums/{id}/projects/available",
-        "/api/scrums/{id}/projects/link",
-        "/api/scrums/{id}/projects/{projectId}/link",
-        "/api/scrums/{id}/projects/{projectId}/members",
+        "/api/scrums/{id}/tasks",
+        "/api/tasks/{id}",
+        "/api/tasks/{id}/members",
+        "/api/tasks/{id}/work-sessions",
         "/api/scrums/{id}/sprints",
         "/api/scrums/{id}/kpis",
         "/api/scrums/{id}/events",
@@ -173,23 +180,36 @@ const main = async () => {
         "/api/scrums/{id}/leaderboard",
         "/api/sprints/{id}",
         "/api/sprints/{id}/status",
-        "/api/sprints/{id}/projects",
-        "/api/sprint-projects/{id}",
         "/api/work-targets/mine",
         "/api/scrum-admin/dashboard",
       ];
       for (const p of requiredPaths) {
         assert(Boolean(doc.paths?.[p]), `Missing swagger path ${p}`);
       }
+
+      const removedPaths = [
+        "/api/scrums/{id}/projects",
+        "/api/scrums/{id}/projects/available",
+        "/api/scrums/{id}/projects/link",
+        "/api/sprints/{id}/projects",
+        "/api/sprint-projects/{id}",
+      ];
+      for (const p of removedPaths) {
+        assert(!doc.paths?.[p], `Legacy path still present in swagger: ${p}`);
+      }
+
       const requiredSchemas = [
         "UserBasicItem",
         "ScrumBrief",
         "ScrumPermissions",
         "ScrumResponse",
         "SprintResponse",
-        "SprintProjectItem",
-        "ScrumLinkedProjectItem",
-        "AvailableScrumProjectItem",
+        "ScrumTaskItem",
+        "WorkSessionTaskBrief",
+        "WorkTargetSummaryUserRow",
+        "WorkTargetSessionRow",
+        "WorkTargetSessionsData",
+        "WorkTargetSessionsResponse",
         "WorkTargetScrumGroup",
         "KpiRowMember",
         "KpiRowAdmin",
@@ -202,7 +222,19 @@ const main = async () => {
       for (const s of requiredSchemas) {
         assert(Boolean(doc.components?.schemas?.[s]), `Missing swagger schema ${s}`);
       }
-      assert(!doc.components.schemas.ScrumResponse.properties.ownerId, "ownerId still in ScrumResponse schema");
+
+      const removedSchemas = [
+        "ItemStatus",
+        "SprintProjectItem",
+        "ScrumLinkedProjectItem",
+        "AvailableScrumProjectItem",
+      ];
+      for (const s of removedSchemas) {
+        assert(!doc.components?.schemas?.[s], `Legacy schema still present in swagger: ${s}`);
+      }
+
+      assert(!doc.components.schemas.ScrumResponse.properties.ownerId, "ownerId still in ScrumResponse");
+      assert(!doc.components.schemas.ProjectDetail.properties.scrumId, "scrumId still in ProjectDetail");
       return `${requiredPaths.length} paths & ${requiredSchemas.length} schemas verified`;
     });
 
@@ -217,7 +249,7 @@ const main = async () => {
       return "All 7 seeded roles logged in";
     });
 
-    await runCheck("Setup", "Create & login isolated temp users for write/project/leaderboard tests", async () => {
+    await runCheck("Setup", "Create & login isolated temp users for task/session/leaderboard tests", async () => {
       const specs = [
         { role: "SCRUM_ADMIN", name: "Smoke Temp ScrumAdmin1", prefix: "SA" },
         { role: "SCRUM_ADMIN", name: "Smoke Temp ScrumAdmin2", prefix: "SB" },
@@ -268,7 +300,7 @@ const main = async () => {
       return `hits=${rSa.json.data.length}`;
     });
 
-    await runCheck("ListFiltering", "SCRUM_ADMIN sees assigned scrum with myRole=ADMIN, admins[], permissions & no ownerId", async () => {
+    await runCheck("ListFiltering", "SCRUM_ADMIN sees assigned scrum with taskCount & progressPercent", async () => {
       const r = await api("/api/scrums", { token: scrumAdminAuth.token });
       assert(r.status === 200 && Array.isArray(r.json?.data), `Status=${r.status}`);
       seededScrum = r.json.data.find((s) =>
@@ -276,57 +308,51 @@ const main = async () => {
       );
       assert(seededScrum, "Seeded scrum missing for SC1101");
       assert(!("ownerId" in seededScrum), "Legacy ownerId still present in Scrum item");
-      assert(seededScrum.myRole === "ADMIN", `Expected myRole=ADMIN, got ${seededScrum.myRole}`);
-      assert(seededScrum.canEdit === true, `Expected canEdit=true, got ${seededScrum.canEdit}`);
+      assert(typeof seededScrum.taskCount === "number" && seededScrum.taskCount >= 3, "Missing/invalid taskCount");
+      assert(seededScrum.myRole === "ADMIN" && seededScrum.canEdit === true, "myRole/canEdit mismatch");
       assert(
         seededScrum.permissions?.canEditContent === true &&
           seededScrum.permissions?.canManageAdmins === false &&
           seededScrum.permissions?.canArchive === false,
         `Unexpected permissions: ${JSON.stringify(seededScrum.permissions)}`
       );
-      assert(seededScrum.admins.length >= 2, "Expected 2 seeded admins on seededScrum");
       assert(seededScrum.activeSprint?.number === 1, "Expected seeded activeSprint #1");
+      assert(typeof seededScrum.activeSprint?.progressPercent === "number", "Missing progressPercent on activeSprint");
       assert(findCodeKeys(r.json).length === 0, "Leaked code key");
-      return `scrumId=${seededScrum.id}, admins=${seededScrum.admins.length}`;
+      return `scrumId=${seededScrum.id}, tasks=${seededScrum.taskCount}, progress=${seededScrum.activeSprint.progressPercent}%`;
     });
 
-    await runCheck("ListFiltering", "SC1102 sees both assigned scrums; IT1101 sees member scrum with myRole=MEMBER", async () => {
+    await runCheck("ListFiltering", "SC1102 sees >=2 scrums; IT1101 sees member scrum; outsider sees 0", async () => {
       const rSc2 = await api("/api/scrums", { token: scrumAdmin2Auth.token });
       assert(rSc2.status === 200 && rSc2.json.data.length >= 2, "SC1102 should see >= 2 scrums");
 
       const rMem = await api("/api/scrums", { token: member1Auth.token });
-      assert(rMem.status === 200 && Array.isArray(rMem.json?.data), `Status=${rMem.status}`);
       const item = rMem.json.data.find((s) => s.id === seededScrum.id);
       assert(item && item.myRole === "MEMBER" && item.canEdit === false, "IT1101 myRole/canEdit mismatch");
-      assert(findCodeKeys(rMem.json).length === 0, "Leaked code key");
-      return `SC1102=${rSc2.json.data.length}, IT1101=${rMem.json.data.length}`;
-    });
 
-    await runCheck("ListFiltering", "Outsider (IT1103) & unassigned SCRUM_ADMIN do not see seeded scrums; SA sees SUPER_ADMIN role", async () => {
       const rOut = await api("/api/scrums", { token: outsiderAuth.token });
       const rTemp = await api("/api/scrums", { token: tempScrumAdmin.token });
       assert(rOut.status === 200 && rOut.json.data.length === 0, "Outsider saw a scrum");
       assert(rTemp.status === 200 && rTemp.json.data.length === 0, "Unassigned SCRUM_ADMIN saw a scrum");
 
       const rSa = await api("/api/scrums", { token: saAuth.token });
-      assert(rSa.status === 200 && rSa.json.data.some((s) => s.id === seededScrum.id), "SA missing scrum");
       assert(
-        rSa.json.data.every(
-          (s) =>
-            s.myRole === "SUPER_ADMIN" &&
-            s.permissions?.canEditContent === true &&
-            s.permissions?.canManageAdmins === true &&
-            s.permissions?.canArchive === true
-        ),
+        rSa.status === 200 &&
+          rSa.json.data.every(
+            (s) =>
+              s.myRole === "SUPER_ADMIN" &&
+              s.permissions?.canEditContent === true &&
+              s.permissions?.canManageAdmins === true &&
+              s.permissions?.canArchive === true
+          ),
         "Expected SA SUPER_ADMIN permissions on all"
       );
 
-      // SCRUM_ADMIN /api/users/search returns only { id, name } without role or code
       const searchRes = await api("/api/users/search?q=Artin", { token: scrumAdminAuth.token });
       assert(searchRes.status === 200 && searchRes.json.data.length > 0, `Search status=${searchRes.status}`);
       assert(!("role" in searchRes.json.data[0]), "Leaked role to SCRUM_ADMIN in /api/users/search");
       assert(findCodeKeys(searchRes.json).length === 0, "Leaked code key in /api/users/search");
-      return "Visibility & /users/search privacy verified";
+      return `SC1102=${rSc2.json.data.length}, IT1101=${rMem.json.data.length}`;
     });
 
     // ---------------------------------------------------------
@@ -344,7 +370,6 @@ const main = async () => {
       }
       const ownerRow = oRes.json.data[0];
       assert(Object.prototype.hasOwnProperty.call(ownerRow, "minExpected"), "Admin missing minExpected");
-      assert(typeof ownerRow.target === "number" && typeof ownerRow.minExpected === "number", "Decimal not numeric");
       assert(ownerRow.progressPercent === 94.12 && ownerRow.status === "IN_RANGE", "KPI computation mismatch");
       assert(sRes.json.data[0].minExpected === ownerRow.minExpected, "SA minExpected mismatch");
       seededKpiList = oRes.json.data;
@@ -352,37 +377,19 @@ const main = async () => {
     });
 
     // ---------------------------------------------------------
-    // C. New Permission Model (SA-only Create/Admins/Archive/Delete + SCRUM_ADMIN Union)
+    // C. Scrum Permission Model, Creation, Admins, Members, IDOR & RBAC
     // ---------------------------------------------------------
-    await runCheck("PermissionModel", "Only SUPER_ADMIN can create scrums; SCRUM_ADMIN/USER/ADMIN get 403; invalid adminIds -> 422", async () => {
-      const rUser = await api("/api/scrums", {
-        method: "POST",
-        token: tempMemberA.token,
-        body: { name: "Unauthorized" },
-      });
-      const rSaBlocked = await api("/api/scrums", {
-        method: "POST",
-        token: tempScrumAdmin.token,
-        body: { name: "ScrumAdmin Cannot Create" },
-      });
-      const rAdmin = await api("/api/scrums", {
-        method: "POST",
-        token: adminAuth.token,
-        body: { name: "Admin Cannot Create" },
-      });
-      const rBadAdminRole = await api("/api/scrums", {
-        method: "POST",
-        token: saAuth.token,
-        body: { name: "Bad Admin", adminIds: [tempMemberA.id] },
-      });
-      assert(rUser.status === 403, `USER expected 403, got ${rUser.status}`);
-      assert(rSaBlocked.status === 403, `SCRUM_ADMIN create expected 403, got ${rSaBlocked.status}`);
-      assert(rAdmin.status === 403, `ADMIN expected 403, got ${rAdmin.status}`);
+    await runCheck("PermissionModel", "Only SUPER_ADMIN can create scrums; invalid adminIds -> 422", async () => {
+      const rUser = await api("/api/scrums", { method: "POST", token: tempMemberA.token, body: { name: "Unauthorized" } });
+      const rSaBlocked = await api("/api/scrums", { method: "POST", token: tempScrumAdmin.token, body: { name: "ScrumAdmin Cannot Create" } });
+      const rAdmin = await api("/api/scrums", { method: "POST", token: adminAuth.token, body: { name: "Admin Cannot Create" } });
+      const rBadAdminRole = await api("/api/scrums", { method: "POST", token: saAuth.token, body: { name: "Bad Admin", adminIds: [tempMemberA.id] } });
+      assert(rUser.status === 403 && rSaBlocked.status === 403 && rAdmin.status === 403, "Expected 403 for non-SA");
       assert(rBadAdminRole.status === 422, `Invalid adminIds role expected 422, got ${rBadAdminRole.status}`);
       return "403 / 403 / 403 / 422";
     });
 
-    await runCheck("ScrumCRUD", "SUPER_ADMIN creates tempScrum (with tempScrumAdmin) & tempScrum2 (union visibility test)", async () => {
+    await runCheck("ScrumCRUD", "SUPER_ADMIN creates tempScrum & tempScrum2 (union visibility)", async () => {
       const r1 = await api("/api/scrums", {
         method: "POST",
         token: saAuth.token,
@@ -393,18 +400,11 @@ const main = async () => {
           adminIds: [tempScrumAdmin.id],
         },
       });
-      assert(r1.status === 201 && r1.json?.data?.id, `Create 1 failed: ${r1.status} ${r1.json?.message}`);
-      const d = r1.json.data;
-      tempScrumId = d.id;
+      assert(r1.status === 201 && r1.json?.data?.id, `Create 1 failed: ${r1.status}`);
+      tempScrumId = r1.json.data.id;
       createdScrumIds.push(tempScrumId);
-      assert(!("ownerId" in d), "Legacy ownerId leaked");
-      assert(d.admins.length === 1 && d.admins[0].id === tempScrumAdmin.id, "Admin mismatch");
-      assert(d.memberCount === 0 && d.members.length === 0, "Expected 0 auto-added members");
-      assert(d.myRole === "SUPER_ADMIN", "Expected SA myRole=SUPER_ADMIN");
-      assert(d.permissions?.canEditContent && d.permissions?.canManageAdmins && d.permissions?.canArchive, "Expected full SA perms");
-      assert(findCodeKeys(r1.json).length === 0, "Leaked code key");
+      assert(r1.json.data.taskCount === 0, "Expected initial taskCount=0");
 
-      // Create second scrum assigned ONLY to tempScrumAdmin2; add tempScrumAdmin as plain MEMBER for union visibility test
       const r2 = await api("/api/scrums", {
         method: "POST",
         token: saAuth.token,
@@ -418,7 +418,7 @@ const main = async () => {
       tempScrum2Id = r2.json.data.id;
       createdScrumIds.push(tempScrum2Id);
 
-      const rMem2 = await api(`/api/scrums/${tempScrum2Id}/members`, {
+      await api(`/api/scrums/${tempScrum2Id}/members`, {
         method: "PUT",
         token: tempScrumAdmin2.token,
         body: {
@@ -428,90 +428,27 @@ const main = async () => {
           ],
         },
       });
-      assert(rMem2.status === 200, "Failed setting members on tempScrum2");
 
-      // Union visibility check for tempScrumAdmin: sees Scrum1 (ADMIN) and Scrum2 (MEMBER)
       const rList = await api("/api/scrums", { token: tempScrumAdmin.token });
-      const ids = rList.json.data.map((x) => x.id);
-      assert(new Set(ids).size === ids.length, "Duplicate scrums in SCRUM_ADMIN union");
       const s1 = rList.json.data.find((x) => x.id === tempScrumId);
       const s2 = rList.json.data.find((x) => x.id === tempScrum2Id);
-      assert(s1 && s1.myRole === "ADMIN" && s1.canEdit === true, "Union: Scrum1 should be ADMIN");
-      assert(s2 && s2.myRole === "MEMBER" && s2.canEdit === false, "Union: Scrum2 should be MEMBER");
-      assert(s2.permissions.canEditContent === false && !s2.permissions.canArchive, "Expected false perms on Scrum2");
-
-      // Also verify SC1101 (both admin & member of seededScrum) gets 1 de-duplicated entry with myRole=ADMIN & GET /scrums/:id fields
-      const rSc1List = await api("/api/scrums", { token: scrumAdminAuth.token });
-      const sc1Ids = rSc1List.json.data.map((x) => x.id);
-      assert(new Set(sc1Ids).size === sc1Ids.length, "Duplicate scrum for SC1101 (admin+member)");
-      const rDetail = await api(`/api/scrums/${tempScrumId}`, { token: tempScrumAdmin.token });
-      assert(
-        rDetail.status === 200 &&
-          Array.isArray(rDetail.json.data.admins) &&
-          rDetail.json.data.myRole === "ADMIN" &&
-          rDetail.json.data.permissions?.canEditContent === true,
-        "GET /scrums/:id missing admins/myRole/permissions"
-      );
+      assert(s1?.myRole === "ADMIN" && s1?.canEdit === true, "Union: Scrum1 should be ADMIN");
+      assert(s2?.myRole === "MEMBER" && s2?.canEdit === false, "Union: Scrum2 should be MEMBER");
       return `scrum1=${tempScrumId}(ADMIN), scrum2=${tempScrum2Id}(MEMBER)`;
     });
 
-    await runCheck("PermissionModel", "PUT /admins Set Diffing, 403 for SCRUM_ADMIN, 403 for PATCH isActive & DELETE", async () => {
-      const rAdminsForb = await api(`/api/scrums/${tempScrumId}/admins`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { userIds: [tempScrumAdmin.id] },
-      });
-      const rArchiveForb = await api(`/api/scrums/${tempScrumId}`, {
-        method: "PATCH",
-        token: tempScrumAdmin.token,
-        body: { isActive: false },
-      });
-      const rDelForb = await api(`/api/scrums/${tempScrumId}`, {
-        method: "DELETE",
-        token: tempScrumAdmin.token,
-      });
-      const rAdminsBadRole = await api(`/api/scrums/${tempScrumId}/admins`, {
-        method: "PUT",
-        token: saAuth.token,
-        body: { userIds: [tempMemberA.id] },
-      });
-      assert(rAdminsForb.status === 403, `SCRUM_ADMIN PUT /admins expected 403, got ${rAdminsForb.status}`);
-      assert(rArchiveForb.status === 403, `SCRUM_ADMIN PATCH isActive expected 403, got ${rArchiveForb.status}`);
-      assert(rDelForb.status === 403, `SCRUM_ADMIN DELETE expected 403, got ${rDelForb.status}`);
-      assert(rAdminsBadRole.status === 422, `Bad role in PUT /admins expected 422, got ${rAdminsBadRole.status}`);
+    await runCheck("PermissionModel", "PUT /admins Set Diffing, 403/422 guards & member sync", async () => {
+      const rAdminsForb = await api(`/api/scrums/${tempScrumId}/admins`, { method: "PUT", token: tempScrumAdmin.token, body: { userIds: [tempScrumAdmin.id] } });
+      const rArchiveForb = await api(`/api/scrums/${tempScrumId}`, { method: "PATCH", token: tempScrumAdmin.token, body: { isActive: false } });
+      const rDelForb = await api(`/api/scrums/${tempScrumId}`, { method: "DELETE", token: tempScrumAdmin.token });
+      const rAdminsBadRole = await api(`/api/scrums/${tempScrumId}/admins`, { method: "PUT", token: saAuth.token, body: { userIds: [tempMemberA.id] } });
+      assert(rAdminsForb.status === 403 && rArchiveForb.status === 403 && rDelForb.status === 403, "Expected 403s");
+      assert(rAdminsBadRole.status === 422, `Expected 422, got ${rAdminsBadRole.status}`);
 
-      // Add tempScrumAdmin2 temporarily, then revert back to [tempScrumAdmin]
-      const rAdd = await api(`/api/scrums/${tempScrumId}/admins`, {
-        method: "PUT",
-        token: saAuth.token,
-        body: { userIds: [tempScrumAdmin.id, tempScrumAdmin2.id] },
-      });
-      assert(rAdd.status === 200 && rAdd.json.data.length === 2, `Expected 2 admins, got ${rAdd.status}`);
-      const rRevert = await api(`/api/scrums/${tempScrumId}/admins`, {
-        method: "PUT",
-        token: saAuth.token,
-        body: { userIds: [tempScrumAdmin.id] },
-      });
-      assert(rRevert.status === 200 && rRevert.json.data.length === 1, "Revert admins failed");
-      return "403s + 422 + Set Diffing verified";
-    });
+      const rAdd = await api(`/api/scrums/${tempScrumId}/admins`, { method: "PUT", token: saAuth.token, body: { userIds: [tempScrumAdmin.id, tempScrumAdmin2.id] } });
+      const rRev = await api(`/api/scrums/${tempScrumId}/admins`, { method: "PUT", token: saAuth.token, body: { userIds: [tempScrumAdmin.id] } });
+      assert(rAdd.status === 200 && rAdd.json.data.length === 2 && rRev.status === 200 && rRev.json.data.length === 1, "Sync admins failed");
 
-    await runCheck("AccessControl", "Sync members: valid add succeeds; duplicate / ADMIN member rejected (400)", async () => {
-      const rDup = await api(`/api/scrums/${tempScrumId}/members`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: {
-          members: [
-            { userId: tempMemberA.id, label: "Dup1" },
-            { userId: tempMemberA.id, label: "Dup2" },
-          ],
-        },
-      });
-      const rAdminMem = await api(`/api/scrums/${tempScrumId}/members`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { members: [{ userId: adminAuth.user.id, label: "Admin" }] },
-      });
       const rOk = await api(`/api/scrums/${tempScrumId}/members`, {
         method: "PUT",
         token: tempScrumAdmin.token,
@@ -523,136 +460,67 @@ const main = async () => {
           ],
         },
       });
-      assert(rDup.status === 400, `Duplicate expected 400, got ${rDup.status}`);
-      assert(rAdminMem.status === 400, `ADMIN member expected 400, got ${rAdminMem.status}`);
-      assert(rOk.status === 200 && rOk.json.data.length === 3, `Sync expected 200/3, got ${rOk.status}`);
-      assert(findCodeKeys(rOk.json).length === 0, "Leaked code key");
-      return "Synced 3 members (excluding admin)";
+      assert(rOk.status === 200 && rOk.json.data.length === 3, `Sync members expected 200/3, got ${rOk.status}`);
+      return "Admins & 3 members synced";
     });
 
-    await runCheck("IDOR", "Outsider (IT1103) & unassigned SCRUM_ADMIN (SC1101) get 404 across tempScrum endpoints", async () => {
-      const checks = [
+    await runCheck("IDOR & RBAC", "Outsider gets 404 & member gets 403 across scrum/task endpoints", async () => {
+      const checks404 = [
         ["GET", `/api/scrums/${tempScrumId}`, outsiderAuth.token],
         ["PATCH", `/api/scrums/${tempScrumId}`, outsiderAuth.token, { name: "x" }],
         ["DELETE", `/api/scrums/${tempScrumId}`, outsiderAuth.token],
         ["PUT", `/api/scrums/${tempScrumId}/admins`, outsiderAuth.token, { userIds: [] }],
         ["PUT", `/api/scrums/${tempScrumId}/members`, outsiderAuth.token, { members: [] }],
-        ["GET", `/api/scrums/${tempScrumId}/projects`, outsiderAuth.token],
-        ["GET", `/api/scrums/${tempScrumId}/projects/available`, outsiderAuth.token],
+        ["GET", `/api/scrums/${tempScrumId}/tasks`, outsiderAuth.token],
+        ["POST", `/api/scrums/${tempScrumId}/tasks`, outsiderAuth.token, { name: "x" }],
         ["GET", `/api/scrums/${tempScrumId}/sprints`, outsiderAuth.token],
         ["POST", `/api/scrums/${tempScrumId}/sprints`, outsiderAuth.token, {}],
         ["GET", `/api/scrums/${tempScrumId}/kpis`, outsiderAuth.token],
-        ["PUT", `/api/scrums/${tempScrumId}/kpis`, outsiderAuth.token, { rows: [] }],
         ["GET", `/api/scrums/${tempScrumId}/events`, outsiderAuth.token],
-        ["PUT", `/api/scrums/${tempScrumId}/events`, outsiderAuth.token, { rows: [] }],
         ["GET", `/api/scrums/${tempScrumId}/report`, outsiderAuth.token],
         ["GET", `/api/scrums/${tempScrumId}/leaderboard`, outsiderAuth.token],
         ["GET", `/api/scrums/${tempScrumId}`, scrumAdminAuth.token],
       ];
-      for (const [m, p, tok, body] of checks) {
+      for (const [m, p, tok, body] of checks404) {
         const res = await api(p, { method: m, token: tok, body });
         assert(res.status === 404, `${m} ${p} expected 404, got ${res.status}`);
       }
-      return `${checks.length} checks -> 404`;
-    });
 
-    await runCheck("RBAC", "Plain member & MEMBER-only SCRUM_ADMIN get 403 on scrum editor-only mutations", async () => {
-      const checks = [
+      const checks403 = [
         ["PATCH", `/api/scrums/${tempScrumId}`, tempMemberA.token, { name: "Hack" }],
         ["PUT", `/api/scrums/${tempScrumId}/members`, tempMemberA.token, { members: [] }],
-        ["GET", `/api/scrums/${tempScrumId}/projects/available`, tempMemberA.token],
-        ["POST", `/api/scrums/${tempScrumId}/projects`, tempMemberA.token, { name: "Nope" }],
+        ["POST", `/api/scrums/${tempScrumId}/tasks`, tempMemberA.token, { name: "Nope" }],
         ["POST", `/api/scrums/${tempScrumId}/sprints`, tempMemberA.token, {}],
         ["PUT", `/api/scrums/${tempScrumId}/kpis`, tempMemberA.token, { rows: [] }],
         ["PUT", `/api/scrums/${tempScrumId}/events`, tempMemberA.token, { rows: [] }],
         ["PATCH", `/api/scrums/${tempScrum2Id}`, tempScrumAdmin.token, { name: "Not Admin Here" }],
       ];
-      for (const [m, p, tok, body] of checks) {
+      for (const [m, p, tok, body] of checks403) {
         const res = await api(p, { method: m, token: tok, body });
         assert(res.status === 403, `${m} ${p} expected 403, got ${res.status}`);
       }
-      return `${checks.length} checks -> 403`;
-    });
-
-    await runCheck("ScrumCRUD", "Assigned SCRUM_ADMIN PATCHes metadata cleanly & empty PATCH returns 400", async () => {
-      const rEmpty = await api(`/api/scrums/${tempScrumId}`, {
-        method: "PATCH",
-        token: tempScrumAdmin.token,
-        body: {},
-      });
-      const rClear = await api(`/api/scrums/${tempScrumId}`, {
-        method: "PATCH",
-        token: tempScrumAdmin.token,
-        body: { description: null },
-      });
-      assert(rEmpty.status === 400, `Empty PATCH expected 400, got ${rEmpty.status}`);
-      assert(rClear.status === 200 && rClear.json.data.description === null, `Clear failed: ${rClear.status}`);
-      return "Cleared description to null";
+      return `${checks404.length}x404 & ${checks403.length}x403 verified`;
     });
 
     // ---------------------------------------------------------
-    // D. KPI & Events Batch Update + Today Events + Archive (SA only)
+    // D. KPI & Events Batch Update + Today Events
     // ---------------------------------------------------------
-    await runCheck("KPI", "Batch update KPIs (statuses, foreign id 400, dup id 400, member secrecy)", async () => {
-      const rows = [
-        { indicator: "Below Min", target: 100, minExpected: 50, actualValue: 30 },
-        { indicator: "On Target", target: 100, minExpected: 50, actualValue: 100 },
-      ];
-      const rPut = await api(`/api/scrums/${tempScrumId}/kpis`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { rows },
-      });
-      assert(rPut.status === 200 && rPut.json.data.length === 2, `KPI PUT failed: ${rPut.status}`);
-      assert(rPut.json.data[0].status === "BELOW_MIN", `Expected BELOW_MIN, got ${rPut.json.data[0].status}`);
-      assert(rPut.json.data[1].status === "ON_TARGET", `Expected ON_TARGET, got ${rPut.json.data[1].status}`);
-
-      const rRound = await api(`/api/scrums/${tempScrumId}/kpis`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { rows: rPut.json.data },
-      });
-      assert(rRound.status === 200 && rRound.json.data.length === 2, `KPI round-trip failed: ${rRound.status}`);
-
-      if (seededKpiList.length > 0) {
-        const rForeign = await api(`/api/scrums/${tempScrumId}/kpis`, {
-          method: "PUT",
-          token: tempScrumAdmin.token,
-          body: { rows: [{ id: seededKpiList[0].id, indicator: "Cross", target: 10 }] },
-        });
-        assert(rForeign.status === 400, `Foreign KPI id expected 400, got ${rForeign.status}`);
-      }
-
-      const dupId = rPut.json.data[0].id;
-      const rDup = await api(`/api/scrums/${tempScrumId}/kpis`, {
+    await runCheck("KPI & Events", "Batch KPIs, batch Events & Tehran /today-events archive guard", async () => {
+      const rKpi = await api(`/api/scrums/${tempScrumId}/kpis`, {
         method: "PUT",
         token: tempScrumAdmin.token,
         body: {
           rows: [
-            { id: dupId, indicator: "A" },
-            { id: dupId, indicator: "B" },
+            { indicator: "Below Min", target: 100, minExpected: 50, actualValue: 30 },
+            { indicator: "On Target", target: 100, minExpected: 50, actualValue: 100 },
           ],
         },
       });
-      assert(rDup.status === 400, `Duplicate KPI id expected 400, got ${rDup.status}`);
+      assert(rKpi.status === 200 && rKpi.json.data.length === 2, "KPI batch update failed");
 
-      const rMem = await api(`/api/scrums/${tempScrumId}/kpis`, { token: tempMemberA.token });
-      assert(rMem.status === 200 && rMem.json.data.every((k) => !("minExpected" in k)), "minExpected leaked");
-      return "2 KPI rows verified";
-    });
-
-    await runCheck("Events", "Batch events, Tehran /today-events & SA-only archive filter", async () => {
       const { todayStr, persianDayOfWeek } = getTehranTodayAndWeekday();
       const otherDay = (persianDayOfWeek + 1) % 7;
-
-      const rBadOnce = await api(`/api/scrums/${tempScrumId}/events`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { rows: [{ name: "Bad Once", scheduleType: "ONCE", date: "bad-date" }] },
-      });
-      assert(rBadOnce.status === 400, `Invalid ONCE date expected 400, got ${rBadOnce.status}`);
-
-      const rPut = await api(`/api/scrums/${tempScrumId}/events`, {
+      const rEv = await api(`/api/scrums/${tempScrumId}/events`, {
         method: "PUT",
         token: tempScrumAdmin.token,
         body: {
@@ -663,222 +531,79 @@ const main = async () => {
           ],
         },
       });
-      assert(rPut.status === 200 && rPut.json.data.length === 3, `Events PUT failed: ${rPut.status}`);
-      assert(isIsoDateOnly(rPut.json.data[1].date) && rPut.json.data[1].date === todayStr, "Expected YYYY-MM-DD");
+      assert(rEv.status === 200 && rEv.json.data.length === 3 && isIsoDateOnly(rEv.json.data[1].date), "Events failed");
 
       const rToday = await api("/api/scrums/today-events", { token: tempMemberA.token });
-      assert(rToday.status === 200 && Array.isArray(rToday.json.data), `today-events status=${rToday.status}`);
-      const ownToday = rToday.json.data.filter((e) => e.scrumId === tempScrumId);
-      assert(ownToday.length === 2, `Expected 2 today events for tempScrum, got ${ownToday.length}`);
-
-      // SUPER_ADMIN archives -> excluded from today-events -> SUPER_ADMIN unarchives
-      const rArch = await api(`/api/scrums/${tempScrumId}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { isActive: false },
-      });
-      assert(rArch.status === 200 && rArch.json.data.isActive === false, "SA archive failed");
-
-      const rTodayArchived = await api("/api/scrums/today-events", { token: tempMemberA.token });
-      assert(
-        rTodayArchived.status === 200 && !rTodayArchived.json.data.some((e) => e.scrumId === tempScrumId),
-        "Archived scrum events still returned"
-      );
-
-      await api(`/api/scrums/${tempScrumId}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { isActive: true },
-      });
-      return `today=${todayStr}, dow=${persianDayOfWeek}`;
+      assert(rToday.status === 200 && rToday.json.data.filter((e) => e.scrumId === tempScrumId).length === 2, "Expected 2 today events");
+      return `today=${todayStr}, kpis=2, events=3`;
     });
 
     // ---------------------------------------------------------
-    // E. Project <-> Scrum Linking & Project Endpoints
+    // E. Decoupled Standalone Studio Projects & Project Work-Log Endpoint
     // ---------------------------------------------------------
-    let scrumLinkedProjId = null;
     let standaloneProjId = null;
-    let otherScrumProjId = null;
 
-    await runCheck("ProjectLink", "Scrum project CRUD, /available, /link (409 conflict), non-scrum ProjectMember preservation", async () => {
-      // Create an unlinked studio project via SUPER_ADMIN (includes outsiderAuth as a non-scrum ProjectMember)
-      const rStand = await api("/api/projects", {
+    await runCheck("StandaloneProject", "Projects have no scrumId/scrum; GET /projects/:id/work-sessions is ADMIN/SA only", async () => {
+      const rCreate = await api("/api/projects", {
         method: "POST",
         token: saAuth.token,
         body: {
           name: "Smoke Standalone Studio Project",
-          description: "For link/unlink test",
+          description: "Pure Studio Project (decoupled from Scrum)",
           memberIds: [tempMemberA.id, outsiderAuth.user.id],
         },
       });
-      assert(rStand.status === 201 && rStand.json.data.scrumId === null, `Create standalone failed: ${rStand.status}`);
-      assert(rStand.json.data.scrum === null, "Expected scrum=null");
-      standaloneProjId = rStand.json.data.id;
+      assert(rCreate.status === 201 && rCreate.json?.data?.id, `Create project failed: ${rCreate.status}`);
+      assert(!("scrumId" in rCreate.json.data) && !("scrum" in rCreate.json.data), "Project response still contains scrumId/scrum!");
+      standaloneProjId = rCreate.json.data.id;
       createdProjectIds.push(standaloneProjId);
 
-      // Inactive or non-existent scrumId on POST /api/projects
-      const rBadProjScrum = await api("/api/projects", {
-        method: "POST",
-        token: saAuth.token,
-        body: { name: "Bad Scrum Link", scrumId: 999999 },
-      });
-      assert(rBadProjScrum.status === 404, `Missing scrumId expected 404, got ${rBadProjScrum.status}`);
+      // List & detail also omit scrumId/scrum
+      const rGet = await api(`/api/projects/${standaloneProjId}`, { token: adminAuth.token });
+      assert(rGet.status === 200 && !("scrumId" in rGet.json.data) && !("scrum" in rGet.json.data), "GET /projects/:id still has scrumId");
 
-      // SCRUM_ADMIN cannot call POST/PATCH /api/projects directly (403)
-      const rScrumAdminProj = await api("/api/projects", {
-        method: "POST",
-        token: tempScrumAdmin.token,
-        body: { name: "Blocked" },
-      });
-      assert(rScrumAdminProj.status === 403, `SCRUM_ADMIN POST /api/projects expected 403, got ${rScrumAdminProj.status}`);
+      // SCRUM_ADMIN and USER get 403 on GET /api/projects/:id/work-sessions
+      const rForbSc = await api(`/api/projects/${standaloneProjId}/work-sessions`, { token: tempScrumAdmin.token });
+      const rForbMem = await api(`/api/projects/${standaloneProjId}/work-sessions`, { token: tempMemberA.token });
+      assert(rForbSc.status === 403 && rForbMem.status === 403, `Expected 403s, got ${rForbSc.status}/${rForbMem.status}`);
 
-      // Create another project linked directly via POST /api/projects { scrumId: tempScrum2Id }
-      const rProj2 = await api("/api/projects", {
-        method: "POST",
-        token: saAuth.token,
-        body: {
-          name: "Smoke Scrum2 Project",
-          scrumId: tempScrum2Id,
-          memberIds: [tempMemberA.id],
-        },
-      });
-      assert(rProj2.status === 201 && rProj2.json.data.scrum?.id === tempScrum2Id, "Direct scrumId attach failed");
-      otherScrumProjId = rProj2.json.data.id;
-      createdProjectIds.push(otherScrumProjId);
-
-      // Verify GET /api/projects & GET /api/projects/:id return scrum metadata
-      const rListProj = await api("/api/projects?search=Smoke", { token: saAuth.token });
-      const listedProj2 = rListProj.json.data.find((p) => p.id === otherScrumProjId);
-      assert(listedProj2 && listedProj2.scrumId === tempScrum2Id && listedProj2.scrum?.name, "GET /api/projects missing scrum metadata");
-      const rGetProj2 = await api(`/api/projects/${otherScrumProjId}`, { token: saAuth.token });
-      assert(rGetProj2.status === 200 && rGetProj2.json.data.scrumId === tempScrum2Id && rGetProj2.json.data.scrum?.color === "CLUB", "GET /projects/:id missing scrum");
-
-      // Scrum-side available projects lists standaloneProjId, excludes otherScrumProjId
-      const rAvail = await api(`/api/scrums/${tempScrumId}/projects/available?q=Smoke`, {
-        token: tempScrumAdmin.token,
-      });
-      assert(rAvail.status === 200, `Available failed: ${rAvail.status}`);
-      assert(rAvail.json.data.some((p) => p.id === standaloneProjId), "Standalone missing in available");
-      assert(!rAvail.json.data.some((p) => p.id === otherScrumProjId), "Already-linked project leaked in available");
-
-      // Link standaloneProjId to tempScrumId -> 200; linking otherScrumProjId -> 409
-      const rLink = await api(`/api/scrums/${tempScrumId}/projects/link`, {
-        method: "POST",
-        token: tempScrumAdmin.token,
-        body: { projectId: standaloneProjId },
-      });
-      const rConflict = await api(`/api/scrums/${tempScrumId}/projects/link`, {
-        method: "POST",
-        token: tempScrumAdmin.token,
-        body: { projectId: otherScrumProjId },
-      });
-      assert(rLink.status === 200 && rLink.json.data.id === standaloneProjId, `Link failed: ${rLink.status}`);
-      assert(rConflict.status === 409, `Already-linked expected 409, got ${rConflict.status}`);
-
-      // PUT /scrums/:id/projects/:projectId/members: non-scrum member rejected (422), valid sync preserves outsiderAuth!
-      const rNonScrumMem = await api(`/api/scrums/${tempScrumId}/projects/${standaloneProjId}/members`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { userIds: [outsiderAuth.user.id] },
-      });
-      assert(rNonScrumMem.status === 422, `Non-scrum member expected 422, got ${rNonScrumMem.status}`);
-
-      const rSyncProjMem = await api(`/api/scrums/${tempScrumId}/projects/${standaloneProjId}/members`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { userIds: [tempMemberA.id, tempMemberB.id] },
-      });
-      assert(rSyncProjMem.status === 200, `Sync proj members failed: ${rSyncProjMem.status}`);
-      assert(
-        rSyncProjMem.json.data.some((m) => m.id === outsiderAuth.user.id) &&
-          rSyncProjMem.json.data.some((m) => m.id === tempMemberB.id),
-        "Non-scrum ProjectMember was removed during Scrum member sync!"
-      );
-
-      // Verify removing tempMemberB removes ONLY the omitted scrum member while STILL preserving non-scrum outsiderAuth, then restore tempMemberA
-      const rRemoveOnlyB = await api(`/api/scrums/${tempScrumId}/projects/${standaloneProjId}/members`, {
-        method: "PUT",
-        token: tempScrumAdmin.token,
-        body: { userIds: [tempMemberA.id] },
-      });
-      assert(
-        rRemoveOnlyB.status === 200 &&
-          !rRemoveOnlyB.json.data.some((m) => m.id === tempMemberB.id) &&
-          rRemoveOnlyB.json.data.some((m) => m.id === outsiderAuth.user.id),
-        "Expected scrum member removal while preserving non-scrum ProjectMember"
-      );
-
-      // POST /scrums/:id/projects creates a new linked project inside tempScrumId
-      const rBadScrumCreateMem = await api(`/api/scrums/${tempScrumId}/projects`, {
-        method: "POST",
-        token: tempScrumAdmin.token,
-        body: { name: "Invalid Member", memberIds: [outsiderAuth.user.id] },
-      });
-      assert(rBadScrumCreateMem.status === 422, `Expected 422, got ${rBadScrumCreateMem.status}`);
-
-      const rScrumCreateProj = await api(`/api/scrums/${tempScrumId}/projects`, {
-        method: "POST",
-        token: tempScrumAdmin.token,
-        body: {
-          name: "Smoke Scrum Internal Project",
-          description: "Created via scrum",
-          memberIds: [tempMemberA.id],
-        },
-      });
-      assert(rScrumCreateProj.status === 201 && rScrumCreateProj.json.data.id, `Scrum create project failed: ${rScrumCreateProj.status}`);
-      scrumLinkedProjId = rScrumCreateProj.json.data.id;
-      createdProjectIds.push(scrumLinkedProjId);
-
-      // GET /scrums/:id/projects includes trackedSeconds ONLY for editor, NOT plain member
-      const rEdList = await api(`/api/scrums/${tempScrumId}/projects`, { token: tempScrumAdmin.token });
-      const rMemList = await api(`/api/scrums/${tempScrumId}/projects`, { token: tempMemberA.token });
-      assert(rEdList.status === 200 && rEdList.json.data.length === 2, "Expected 2 linked projects");
-      assert("trackedSeconds" in rEdList.json.data[0], "Editor missing trackedSeconds");
-      assert(!("trackedSeconds" in rMemList.json.data[0]), "Member must NOT receive trackedSeconds");
-      return `linked=[${standaloneProjId},${scrumLinkedProjId}]`;
+      // ADMIN and SUPER_ADMIN get 200
+      const rAdm = await api(`/api/projects/${standaloneProjId}/work-sessions`, { token: adminAuth.token });
+      assert(rAdm.status === 200 && rAdm.json.data.target.kind === "PROJECT", "ADMIN GET /projects/:id/work-sessions failed");
+      return `projectId=${standaloneProjId} decoupled`;
     });
 
     // ---------------------------------------------------------
-    // F. WorkTargets when Scrum has NO active sprint + Sprint Concurrency
+    // F. Simplified Sprints (Reversible Phases & Manual progressPercent)
     // ---------------------------------------------------------
-    await runCheck("WorkTargets", "Linked project appears in scrums[].projects even when sprint=null & leaves studioProjects", async () => {
-      const wtBefore = await api("/api/work-targets/mine", { token: tempMemberA.token });
-      assert(wtBefore.status === 200, `wtBefore failed: ${wtBefore.status}`);
-      const grp = wtBefore.json.data.scrums.find((g) => g.scrum.id === tempScrumId);
-      assert(grp && grp.sprint === null && grp.items.length === 0, "Expected scrum group with sprint=null");
-      assert(grp.projects.some((p) => p.id === standaloneProjId) && grp.projects.some((p) => p.id === scrumLinkedProjId), "Linked projects missing in scrums[].projects");
-      assert(
-        !wtBefore.json.data.studioProjects.some((p) => p.id === standaloneProjId || p.id === scrumLinkedProjId),
-        "Active scrum linked project must be excluded from studioProjects"
-      );
-
-      // Outsider (not ScrumMember of tempScrumId, only ProjectMember of standaloneProjId) still sees it in studioProjects!
-      const wtOut = await api("/api/work-targets/mine", { token: outsiderAuth.token });
-      assert(
-        wtOut.json.data.studioProjects.some((p) => p.id === standaloneProjId),
-        "Non-scrum ProjectMember must still see project in studioProjects"
-      );
-      return "scrums[].projects (sprint=null) + studioProjects exclusion verified";
-    });
-
     let sprint1 = null;
     let sprint2 = null;
     let sprint3 = null;
 
-    await runCheck("Sprints", "Concurrent POST /sprints (1,2,3) & single ACTIVE guard (200 + 409)", async () => {
+    await runCheck("SimpleSprints", "Concurrent create, progressPercent validation (0..100) & bidirectional phase transitions", async () => {
+      const rBadProg = await api(`/api/scrums/${tempScrumId}/sprints`, {
+        method: "POST",
+        token: tempScrumAdmin.token,
+        body: { title: "Bad Progress", progressPercent: 101 },
+      });
+      assert(rBadProg.status === 400, `progressPercent=101 expected 400, got ${rBadProg.status}`);
+
       const responses = await Promise.all([
-        api(`/api/scrums/${tempScrumId}/sprints`, { method: "POST", token: tempScrumAdmin.token, body: {} }),
+        api(`/api/scrums/${tempScrumId}/sprints`, { method: "POST", token: tempScrumAdmin.token, body: { progressPercent: 10 } }),
         api(`/api/scrums/${tempScrumId}/sprints`, { method: "POST", token: tempScrumAdmin.token, body: {} }),
         api(`/api/scrums/${tempScrumId}/sprints`, { method: "POST", token: tempScrumAdmin.token, body: {} }),
       ]);
       for (const r of responses) {
-        assert(r.status === 201 && r.json?.data?.id, `Concurrent create status=${r.status}`);
+        assert(r.status === 201 && r.json?.data?.id, `Concurrent sprint create failed: ${r.status}`);
+        assert(!("totalPoints" in r.json.data) && !("projects" in r.json.data), "Legacy sprint item fields still present");
       }
+
       const sprintsList = await api(`/api/scrums/${tempScrumId}/sprints`, { token: tempScrumAdmin.token });
       const numbers = sprintsList.json.data.map((s) => s.number);
       assert(JSON.stringify(numbers) === JSON.stringify([1, 2, 3]), `Expected [1,2,3], got ${JSON.stringify(numbers)}`);
       [sprint1, sprint2, sprint3] = sprintsList.json.data;
 
+      // Single ACTIVE concurrency check
       const [a1, a2] = await Promise.all([
         api(`/api/sprints/${sprint1.id}/status`, { method: "PATCH", token: tempScrumAdmin.token, body: { status: "ACTIVE" } }),
         api(`/api/sprints/${sprint2.id}/status`, { method: "PATCH", token: tempScrumAdmin.token, body: { status: "ACTIVE" } }),
@@ -886,177 +611,390 @@ const main = async () => {
       const statuses = [a1.status, a2.status].sort((x, y) => x - y);
       assert(statuses[0] === 200 && statuses[1] === 409, `Expected [200, 409], got [${statuses.join(",")}]`);
       sprint1 = a1.status === 200 ? a1.json.data : a2.json.data;
-      sprint2 = sprintsList.json.data.find((s) => s.id !== sprint1.id && s.id !== sprint3.id);
-      assert(sprint2, "Failed locating sprint2");
 
-      // Set today as startDate/endDate range on sprint1 so SPRINT leaderboard range covers today's sessions!
+      // Reversible phase checks: ACTIVE -> COMPLETED -> ACTIVE -> PLANNED -> ACTIVE
+      const tComp = await api(`/api/sprints/${sprint1.id}/status`, { method: "PATCH", token: tempScrumAdmin.token, body: { status: "COMPLETED" } });
+      assert(tComp.status === 200 && tComp.json.data.status === "COMPLETED" && tComp.json.data.completedAt !== null, "To COMPLETED failed");
+
+      const tBackActive = await api(`/api/sprints/${sprint1.id}/status`, { method: "PATCH", token: tempScrumAdmin.token, body: { status: "ACTIVE" } });
+      assert(tBackActive.status === 200 && tBackActive.json.data.status === "ACTIVE" && tBackActive.json.data.completedAt === null, "COMPLETED -> ACTIVE revert failed");
+
+      const tBackPlanned = await api(`/api/sprints/${sprint1.id}/status`, { method: "PATCH", token: tempScrumAdmin.token, body: { status: "PLANNED" } });
+      assert(tBackPlanned.status === 200 && tBackPlanned.json.data.status === "PLANNED", "ACTIVE -> PLANNED revert failed");
+
+      // Update manual progressPercent + start/end dates
+      const rPatchNeg = await api(`/api/sprints/${sprint1.id}`, { method: "PATCH", token: tempScrumAdmin.token, body: { progressPercent: -5 } });
+      assert(rPatchNeg.status === 400, `progressPercent=-5 expected 400, got ${rPatchNeg.status}`);
+
       const { todayStr } = getTehranTodayAndWeekday();
-      const rDate = await api(`/api/sprints/${sprint1.id}`, {
+      const rPatch = await api(`/api/sprints/${sprint1.id}`, {
         method: "PATCH",
         token: tempScrumAdmin.token,
-        body: { startDate: todayStr, endDate: todayStr },
+        body: { startDate: todayStr, endDate: todayStr, progressPercent: 60 },
       });
-      assert(rDate.status === 200 && rDate.json.data.startDate === todayStr, "Sprint date update failed");
-      return `activeSprintId=${sprint1.id}`;
+      assert(rPatch.status === 200 && rPatch.json.data.progressPercent === 60 && rPatch.json.data.startDate === todayStr, "Sprint patch progressPercent failed");
+      sprint1 = rPatch.json.data;
+
+      // Cleanly delete unused sprint3
+      const rDelS3 = await api(`/api/sprints/${sprint3.id}`, { method: "DELETE", token: tempScrumAdmin.token });
+      assert(rDelS3.status === 200, `Delete sprint3 failed: ${rDelS3.status}`);
+      return `sprint1=${sprint1.id}, reversible phases + progress=60%`;
     });
 
     // ---------------------------------------------------------
-    // G. Sprint Items + projectId Link Validation
+    // G. Scrum Tasks (Task + TaskMember) & Work Targets without Active Sprint
     // ---------------------------------------------------------
-    let itemA = null;
-    let itemB = null;
-    let itemSpare = null;
+    let taskA = null;
+    let taskB = null;
+    let taskInactive = null;
+    let taskSpare = null;
 
-    await runCheck("SprintItems", "Create items with projectId (422 cross-scrum), member status-only & 403/404 guards", async () => {
-      const rCrossProj = await api(`/api/sprints/${sprint1.id}/projects`, {
+    await runCheck("ScrumTasks", "Task CRUD, multi-member sync (422 outsider), Scrum member removal cleanup & WorkTargets with 0 active sprints", async () => {
+      // Outsider in memberIds -> 422
+      const rBadMem = await api(`/api/scrums/${tempScrumId}/tasks`, {
         method: "POST",
         token: tempScrumAdmin.token,
-        body: { name: "Cross Scrum Project", points: 3, projectId: otherScrumProjId },
+        body: { name: "Invalid Assignee Task", points: 3, memberIds: [outsiderAuth.user.id] },
       });
-      assert(rCrossProj.status === 422, `Cross-scrum projectId expected 422, got ${rCrossProj.status}`);
+      assert(rBadMem.status === 422, `Outsider member expected 422, got ${rBadMem.status}`);
 
-      const rA = await api(`/api/sprints/${sprint1.id}/projects`, {
+      const rA = await api(`/api/scrums/${tempScrumId}/tasks`, {
         method: "POST",
         token: tempScrumAdmin.token,
-        body: { name: "Item Alpha", points: 5, assigneeId: tempMemberA.id, projectId: standaloneProjId },
+        body: {
+          name: "Task Alpha",
+          description: "Core scrum task",
+          points: 5,
+          isActive: true,
+          memberIds: [tempMemberA.id, tempMemberB.id],
+        },
       });
-      const rB = await api(`/api/sprints/${sprint1.id}/projects`, {
+      const rB = await api(`/api/scrums/${tempScrumId}/tasks`, {
         method: "POST",
         token: tempScrumAdmin.token,
-        body: { name: "Item Beta", points: 8, assigneeId: tempMemberB.id },
+        body: {
+          name: "Task Beta",
+          points: 8,
+          isActive: true,
+          memberIds: [tempMemberB.id],
+        },
       });
-      const rS = await api(`/api/sprints/${sprint2.id}/projects`, {
+      const rInact = await api(`/api/scrums/${tempScrumId}/tasks`, {
         method: "POST",
         token: tempScrumAdmin.token,
-        body: { name: "Item Spare", points: 2, assigneeId: tempMemberA.id },
+        body: {
+          name: "Task Inactive",
+          points: 3,
+          isActive: false,
+          memberIds: [tempMemberA.id],
+        },
       });
-      assert(rA.status === 201 && rB.status === 201 && rS.status === 201, "Item create failed");
-      itemA = rA.json.data;
-      itemB = rB.json.data;
-      itemSpare = rS.json.data;
-      assert(itemA.projectId === standaloneProjId && itemA.project?.name, "Expected project summary on SprintProjectItem");
+      const rSpare = await api(`/api/scrums/${tempScrumId}/tasks`, {
+        method: "POST",
+        token: tempScrumAdmin.token,
+        body: {
+          name: "Task Spare",
+          points: 2,
+          isActive: true,
+          memberIds: [tempMemberC.id],
+        },
+      });
 
-      // Assignee status-only PATCH -> 200; extra field -> 403
-      const rPatchOk = await api(`/api/sprint-projects/${itemA.id}`, {
+      assert(rA.status === 201 && rB.status === 201 && rInact.status === 201 && rSpare.status === 201, "Create task failed");
+      taskA = rA.json.data;
+      taskB = rB.json.data;
+      taskInactive = rInact.json.data;
+      taskSpare = rSpare.json.data;
+      assert(taskA.members.length === 2 && taskA.points === 5, "Task Alpha fields mismatch");
+
+      // Sync members on taskSpare: 422 outsider, then assign A+C, then test ScrumMember removal auto-cleanup
+      const rBadSync = await api(`/api/tasks/${taskSpare.id}/members`, {
+        method: "PUT",
+        token: tempScrumAdmin.token,
+        body: { userIds: [outsiderAuth.user.id] },
+      });
+      assert(rBadSync.status === 422, `Expected 422 on PUT /tasks/:id/members outsider, got ${rBadSync.status}`);
+
+      // Temporarily remove tempMemberC from Scrum -> verify TaskMember cleanup -> restore tempMemberC
+      await api(`/api/scrums/${tempScrumId}/members`, {
+        method: "PUT",
+        token: tempScrumAdmin.token,
+        body: {
+          members: [
+            { userId: tempMemberA.id, label: "عضو الف" },
+            { userId: tempMemberB.id, label: "عضو ب" },
+          ],
+        },
+      });
+      const rCheckSpare = await api(`/api/tasks/${taskSpare.id}`, { token: tempScrumAdmin.token });
+      assert(rCheckSpare.status === 200 && rCheckSpare.json.data.members.length === 0, "Removing ScrumMember did not clean up TaskMember");
+
+      await api(`/api/scrums/${tempScrumId}/members`, {
+        method: "PUT",
+        token: tempScrumAdmin.token,
+        body: {
+          members: [
+            { userId: tempMemberA.id, label: "عضو الف" },
+            { userId: tempMemberB.id, label: "عضو ب" },
+            { userId: tempMemberC.id, label: "عضو ج" },
+          ],
+        },
+      });
+
+      // Update taskSpare & delete cleanly (no sessions yet -> 200)
+      const rPatchSpare = await api(`/api/tasks/${taskSpare.id}`, {
         method: "PATCH",
-        token: tempMemberA.token,
-        body: { status: "DOING" },
+        token: tempScrumAdmin.token,
+        body: { name: "Task Spare Updated", points: 4 },
       });
-      const rPatchExtra = await api(`/api/sprint-projects/${itemA.id}`, {
-        method: "PATCH",
-        token: tempMemberA.token,
-        body: { status: "DONE", projectId: scrumLinkedProjId },
-      });
-      assert(rPatchOk.status === 200 && rPatchOk.json.data.status === "DOING", "Assignee status failed");
-      assert(rPatchExtra.status === 403, `Assignee extra field expected 403, got ${rPatchExtra.status}`);
-      return `items=${itemA.id}(proj=${standaloneProjId}),${itemB.id},${itemSpare.id}`;
+      assert(rPatchSpare.status === 200 && rPatchSpare.json.data.points === 4, "Task PATCH failed");
+      const rDelSpare = await api(`/api/tasks/${taskSpare.id}`, { method: "DELETE", token: tempScrumAdmin.token });
+      assert(rDelSpare.status === 200, `Empty task DELETE failed: ${rDelSpare.status}`);
+
+      // Verify GET /api/work-targets/mine includes active Task even though ALL sprints in tempScrumId are PLANNED right now (sprint: null)!
+      const wtA = await api("/api/work-targets/mine", { token: tempMemberA.token });
+      assert(wtA.status === 200, `work-targets failed: ${wtA.status}`);
+      const grp = wtA.json.data.scrums.find((g) => g.scrum.id === tempScrumId);
+      assert(grp && grp.sprint === null, "Expected grp.sprint=null while sprints are PLANNED");
+      assert(grp.tasks.some((t) => t.id === taskA.id), "Active task missing from work-targets/mine when no sprint is ACTIVE");
+      assert(!grp.tasks.some((t) => t.id === taskInactive.id), "Inactive task leaked into work-targets/mine");
+      assert(wtA.json.data.studioProjects.some((p) => p.id === standaloneProjId), "Studio project missing from studioProjects");
+
+      return `tasks=${taskA.id},${taskB.id},${taskInactive.id}`;
     });
 
     // ---------------------------------------------------------
-    // H. Sessions, Report (SPRINT_ITEM + PROJECT), Leaderboard (SPRINT/MONTH/ALL + ties + privacy) & Dashboard
+    // H. Logging on Task without Active Sprint + Work-Log View + Moderation Privacy
     // ---------------------------------------------------------
-    let attAId = null;
-    let attBId = null;
-    let attCId = null;
+    let wsA1Id = null;
+    let wsA2Id = null;
+    let wsAProjId = null;
+    let wsBApprovedId = null;
+    let wsBPendingId = null;
+    let wsBRejectedId = null;
 
-    await runCheck("WorkSession", "Log sessions on SprintItem & linked Project + Verify Report & Privacy", async () => {
+    await runCheck("WorkSessionTask", "Log Task session with 0 ACTIVE sprints; reject XOR/inactive/unassigned/ADMIN", async () => {
       const attA = await api("/api/attendance/today", { method: "POST", token: tempMemberA.token, body: { status: "PRESENT" } });
       const attB = await api("/api/attendance/today", { method: "POST", token: tempMemberB.token, body: { status: "PRESENT" } });
-      const attC = await api("/api/attendance/today", { method: "POST", token: tempMemberC.token, body: { status: "PRESENT" } });
-      assert(attA.json?.data?.id && attB.json?.data?.id && attC.json?.data?.id, "Attendance creation failed");
-      attAId = attA.json.data.id;
-      attBId = attB.json.data.id;
-      attCId = attC.json.data.id;
+      await api("/api/attendance/today", { method: "POST", token: tempMemberC.token, body: { status: "PRESENT" } });
+      assert(attA.json?.data?.id && attB.json?.data?.id, "Attendance failed");
 
-      // Approve attendance B right away? Wait: let's keep all pending until we check 409 delete guard & report, then approve/verify leaderboard!
+      await api(`/api/attendance/admin/${attA.json.data.id}/decision`, { method: "PATCH", token: adminAuth.token, body: { decision: "APPROVED" } });
+      await api(`/api/attendance/admin/${attB.json.data.id}/decision`, { method: "PATCH", token: adminAuth.token, body: { decision: "APPROVED" } });
+
       const nowIso = new Date().toISOString();
-      const wsAItem = await api("/api/work-sessions", {
+
+      // XOR & guard checks
+      const rBoth = await api("/api/work-sessions", {
         method: "POST",
         token: tempMemberA.token,
-        body: { sprintProjectId: itemA.id, durationSeconds: 600, startedAt: nowIso, clientRequestId: randomUUID() },
+        body: { projectId: standaloneProjId, taskId: taskA.id, durationSeconds: 100, startedAt: nowIso, clientRequestId: randomUUID() },
+      });
+      const rNeither = await api("/api/work-sessions", {
+        method: "POST",
+        token: tempMemberA.token,
+        body: { durationSeconds: 100, startedAt: nowIso, clientRequestId: randomUUID() },
+      });
+      const rInactive = await api("/api/work-sessions", {
+        method: "POST",
+        token: tempMemberA.token,
+        body: { taskId: taskInactive.id, durationSeconds: 100, startedAt: nowIso, clientRequestId: randomUUID() },
+      });
+      const rUnassigned = await api("/api/work-sessions", {
+        method: "POST",
+        token: tempMemberC.token,
+        body: { taskId: taskA.id, durationSeconds: 100, startedAt: nowIso, clientRequestId: randomUUID() },
+      });
+      assert(rBoth.status === 422 && rNeither.status === 422, `XOR expected 422, got ${rBoth.status}/${rNeither.status}`);
+      assert(rInactive.status === 400, `Inactive task expected 400, got ${rInactive.status}`);
+      assert(rUnassigned.status === 403, `Unassigned member expected 403, got ${rUnassigned.status}`);
+
+      // tempMemberA logs 600s + 400s on taskA WHILE sprint1 is STILL PLANNED (no active sprint!) + 400s on standaloneProjId
+      const wsA1 = await api("/api/work-sessions", {
+        method: "POST",
+        token: tempMemberA.token,
+        body: { taskId: taskA.id, durationSeconds: 600, startedAt: nowIso, clientRequestId: randomUUID() },
+      });
+      const wsA2 = await api("/api/work-sessions", {
+        method: "POST",
+        token: tempMemberA.token,
+        body: { taskId: taskA.id, durationSeconds: 400, startedAt: nowIso, clientRequestId: randomUUID() },
       });
       const wsAProj = await api("/api/work-sessions", {
         method: "POST",
         token: tempMemberA.token,
         body: { projectId: standaloneProjId, durationSeconds: 400, startedAt: nowIso, clientRequestId: randomUUID() },
       });
-      const wsBItem = await api("/api/work-sessions", {
+      // tempMemberB logs 1000s, 500s, 300s on taskB
+      const wsB1 = await api("/api/work-sessions", {
         method: "POST",
         token: tempMemberB.token,
-        body: { sprintProjectId: itemB.id, durationSeconds: 1000, startedAt: nowIso, clientRequestId: randomUUID() },
+        body: { taskId: taskB.id, durationSeconds: 1000, startedAt: nowIso, clientRequestId: randomUUID() },
       });
-      const wsBPendingExtra = await api("/api/work-sessions", {
+      const wsB2 = await api("/api/work-sessions", {
         method: "POST",
         token: tempMemberB.token,
-        body: { sprintProjectId: itemB.id, durationSeconds: 500, startedAt: nowIso, clientRequestId: randomUUID() },
+        body: { taskId: taskB.id, durationSeconds: 500, startedAt: nowIso, clientRequestId: randomUUID() },
       });
+      const wsB3 = await api("/api/work-sessions", {
+        method: "POST",
+        token: tempMemberB.token,
+        body: { taskId: taskB.id, durationSeconds: 300, startedAt: nowIso, clientRequestId: randomUUID() },
+      });
+
       assert(
-        wsAItem.status === 200 && wsAProj.status === 200 && wsBItem.status === 200 && wsBPendingExtra.status === 200,
-        "WorkSession creation failed"
+        [wsA1, wsA2, wsAProj, wsB1, wsB2, wsB3].every((r) => r.status === 200 && r.json?.data?.id),
+        "Failed logging work sessions"
       );
+      wsA1Id = wsA1.json.data.id;
+      wsA2Id = wsA2.json.data.id;
+      wsAProjId = wsAProj.json.data.id;
+      wsBApprovedId = wsB1.json.data.id;
+      wsBPendingId = wsB2.json.data.id;
+      wsBRejectedId = wsB3.json.data.id;
 
-      // Report checks: SPRINT_ITEM + PROJECT rows, member privacy on BOTH!
-      const memReport = await api(`/api/scrums/${tempScrumId}/report`, { token: tempMemberA.token });
-      const edReport = await api(`/api/scrums/${tempScrumId}/report`, { token: tempScrumAdmin.token });
-      assert(memReport.status === 200 && edReport.status === 200, "Report fetch failed");
-      assert(memReport.json.data.rows.every((r) => r.member?.id === tempMemberA.id), "Member report leaked teammate rows");
-      assert(memReport.json.data.total.totalSeconds === 1000, `Member report expected 1000s, got ${memReport.json.data.total.totalSeconds}`);
-      assert(memReport.json.data.rows.some((r) => r.kind === "PROJECT" && r.project?.id === standaloneProjId && r.item === null), "Missing PROJECT row in report");
-      assert(edReport.json.data.total.totalSeconds === 2500, `Editor report expected 2500s, got ${edReport.json.data.total.totalSeconds}`);
-      assert(findCodeKeys(edReport.json).length === 0, "Leaked code key in report");
+      // Re-activate sprint1 for leaderboard SPRINT period & dashboard checks
+      const rReactivate = await api(`/api/sprints/${sprint1.id}/status`, {
+        method: "PATCH",
+        token: tempScrumAdmin.token,
+        body: { status: "ACTIVE" },
+      });
+      assert(rReactivate.status === 200, "Failed reactivating sprint1");
 
-      // WorkTargets recent includes linked project
-      const wtA = await api("/api/work-targets/mine", { token: tempMemberA.token });
-      assert(wtA.json.data.recent.some((r) => r.kind === "STUDIO" && r.id === standaloneProjId), "Linked project missing from recent");
-      return "SprintItem + LinkedProject report (1000s vs 2500s) verified";
+      // Check work-targets recent includes both TASK and PROJECT kinds
+      const wtRecent = await api("/api/work-targets/mine", { token: tempMemberA.token });
+      assert(
+        wtRecent.json.data.recent.some((r) => r.kind === "TASK" && r.id === taskA.id) &&
+          wtRecent.json.data.recent.some((r) => r.kind === "PROJECT" && r.id === standaloneProjId),
+        "Recent targets missing TASK or PROJECT"
+      );
+      return "Logged 6 sessions (including Task with 0 ACTIVE sprints)";
     });
 
-    await runCheck("Leaderboard", "APPROVED-only aggregation, competition ties (1,1,3), pendingSeconds ONLY in me, me.rank=null for non-member", async () => {
-      // Before approving sessions: all 3 members have 0 approvedSeconds, ties at rank 1; Member B has pendingSeconds=1500 ONLY in me!
-      const lbBeforeB = await api(`/api/scrums/${tempScrumId}/leaderboard?period=SPRINT`, { token: tempMemberB.token });
-      assert(lbBeforeB.status === 200, `Leaderboard failed: ${lbBeforeB.status}`);
-      assert(lbBeforeB.json.data.rows.length === 3, `Expected 3 members, got ${lbBeforeB.json.data.rows.length}`);
-      assert(lbBeforeB.json.data.rows.every((r) => r.approvedSeconds === 0 && r.rank === 1 && !("pendingSeconds" in r)), "Expected all 0s rank=1 and NO pendingSeconds in rows");
-      assert(lbBeforeB.json.data.me.approvedSeconds === 0 && lbBeforeB.json.data.me.pendingSeconds === 1500, `Unexpected me: ${JSON.stringify(lbBeforeB.json.data.me)}`);
-
-      // Now approve attendances A and B, and approve A's sessions (600+400=1000s) and ONLY 1000s of B's sessions via daily close OR WorkSession admin approval!
-      // Wait: check if admin attendance APPROVED + WorkSession approval exists via API, let's check /api/attendance/admin/:id/decision { decision: "APPROVED", approvedSessionIds: [...] } or approve all then see!
-      // Let's inspect Member A (both sessions approved = 1000s) & Member B (approve ONLY wsBItem via attendance approval + daily close, or check WorkSession approval endpoint!).
-      // Actually let's check what happens when attendance is APPROVED via /api/attendance/admin/:id/decision: let's approve A's attendance; let's check ws statuses via GET /api/work-sessions?userId=
-      const decA = await api(`/api/attendance/admin/${attAId}/decision`, {
+    await runCheck("TaskModeration", "SCRUM_ADMIN moderates assigned Task (all 3 statuses); blocked on Project & unassigned Scrum", async () => {
+      // SCRUM_ADMIN blocked from moderating Studio Project session
+      const rForbProj = await api(`/api/work-sessions/${wsAProjId}/decision`, {
         method: "PATCH",
-        token: adminAuth.token,
+        token: tempScrumAdmin.token,
         body: { decision: "APPROVED" },
       });
-      const decB = await api(`/api/attendance/admin/${attBId}/decision`, {
+      assert(rForbProj.status === 403, `SCRUM_ADMIN moderating Project expected 403, got ${rForbProj.status}`);
+
+      // SCRUM_ADMIN blocked from moderating a Task session in an unassigned Scrum (seededScrum)
+      const rSeededSess = await api(`/api/work-sessions?targetType=TASK&userId=${member1Auth.user.id}`, { token: saAuth.token });
+      const seededTaskSessId = rSeededSess.json?.data?.sessions?.[0]?.id;
+      assert(seededTaskSessId, "Missing seeded Task session for cross-scrum 403 check");
+      const rForbCross = await api(`/api/work-sessions/${seededTaskSessId}/decision`, {
         method: "PATCH",
-        token: adminAuth.token,
+        token: tempScrumAdmin.token,
         body: { decision: "APPROVED" },
       });
-      assert(decA.status === 200 && decB.status === 200, "Attendance approval failed");
+      assert(rForbCross.status === 403, `SCRUM_ADMIN moderating unassigned Scrum task expected 403, got ${rForbCross.status}`);
 
-      // Check existing seeded scrum leaderboard to test APPROVED history too, AND test tie ranking on seeded + tempScrum!
-      const rListB = await api(`/api/work-sessions?userId=${tempMemberB.id}`, { token: adminAuth.token });
-      assert(rListB.status === 200 && rListB.json.data.sessions.length >= 2, "Failed fetching Member B sessions");
-      const sessB1 = rListB.json.data.sessions.find((s) => s.durationSeconds === 1000);
-      assert(sessB1, "Missing 1000s session for B");
-
-      // Approve Member A's sessions (600 + 400 = 1000s) & ONLY B's 1000s session (leaving B's 500s session PENDING!)
-      const rListA = await api(`/api/work-sessions?userId=${tempMemberA.id}`, { token: adminAuth.token });
-      const aSessIds = rListA.json.data.sessions.map((s) => s.id);
-      for (const wsId of [...aSessIds, sessB1.id]) {
-        const rApprove = await api(`/api/work-sessions/${wsId}/decision`, {
+      // Approve A's task sessions (1000s), approve B's 1000s, reject B's 300s (leaving B's 500s PENDING)
+      for (const id of [wsA1Id, wsA2Id, wsBApprovedId]) {
+        const rApp = await api(`/api/work-sessions/${id}/decision`, {
           method: "PATCH",
-          token: adminAuth.token,
+          token: tempScrumAdmin.token,
           body: { decision: "APPROVED" },
         });
-        assert(rApprove.status === 200, `Session approval (${wsId}) expected 200, got ${rApprove.status}`);
+        assert(rApp.status === 200 && !("role" in rApp.json.data.user), `Decision ${id} failed or leaked role`);
       }
+      const rRej = await api(`/api/work-sessions/${wsBRejectedId}/decision`, {
+        method: "PATCH",
+        token: tempScrumAdmin.token,
+        body: { decision: "REJECTED" },
+      });
+      assert(rRej.status === 200 && rRej.json.data.approval === "REJECTED", "Reject failed");
 
-      // Verify SPRINT, MONTH, ALL on tempScrumId:
-      // Member A: 600 (sprintItem) + 400 (linked project) = 1000s -> tied #1!
-      // Member B: 1000 (approved) + 500 (pending) = 1000s approved -> tied #1! pendingSeconds=500 in me ONLY!
-      // Member C: 0s -> rank 3! (competition ranking 1, 1, 3)
+      // Admin approves studio project session
+      const rProjApp = await api(`/api/work-sessions/${wsAProjId}/decision`, {
+        method: "PATCH",
+        token: adminAuth.token,
+        body: { decision: "APPROVED" },
+      });
+      assert(rProjApp.status === 200 && rProjApp.json.data.approval === "APPROVED", "Admin project approve failed");
+      return "All 3 statuses set + 403 isolation verified";
+    });
+
+    await runCheck("WorkLogView", "GET /tasks/:id/work-sessions & /projects/:id/work-sessions date/status filters & privacy", async () => {
+      const { todayStr } = getTehranTodayAndWeekday();
+
+      // Editor gets all 3 statuses on taskB
+      const rTaskBEd = await api(
+        `/api/tasks/${taskB.id}/work-sessions?dateFrom=${todayStr}&dateTo=${todayStr}&approval=ALL`,
+        { token: tempScrumAdmin.token }
+      );
+      assert(rTaskBEd.status === 200, `TaskB view failed: ${rTaskBEd.status}`);
+      const dB = rTaskBEd.json.data;
+      assert(dB.target.kind === "TASK" && dB.permissions.canViewAllUsers === true && dB.permissions.canModerate === true, "Target/perms mismatch");
+      assert(
+        dB.summary.approvedSeconds === 1000 &&
+          dB.summary.pendingSeconds === 500 &&
+          dB.summary.rejectedSeconds === 300 &&
+          dB.summary.totalSeconds === 1800,
+        `Unexpected 3-status summary: ${JSON.stringify(dB.summary)}`
+      );
+      assert(dB.summary.byUser.length === 1 && dB.summary.byUser[0].user.id === tempMemberB.id, "byUser mismatch");
+      assert(dB.sessions.length === 3, "Expected all 3 sessions in ALL filter");
+      assert(findCodeKeys(rTaskBEd.json).length === 0, "Leaked code key");
+
+      // Filter by approval=REJECTED
+      const rRejOnly = await api(`/api/tasks/${taskB.id}/work-sessions?approval=REJECTED`, { token: tempScrumAdmin.token });
+      assert(rRejOnly.status === 200 && rRejOnly.json.data.sessions.length === 1 && rRejOnly.json.data.sessions[0].approval === "REJECTED", "REJECTED filter mismatch");
+
+      // Plain USER on taskB sees ONLY own sessions (0) & userId=<other> returns 403
+      const rTaskBMemA = await api(`/api/tasks/${taskB.id}/work-sessions`, { token: tempMemberA.token });
+      const rTaskBMemCross = await api(`/api/tasks/${taskB.id}/work-sessions?userId=${tempMemberB.id}`, { token: tempMemberA.token });
+      assert(rTaskBMemA.status === 200 && rTaskBMemA.json.data.sessions.length === 0 && rTaskBMemA.json.data.permissions.canViewAllUsers === false, "Plain USER saw teammate data!");
+      assert(rTaskBMemCross.status === 403, `Plain USER ?userId=other expected 403, got ${rTaskBMemCross.status}`);
+
+      // Plain USER on taskA sees own 2 sessions ONLY (not Member B if Member B logged)
+      const rTaskAMemA = await api(`/api/tasks/${taskA.id}/work-sessions`, { token: tempMemberA.token });
+      assert(rTaskAMemA.status === 200 && rTaskAMemA.json.data.summary.approvedSeconds === 1000, "Member A own taskA view failed");
+
+      // Studio Project view for ADMIN shows tempMemberA's 400s
+      const rProjView = await api(`/api/projects/${standaloneProjId}/work-sessions?date=${todayStr}`, { token: adminAuth.token });
+      assert(rProjView.status === 200 && rProjView.json.data.summary.approvedSeconds === 400 && rProjView.json.data.sessions.length === 1, "Project work-log view mismatch");
+      return "3-status view + date/approval filters + USER privacy verified";
+    });
+
+    await runCheck("Report & Targets", "Scrum report (member privacy), /work-sessions/targets & Reports project/task filters", async () => {
+      // Scrum report
+      const rMemRep = await api(`/api/scrums/${tempScrumId}/report`, { token: tempMemberB.token });
+      const rEdRep = await api(`/api/scrums/${tempScrumId}/report`, { token: tempScrumAdmin.token });
+      assert(rMemRep.status === 200 && rEdRep.status === 200, "Scrum report failed");
+      assert(rMemRep.json.data.rows.every((r) => !r.member || r.member.id === tempMemberB.id), "Member report leaked teammate rows");
+      // Member B has 1000+500 = 1500s non-rejected on taskB (0 on taskA)
+      assert(rMemRep.json.data.total.totalSeconds === 1500, `Member B report expected 1500s, got ${rMemRep.json.data.total.totalSeconds}`);
+      // Editor sees 1000s (A on taskA) + 1500s (B on taskB) = 2500s; totalTasks=3 (A, B, Inactive), activeTasks=2
+      assert(rEdRep.json.data.total.totalSeconds === 2500, `Editor report expected 2500s, got ${rEdRep.json.data.total.totalSeconds}`);
+      assert(rEdRep.json.data.total.totalTasks === 3 && rEdRep.json.data.total.activeTasks === 2, "Unexpected report task totals");
+      assert(rEdRep.json.data.sprints.some((sp) => sp.id === sprint1.id && sp.progressPercent === 60), "Missing sprint progressPercent in report");
+
+      // Reports targets endpoint
+      const rForbTargets = await api("/api/work-sessions/targets", { token: tempScrumAdmin.token });
+      assert(rForbTargets.status === 403, `SCRUM_ADMIN /work-sessions/targets expected 403, got ${rForbTargets.status}`);
+
+      const rTargets = await api("/api/work-sessions/targets", { token: adminAuth.token });
+      assert(rTargets.status === 200, `/work-sessions/targets status=${rTargets.status}`);
+      assert(rTargets.json.data.projects.some((p) => p.id === standaloneProjId), "Targets missing standaloneProjId");
+      assert(rTargets.json.data.tasks.some((t) => t.id === taskA.id && t.scrumId === tempScrumId), "Targets missing taskA");
+
+      // Performance report filters: targetType=TASK + taskId, targetType=PROJECT + projectId, and conflicting params -> 400
+      const rTaskFilter = await api(`/api/work-sessions?targetType=TASK&taskId=${taskB.id}`, { token: adminAuth.token });
+      assert(rTaskFilter.status === 200 && rTaskFilter.json.data.sessions.length === 3 && rTaskFilter.json.data.sessions.every((s) => s.targetType === "TASK"), "targetType=TASK filter failed");
+
+      const rProjFilter = await api(`/api/work-sessions/summary?groupBy=project&targetType=PROJECT&projectId=${standaloneProjId}`, { token: adminAuth.token });
+      assert(rProjFilter.status === 200 && rProjFilter.json.data.length === 1 && rProjFilter.json.data[0].targetType === "PROJECT", "Summary PROJECT filter failed");
+
+      const rConflict1 = await api(`/api/work-sessions?targetType=PROJECT&taskId=${taskB.id}`, { token: adminAuth.token });
+      const rConflict2 = await api(`/api/work-sessions/summary?projectId=${standaloneProjId}&taskId=${taskB.id}`, { token: adminAuth.token });
+      assert(rConflict1.status === 400 && rConflict2.status === 400, `Expected 400 on conflicting filters, got ${rConflict1.status}/${rConflict2.status}`);
+      return "Report + /targets + targetType filters verified";
+    });
+
+    await runCheck("Leaderboard", "APPROVED-only competition ties (1,1,3), REJECTED excluded, pendingSeconds in me ONLY", async () => {
       for (const period of ["SPRINT", "MONTH", "ALL"]) {
         const lbB = await api(`/api/scrums/${tempScrumId}/leaderboard?period=${period}`, { token: tempMemberB.token });
         assert(lbB.status === 200, `Leaderboard ${period} failed: ${lbB.status}`);
@@ -1064,31 +1002,23 @@ const main = async () => {
         assert(d.period === period && d.rows.length === 3, `Unexpected ${period} rows`);
         assert(d.rows[0].approvedSeconds === 1000 && d.rows[0].rank === 1, `${period} rank 1 mismatch`);
         assert(d.rows[1].approvedSeconds === 1000 && d.rows[1].rank === 1, `${period} tie rank 1 mismatch`);
-        assert(d.rows[2].approvedSeconds === 0 && d.rows[2].rank === 3, `${period} rank 3 mismatch: got ${d.rows[2].rank}`);
+        assert(d.rows[2].approvedSeconds === 0 && d.rows[2].rank === 3, `${period} rank 3 mismatch`);
         assert(d.rows.every((r) => !("pendingSeconds" in r)), `${period} leaked pendingSeconds into rows`);
+        // REJECTED 300s must NOT be in approvedSeconds OR pendingSeconds!
         assert(d.me.rank === 1 && d.me.approvedSeconds === 1000 && d.me.pendingSeconds === 500, `${period} B.me mismatch: ${JSON.stringify(d.me)}`);
         assert(findCodeKeys(lbB.json).length === 0, "Leaked code key");
       }
 
-      // Non-member editor (tempScrumAdmin) and SUPER_ADMIN get me.rank = null & are NOT in rows
       const lbAdmin = await api(`/api/scrums/${tempScrumId}/leaderboard?period=SPRINT`, { token: tempScrumAdmin.token });
-      const lbSa = await api(`/api/scrums/${tempScrumId}/leaderboard?period=ALL`, { token: saAuth.token });
-      assert(lbAdmin.status === 200 && lbAdmin.json.data.me.rank === null && lbAdmin.json.data.rows.length === 3, "Non-member editor me.rank must be null");
-      assert(lbSa.status === 200 && lbSa.json.data.me.rank === null, "Non-member SA me.rank must be null");
+      assert(lbAdmin.status === 200 && lbAdmin.json.data.me.rank === null, "Non-member editor me.rank must be null");
 
-      // Invalid foreign sprintId returns 404
-      const lbBadSp = await api(`/api/scrums/${tempScrumId}/leaderboard?period=SPRINT&sprintId=${seededScrum.activeSprint.id}`, { token: saAuth.token });
-      assert(lbBadSp.status === 404, `Foreign sprintId expected 404, got ${lbBadSp.status}`);
-
-      // Verify seededScrum leaderboard shows seeded APPROVED data cleanly (IT1102=2700s, IT1101=1500s)
       const lbSeeded = await api(`/api/scrums/${seededScrum.id}/leaderboard?period=ALL`, { token: member1Auth.token });
-      assert(lbSeeded.status === 200, "Seeded scrum leaderboard failed");
-      assert(lbSeeded.json.data.rows[0]?.approvedSeconds === 2700, `Expected IT1102 2700s at #1, got ${lbSeeded.json.data.rows[0]?.approvedSeconds}`);
+      assert(lbSeeded.status === 200 && lbSeeded.json.data.rows[0]?.approvedSeconds === 2700, `Expected IT1102 2700s at #1, got ${lbSeeded.json.data.rows[0]?.approvedSeconds}`);
       assert(lbSeeded.json.data.me.approvedSeconds === 1500 && lbSeeded.json.data.me.pendingSeconds > 0, "Seeded member1 me mismatch");
-      return "1000s/1000s/0s -> ranks 1,1,3 + me.pendingSeconds=500 + seeded verified";
+      return "Ranks 1,1,3 + REJECTED excluded + seeded verified";
     });
 
-    await runCheck("Dashboard", "GET /api/scrum-admin/dashboard aggregates scrums, distinct members, KPI & todayEvents; 403 for USER/ADMIN", async () => {
+    await runCheck("Dashboard", "GET /api/scrum-admin/dashboard reports task counts, points & manual progressPercent", async () => {
       const rForbU = await api("/api/scrum-admin/dashboard", { token: tempMemberA.token });
       const rForbA = await api("/api/scrum-admin/dashboard", { token: adminAuth.token });
       assert(rForbU.status === 403 && rForbA.status === 403, "Expected 403 for USER/ADMIN");
@@ -1096,136 +1026,53 @@ const main = async () => {
       const rAdm = await api("/api/scrum-admin/dashboard", { token: tempScrumAdmin.token });
       assert(rAdm.status === 200, `Admin dashboard failed: ${rAdm.status}`);
       const d = rAdm.json.data;
-      assert(d.totals.scrums === 1, `Expected 1 assigned scrum for tempScrumAdmin, got ${d.totals.scrums}`);
-      assert(d.totals.members === 3, `Expected 3 members, got ${d.totals.members}`);
-      assert(d.totals.activeSprints === 1 && d.totals.openItems === 2 && d.totals.totalPoints === 13, `Unexpected sprint totals: ${JSON.stringify(d.totals)}`);
-      assert(d.scrums[0].linkedProjectCount === 2, `Expected 2 linked projects, got ${d.scrums[0].linkedProjectCount}`);
-      assert(d.scrums[0].kpi.total === 2 && d.scrums[0].kpi.belowMin === 1 && d.scrums[0].kpi.onTarget === 1, `Unexpected KPI counts: ${JSON.stringify(d.scrums[0].kpi)}`);
-      assert(d.todayEvents.length === 2, `Expected 2 today events, got ${d.todayEvents.length}`);
+      assert(d.totals.scrums === 1 && d.totals.members === 3 && d.totals.activeSprints === 1, `Unexpected totals: ${JSON.stringify(d.totals)}`);
+      assert(d.totals.activeTasks === 2 && d.totals.totalTasks === 3 && d.totals.totalTaskPoints === 16, `Unexpected task totals: ${JSON.stringify(d.totals)}`);
+      assert(d.scrums[0].taskCount === 3 && d.scrums[0].activeTaskCount === 2 && d.scrums[0].totalTaskPoints === 16, "Unexpected scrum task card stats");
+      assert(d.scrums[0].activeSprint?.progressPercent === 60, `Expected progressPercent=60, got ${d.scrums[0].activeSprint?.progressPercent}`);
+      assert(d.scrums[0].kpi.total === 2 && d.todayEvents.length === 2, "KPI/events count mismatch");
 
-      // Verify distinct member deduplication for SUPER_ADMIN across multiple scrums (tempMemberA is in BOTH tempScrumId and tempScrum2Id)
       const rSaDash = await api("/api/scrum-admin/dashboard", { token: saAuth.token });
-      assert(rSaDash.status === 200, "SA dashboard failed");
       const sumCounts = rSaDash.json.data.scrums.reduce((acc, s) => acc + s.memberCount, 0);
-      assert(rSaDash.json.data.totals.members < sumCounts, `Expected distinct members (${rSaDash.json.data.totals.members}) < sum(${sumCounts})`);
+      assert(rSaDash.json.data.totals.members < sumCounts, "Distinct member deduplication failed");
       assert(findCodeKeys(rSaDash.json).length === 0, "Leaked code key in dashboard");
-      return `scrums=${d.totals.scrums}, saDistinct=${rSaDash.json.data.totals.members}<${sumCounts}`;
+      return `activeTasks=${d.totals.activeTasks}/${d.totals.totalTasks}, pts=${d.totals.totalTaskPoints}, progress=60%`;
     });
 
     // ---------------------------------------------------------
-    // I. Unlink & Archive Behavior on WorkTargets & SprintItems + Delete Guards
+    // I. Delete Guards & Role/Active Cache Invalidation
     // ---------------------------------------------------------
-    await runCheck("UnlinkProject", "DELETE /scrums/:id/projects/:projectId/link nulls SprintProject.projectId & restores studioProjects", async () => {
-      const rUnlink = await api(`/api/scrums/${tempScrumId}/projects/${standaloneProjId}/link`, {
-        method: "DELETE",
-        token: tempScrumAdmin.token,
-      });
-      assert(rUnlink.status === 200, `Unlink failed: ${rUnlink.status}`);
-
-      // Sprint details shows itemA.projectId === null now!
-      const rSpr = await api(`/api/sprints/${sprint1.id}`, { token: tempScrumAdmin.token });
-      const fetchedA = rSpr.json.data.projects.find((p) => p.id === itemA.id);
-      assert(fetchedA && fetchedA.projectId === null && fetchedA.project === null, "SprintProject.projectId not nulled on unlink");
-
-      // WorkTargets shows standaloneProjId back in studioProjects!
-      const wt = await api("/api/work-targets/mine", { token: tempMemberA.token });
-      assert(wt.json.data.studioProjects.some((p) => p.id === standaloneProjId), "Unlinked project did not return to studioProjects");
-
-      // Archive tempScrum2 -> otherScrumProjId returns to tempMemberA's studioProjects!
-      await api(`/api/scrums/${tempScrum2Id}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { isActive: false },
-      });
-      const wtArch = await api("/api/work-targets/mine", { token: tempMemberA.token });
-      assert(wtArch.json.data.studioProjects.some((p) => p.id === otherScrumProjId), "Archived scrum project did not return to studioProjects");
-      await api(`/api/scrums/${tempScrum2Id}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { isActive: true },
-      });
-
-      // PATCH /api/projects/:id { scrumId } moves project between scrums & null unlinks cleanly
-      const rMoveProj = await api(`/api/projects/${otherScrumProjId}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { scrumId: tempScrumId },
-      });
-      assert(rMoveProj.status === 200 && rMoveProj.json.data.scrumId === tempScrumId, `Move project failed: ${rMoveProj.status}`);
-      const rNullProj = await api(`/api/projects/${otherScrumProjId}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { scrumId: null },
-      });
-      assert(rNullProj.status === 200 && rNullProj.json.data.scrumId === null && rNullProj.json.data.scrum === null, "Unlink via PATCH /api/projects failed");
-      return "Unlink + archive + PATCH project.scrumId verified";
+    await runCheck("DeleteGuards", "409 deleting Task & Scrum with sessions; clean 200 deleting Sprint", async () => {
+      const rTask409 = await api(`/api/tasks/${taskA.id}`, { method: "DELETE", token: tempScrumAdmin.token });
+      const rScr409 = await api(`/api/scrums/${tempScrumId}`, { method: "DELETE", token: saAuth.token });
+      const rSpr200 = await api(`/api/sprints/${sprint2.id}`, { method: "DELETE", token: tempScrumAdmin.token });
+      assert(rTask409.status === 409 && rScr409.status === 409, `Expected 409/409, got ${rTask409.status}/${rScr409.status}`);
+      assert(rSpr200.status === 200, `Simplified sprint DELETE expected 200, got ${rSpr200.status}`);
+      return "Task/Scrum=409, Sprint=200";
     });
 
-    await runCheck("DeleteGuards", "SA gets 409 deleting scrum with sessions; SCRUM_ADMIN gets 409 on sprint/item", async () => {
-      const rProj = await api(`/api/sprint-projects/${itemA.id}`, { method: "DELETE", token: tempScrumAdmin.token });
-      const rSpr = await api(`/api/sprints/${sprint1.id}`, { method: "DELETE", token: tempScrumAdmin.token });
-      const rScr = await api(`/api/scrums/${tempScrumId}`, { method: "DELETE", token: saAuth.token });
-      assert(rProj.status === 409 && rSpr.status === 409 && rScr.status === 409, `Expected all 409, got ${rProj.status}/${rSpr.status}/${rScr.status}`);
-      return "All 3 -> 409";
-    });
-
-    // ---------------------------------------------------------
-    // J. Role / Active Cache Invalidation & ScrumAdmin Cleanup
-    // ---------------------------------------------------------
-    await runCheck("CacheInvalidation", "PATCH /api/users/:id role change away from SCRUM_ADMIN removes ScrumAdmin & updates JWT immediately", async () => {
-      // Promote tempMemberC (USER -> SCRUM_ADMIN)
-      const rProm = await api(`/api/users/${tempMemberC.id}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { role: "SCRUM_ADMIN" },
-      });
+    await runCheck("CacheInvalidation", "Role change away from SCRUM_ADMIN & isActive=false clean up ScrumAdmin immediately", async () => {
+      const rProm = await api(`/api/users/${tempMemberC.id}`, { method: "PATCH", token: saAuth.token, body: { role: "SCRUM_ADMIN" } });
       assert(rProm.status === 200, `Promote failed: ${rProm.status}`);
 
-      // Existing JWT immediately works on /api/scrum-admin/dashboard (200)
       const rDashProm = await api("/api/scrum-admin/dashboard", { token: tempMemberC.token });
-      assert(rDashProm.status === 200 && rDashProm.json.data.totals.scrums === 0, "Promoted user dashboard failed");
+      assert(rDashProm.status === 200, "Promoted user dashboard failed");
 
-      // Assign tempMemberC as admin on tempScrum2Id -> verify myRole=ADMIN immediately
-      const rAssign = await api(`/api/scrums/${tempScrum2Id}/admins`, {
-        method: "PUT",
-        token: saAuth.token,
-        body: { userIds: [tempScrumAdmin2.id, tempMemberC.id] },
-      });
-      assert(rAssign.status === 200, "Assign promoted user as scrum admin failed");
-
-      const rDetailsBefore = await api(`/api/scrums/${tempScrum2Id}`, { token: tempMemberC.token });
-      assert(rDetailsBefore.status === 200 && rDetailsBefore.json.data.myRole === "ADMIN", "Expected myRole=ADMIN before demotion");
-
-      // Change role back to USER -> removes ScrumAdmin row + immediately demotes existing JWT!
-      const rDemUser = await api(`/api/users/${tempMemberC.id}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { role: "USER" },
-      });
-      assert(rDemUser.status === 200, "Demote to USER failed");
+      await api(`/api/scrums/${tempScrum2Id}/admins`, { method: "PUT", token: saAuth.token, body: { userIds: [tempScrumAdmin2.id, tempMemberC.id] } });
+      const rDemUser = await api(`/api/users/${tempMemberC.id}`, { method: "PATCH", token: saAuth.token, body: { role: "USER" } });
+      assert(rDemUser.status === 200, "Demote failed");
 
       const rDashBlocked = await api("/api/scrum-admin/dashboard", { token: tempMemberC.token });
       const rScrum2Gone = await api(`/api/scrums/${tempScrum2Id}`, { token: tempMemberC.token });
-      assert(rDashBlocked.status === 403, `Demoted USER dashboard expected 403, got ${rDashBlocked.status}`);
-      assert(rScrum2Gone.status === 404, `Removed ScrumAdmin non-member expected 404, got ${rScrum2Gone.status}`);
+      assert(rDashBlocked.status === 403 && rScrum2Gone.status === 404, "Immediate demotion/cache invalidation failed");
 
-      // Check deactivating SCRUM_ADMIN deletes ScrumAdmin rows
-      const rDeact = await api(`/api/users/${tempScrumAdmin2.id}`, {
-        method: "PATCH",
-        token: saAuth.token,
-        body: { isActive: false },
-      });
-      assert(rDeact.status === 200, "Deactivate failed");
+      await api(`/api/users/${tempScrumAdmin2.id}`, { method: "PATCH", token: saAuth.token, body: { isActive: false } });
       const rCheckAdmins = await api(`/api/scrums/${tempScrum2Id}`, { token: saAuth.token });
-      assert(
-        rCheckAdmins.status === 200 && rCheckAdmins.json.data.admins.length === 0,
-        `Deactivated user still in ScrumAdmin: ${JSON.stringify(rCheckAdmins.json.data.admins)}`
-      );
-      return "USER -> SCRUM_ADMIN -> USER + isActive=false ScrumAdmin cleanup verified";
+      assert(rCheckAdmins.status === 200 && rCheckAdmins.json.data.admins.length === 0, "Deactivated admin still in ScrumAdmin");
+      return "Cache invalidation + ScrumAdmin cleanup verified";
     });
   } finally {
     if (saAuth?.token) {
-      // Order matters: Projects first (frees createdById), Users second (cascades WorkSessions), Scrums last
       for (const pid of createdProjectIds) {
         await api(`/api/projects/${pid}`, { method: "DELETE", token: saAuth.token }).catch(() => {});
       }

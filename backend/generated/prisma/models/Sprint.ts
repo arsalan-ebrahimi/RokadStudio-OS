@@ -30,12 +30,14 @@ export type SprintAvgAggregateOutputType = {
   id: number | null
   scrumId: number | null
   number: number | null
+  progressPercent: number | null
 }
 
 export type SprintSumAggregateOutputType = {
   id: number | null
   scrumId: number | null
   number: number | null
+  progressPercent: number | null
 }
 
 export type SprintMinAggregateOutputType = {
@@ -47,6 +49,7 @@ export type SprintMinAggregateOutputType = {
   startDate: Date | null
   endDate: Date | null
   status: $Enums.SprintStatus | null
+  progressPercent: number | null
   completedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -61,6 +64,7 @@ export type SprintMaxAggregateOutputType = {
   startDate: Date | null
   endDate: Date | null
   status: $Enums.SprintStatus | null
+  progressPercent: number | null
   completedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -75,6 +79,7 @@ export type SprintCountAggregateOutputType = {
   startDate: number
   endDate: number
   status: number
+  progressPercent: number
   completedAt: number
   createdAt: number
   updatedAt: number
@@ -86,12 +91,14 @@ export type SprintAvgAggregateInputType = {
   id?: true
   scrumId?: true
   number?: true
+  progressPercent?: true
 }
 
 export type SprintSumAggregateInputType = {
   id?: true
   scrumId?: true
   number?: true
+  progressPercent?: true
 }
 
 export type SprintMinAggregateInputType = {
@@ -103,6 +110,7 @@ export type SprintMinAggregateInputType = {
   startDate?: true
   endDate?: true
   status?: true
+  progressPercent?: true
   completedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -117,6 +125,7 @@ export type SprintMaxAggregateInputType = {
   startDate?: true
   endDate?: true
   status?: true
+  progressPercent?: true
   completedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -131,6 +140,7 @@ export type SprintCountAggregateInputType = {
   startDate?: true
   endDate?: true
   status?: true
+  progressPercent?: true
   completedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -232,6 +242,7 @@ export type SprintGroupByOutputType = {
   startDate: Date | null
   endDate: Date | null
   status: $Enums.SprintStatus
+  progressPercent: number
   completedAt: Date | null
   createdAt: Date
   updatedAt: Date
@@ -269,11 +280,11 @@ export type SprintWhereInput = {
   startDate?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   status?: Prisma.EnumSprintStatusFilter<"Sprint"> | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFilter<"Sprint"> | number
   completedAt?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Sprint"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Sprint"> | Date | string
   scrum?: Prisma.XOR<Prisma.ScrumScalarRelationFilter, Prisma.ScrumWhereInput>
-  projects?: Prisma.SprintProjectListRelationFilter
 }
 
 export type SprintOrderByWithRelationInput = {
@@ -285,11 +296,11 @@ export type SprintOrderByWithRelationInput = {
   startDate?: Prisma.SortOrderInput | Prisma.SortOrder
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   scrum?: Prisma.ScrumOrderByWithRelationInput
-  projects?: Prisma.SprintProjectOrderByRelationAggregateInput
 }
 
 export type SprintWhereUniqueInput = Prisma.AtLeast<{
@@ -305,11 +316,11 @@ export type SprintWhereUniqueInput = Prisma.AtLeast<{
   startDate?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   status?: Prisma.EnumSprintStatusFilter<"Sprint"> | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFilter<"Sprint"> | number
   completedAt?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Sprint"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Sprint"> | Date | string
   scrum?: Prisma.XOR<Prisma.ScrumScalarRelationFilter, Prisma.ScrumWhereInput>
-  projects?: Prisma.SprintProjectListRelationFilter
 }, "id" | "scrumId_number">
 
 export type SprintOrderByWithAggregationInput = {
@@ -321,6 +332,7 @@ export type SprintOrderByWithAggregationInput = {
   startDate?: Prisma.SortOrderInput | Prisma.SortOrder
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -343,6 +355,7 @@ export type SprintScalarWhereWithAggregatesInput = {
   startDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Sprint"> | Date | string | null
   endDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Sprint"> | Date | string | null
   status?: Prisma.EnumSprintStatusWithAggregatesFilter<"Sprint"> | $Enums.SprintStatus
+  progressPercent?: Prisma.IntWithAggregatesFilter<"Sprint"> | number
   completedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Sprint"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Sprint"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Sprint"> | Date | string
@@ -355,11 +368,11 @@ export type SprintCreateInput = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   status?: $Enums.SprintStatus
+  progressPercent?: number
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   scrum: Prisma.ScrumCreateNestedOneWithoutSprintsInput
-  projects?: Prisma.SprintProjectCreateNestedManyWithoutSprintInput
 }
 
 export type SprintUncheckedCreateInput = {
@@ -371,10 +384,10 @@ export type SprintUncheckedCreateInput = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   status?: $Enums.SprintStatus
+  progressPercent?: number
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  projects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutSprintInput
 }
 
 export type SprintUpdateInput = {
@@ -384,11 +397,11 @@ export type SprintUpdateInput = {
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFieldUpdateOperationsInput | number
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scrum?: Prisma.ScrumUpdateOneRequiredWithoutSprintsNestedInput
-  projects?: Prisma.SprintProjectUpdateManyWithoutSprintNestedInput
 }
 
 export type SprintUncheckedUpdateInput = {
@@ -400,10 +413,10 @@ export type SprintUncheckedUpdateInput = {
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFieldUpdateOperationsInput | number
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  projects?: Prisma.SprintProjectUncheckedUpdateManyWithoutSprintNestedInput
 }
 
 export type SprintCreateManyInput = {
@@ -415,6 +428,7 @@ export type SprintCreateManyInput = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   status?: $Enums.SprintStatus
+  progressPercent?: number
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -427,6 +441,7 @@ export type SprintUpdateManyMutationInput = {
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFieldUpdateOperationsInput | number
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -441,6 +456,7 @@ export type SprintUncheckedUpdateManyInput = {
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFieldUpdateOperationsInput | number
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -470,6 +486,7 @@ export type SprintCountOrderByAggregateInput = {
   startDate?: Prisma.SortOrder
   endDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -479,6 +496,7 @@ export type SprintAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
   number?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
 }
 
 export type SprintMaxOrderByAggregateInput = {
@@ -490,6 +508,7 @@ export type SprintMaxOrderByAggregateInput = {
   startDate?: Prisma.SortOrder
   endDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -504,6 +523,7 @@ export type SprintMinOrderByAggregateInput = {
   startDate?: Prisma.SortOrder
   endDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -513,11 +533,7 @@ export type SprintSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
   number?: Prisma.SortOrder
-}
-
-export type SprintScalarRelationFilter = {
-  is?: Prisma.SprintWhereInput
-  isNot?: Prisma.SprintWhereInput
+  progressPercent?: Prisma.SortOrder
 }
 
 export type SprintCreateNestedManyWithoutScrumInput = {
@@ -570,20 +586,6 @@ export type EnumSprintStatusFieldUpdateOperationsInput = {
   set?: $Enums.SprintStatus
 }
 
-export type SprintCreateNestedOneWithoutProjectsInput = {
-  create?: Prisma.XOR<Prisma.SprintCreateWithoutProjectsInput, Prisma.SprintUncheckedCreateWithoutProjectsInput>
-  connectOrCreate?: Prisma.SprintCreateOrConnectWithoutProjectsInput
-  connect?: Prisma.SprintWhereUniqueInput
-}
-
-export type SprintUpdateOneRequiredWithoutProjectsNestedInput = {
-  create?: Prisma.XOR<Prisma.SprintCreateWithoutProjectsInput, Prisma.SprintUncheckedCreateWithoutProjectsInput>
-  connectOrCreate?: Prisma.SprintCreateOrConnectWithoutProjectsInput
-  upsert?: Prisma.SprintUpsertWithoutProjectsInput
-  connect?: Prisma.SprintWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.SprintUpdateToOneWithWhereWithoutProjectsInput, Prisma.SprintUpdateWithoutProjectsInput>, Prisma.SprintUncheckedUpdateWithoutProjectsInput>
-}
-
 export type SprintCreateWithoutScrumInput = {
   number: number
   title: string
@@ -591,10 +593,10 @@ export type SprintCreateWithoutScrumInput = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   status?: $Enums.SprintStatus
+  progressPercent?: number
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  projects?: Prisma.SprintProjectCreateNestedManyWithoutSprintInput
 }
 
 export type SprintUncheckedCreateWithoutScrumInput = {
@@ -605,10 +607,10 @@ export type SprintUncheckedCreateWithoutScrumInput = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   status?: $Enums.SprintStatus
+  progressPercent?: number
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  projects?: Prisma.SprintProjectUncheckedCreateNestedManyWithoutSprintInput
 }
 
 export type SprintCreateOrConnectWithoutScrumInput = {
@@ -649,79 +651,10 @@ export type SprintScalarWhereInput = {
   startDate?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   status?: Prisma.EnumSprintStatusFilter<"Sprint"> | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFilter<"Sprint"> | number
   completedAt?: Prisma.DateTimeNullableFilter<"Sprint"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Sprint"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Sprint"> | Date | string
-}
-
-export type SprintCreateWithoutProjectsInput = {
-  number: number
-  title: string
-  description?: string | null
-  startDate?: Date | string | null
-  endDate?: Date | string | null
-  status?: $Enums.SprintStatus
-  completedAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  scrum: Prisma.ScrumCreateNestedOneWithoutSprintsInput
-}
-
-export type SprintUncheckedCreateWithoutProjectsInput = {
-  id?: number
-  scrumId: number
-  number: number
-  title: string
-  description?: string | null
-  startDate?: Date | string | null
-  endDate?: Date | string | null
-  status?: $Enums.SprintStatus
-  completedAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type SprintCreateOrConnectWithoutProjectsInput = {
-  where: Prisma.SprintWhereUniqueInput
-  create: Prisma.XOR<Prisma.SprintCreateWithoutProjectsInput, Prisma.SprintUncheckedCreateWithoutProjectsInput>
-}
-
-export type SprintUpsertWithoutProjectsInput = {
-  update: Prisma.XOR<Prisma.SprintUpdateWithoutProjectsInput, Prisma.SprintUncheckedUpdateWithoutProjectsInput>
-  create: Prisma.XOR<Prisma.SprintCreateWithoutProjectsInput, Prisma.SprintUncheckedCreateWithoutProjectsInput>
-  where?: Prisma.SprintWhereInput
-}
-
-export type SprintUpdateToOneWithWhereWithoutProjectsInput = {
-  where?: Prisma.SprintWhereInput
-  data: Prisma.XOR<Prisma.SprintUpdateWithoutProjectsInput, Prisma.SprintUncheckedUpdateWithoutProjectsInput>
-}
-
-export type SprintUpdateWithoutProjectsInput = {
-  number?: Prisma.IntFieldUpdateOperationsInput | number
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scrum?: Prisma.ScrumUpdateOneRequiredWithoutSprintsNestedInput
-}
-
-export type SprintUncheckedUpdateWithoutProjectsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  scrumId?: Prisma.IntFieldUpdateOperationsInput | number
-  number?: Prisma.IntFieldUpdateOperationsInput | number
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type SprintCreateManyScrumInput = {
@@ -732,6 +665,7 @@ export type SprintCreateManyScrumInput = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   status?: $Enums.SprintStatus
+  progressPercent?: number
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -744,10 +678,10 @@ export type SprintUpdateWithoutScrumInput = {
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFieldUpdateOperationsInput | number
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  projects?: Prisma.SprintProjectUpdateManyWithoutSprintNestedInput
 }
 
 export type SprintUncheckedUpdateWithoutScrumInput = {
@@ -758,10 +692,10 @@ export type SprintUncheckedUpdateWithoutScrumInput = {
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFieldUpdateOperationsInput | number
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  projects?: Prisma.SprintProjectUncheckedUpdateManyWithoutSprintNestedInput
 }
 
 export type SprintUncheckedUpdateManyWithoutScrumInput = {
@@ -772,40 +706,12 @@ export type SprintUncheckedUpdateManyWithoutScrumInput = {
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumSprintStatusFieldUpdateOperationsInput | $Enums.SprintStatus
+  progressPercent?: Prisma.IntFieldUpdateOperationsInput | number
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-
-/**
- * Count Type SprintCountOutputType
- */
-
-export type SprintCountOutputType = {
-  projects: number
-}
-
-export type SprintCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  projects?: boolean | SprintCountOutputTypeCountProjectsArgs
-}
-
-/**
- * SprintCountOutputType without action
- */
-export type SprintCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the SprintCountOutputType
-   */
-  select?: Prisma.SprintCountOutputTypeSelect<ExtArgs> | null
-}
-
-/**
- * SprintCountOutputType without action
- */
-export type SprintCountOutputTypeCountProjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.SprintProjectWhereInput
-}
 
 
 export type SprintSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -817,12 +723,11 @@ export type SprintSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   startDate?: boolean
   endDate?: boolean
   status?: boolean
+  progressPercent?: boolean
   completedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
-  projects?: boolean | Prisma.Sprint$projectsArgs<ExtArgs>
-  _count?: boolean | Prisma.SprintCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sprint"]>
 
 export type SprintSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -834,6 +739,7 @@ export type SprintSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   startDate?: boolean
   endDate?: boolean
   status?: boolean
+  progressPercent?: boolean
   completedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -849,6 +755,7 @@ export type SprintSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   startDate?: boolean
   endDate?: boolean
   status?: boolean
+  progressPercent?: boolean
   completedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -864,16 +771,15 @@ export type SprintSelectScalar = {
   startDate?: boolean
   endDate?: boolean
   status?: boolean
+  progressPercent?: boolean
   completedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SprintOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scrumId" | "number" | "title" | "description" | "startDate" | "endDate" | "status" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["sprint"]>
+export type SprintOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scrumId" | "number" | "title" | "description" | "startDate" | "endDate" | "status" | "progressPercent" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["sprint"]>
 export type SprintInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
-  projects?: boolean | Prisma.Sprint$projectsArgs<ExtArgs>
-  _count?: boolean | Prisma.SprintCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SprintIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
@@ -886,7 +792,6 @@ export type $SprintPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   name: "Sprint"
   objects: {
     scrum: Prisma.$ScrumPayload<ExtArgs>
-    projects: Prisma.$SprintProjectPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -897,6 +802,7 @@ export type $SprintPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     startDate: Date | null
     endDate: Date | null
     status: $Enums.SprintStatus
+    progressPercent: number
     completedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -1295,7 +1201,6 @@ readonly fields: SprintFieldRefs;
 export interface Prisma__SprintClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   scrum<T extends Prisma.ScrumDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScrumDefaultArgs<ExtArgs>>): Prisma.Prisma__ScrumClient<runtime.Types.Result.GetResult<Prisma.$ScrumPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  projects<T extends Prisma.Sprint$projectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Sprint$projectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SprintProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1333,6 +1238,7 @@ export interface SprintFieldRefs {
   readonly startDate: Prisma.FieldRef<"Sprint", 'DateTime'>
   readonly endDate: Prisma.FieldRef<"Sprint", 'DateTime'>
   readonly status: Prisma.FieldRef<"Sprint", 'SprintStatus'>
+  readonly progressPercent: Prisma.FieldRef<"Sprint", 'Int'>
   readonly completedAt: Prisma.FieldRef<"Sprint", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Sprint", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Sprint", 'DateTime'>
@@ -1734,30 +1640,6 @@ export type SprintDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Limit how many Sprints to delete.
    */
   limit?: number
-}
-
-/**
- * Sprint.projects
- */
-export type Sprint$projectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the SprintProject
-   */
-  select?: Prisma.SprintProjectSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the SprintProject
-   */
-  omit?: Prisma.SprintProjectOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.SprintProjectInclude<ExtArgs> | null
-  where?: Prisma.SprintProjectWhereInput
-  orderBy?: Prisma.SprintProjectOrderByWithRelationInput | Prisma.SprintProjectOrderByWithRelationInput[]
-  cursor?: Prisma.SprintProjectWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.SprintProjectScalarFieldEnum | Prisma.SprintProjectScalarFieldEnum[]
 }
 
 /**

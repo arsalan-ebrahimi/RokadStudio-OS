@@ -1,12 +1,15 @@
 import { apiClient } from '@/shared/lib/api-client';
+import type { PaginationMeta } from '@/shared/types/api';
+import type {
+  WorkTargetSessionsData,
+  WorkTargetSessionsQuery,
+} from '@/shared/types/models';
 import type {
   Scrum,
   ScrumMember,
   ScrumUserRef,
   Sprint,
-  SprintProject,
-  ScrumLinkedProject,
-  AvailableScrumProject,
+  ScrumTask,
   ScrumKpi,
   ScrumEvent,
   TodayScrumEvent,
@@ -17,7 +20,6 @@ import type {
   LeaderboardPeriod,
   ScrumColor,
   SprintStatus,
-  ItemStatus,
 } from '../types/scrum-types';
 
 export async function fetchScrums(): Promise<Scrum[]> {
@@ -79,59 +81,84 @@ export async function syncScrumMembers(
   return res.data;
 }
 
-export async function fetchScrumProjects(scrumId: number): Promise<ScrumLinkedProject[]> {
-  const res = await apiClient<ScrumLinkedProject[]>(`/api/scrums/${scrumId}/projects`);
+export async function fetchScrumTasks(
+  scrumId: number,
+  params?: { isActive?: boolean; search?: string }
+): Promise<ScrumTask[]> {
+  const cleanParams: Record<string, string | boolean> = {};
+  if (typeof params?.isActive === 'boolean') cleanParams.isActive = params.isActive;
+  if (params?.search && params.search.trim()) cleanParams.search = params.search.trim();
+
+  const res = await apiClient<ScrumTask[]>(`/api/scrums/${scrumId}/tasks`, {
+    params: cleanParams,
+  });
   return res.data;
 }
 
-export async function createScrumProject(
+export async function createScrumTask(
   scrumId: number,
-  payload: { name: string; description?: string | null; memberIds?: number[] }
-): Promise<ScrumLinkedProject> {
-  const res = await apiClient<ScrumLinkedProject>(`/api/scrums/${scrumId}/projects`, {
+  payload: {
+    name: string;
+    description?: string | null;
+    points?: number;
+    isActive?: boolean;
+    memberIds?: number[];
+  }
+): Promise<ScrumTask> {
+  const res = await apiClient<ScrumTask>(`/api/scrums/${scrumId}/tasks`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
   return res.data;
 }
 
-export async function fetchAvailableScrumProjects(
-  scrumId: number,
-  q?: string
-): Promise<AvailableScrumProject[]> {
-  const res = await apiClient<AvailableScrumProject[]>(`/api/scrums/${scrumId}/projects/available`, {
-    params: q && q.trim() ? { q: q.trim() } : undefined,
+export async function updateScrumTask(
+  taskId: number,
+  payload: {
+    name?: string;
+    description?: string | null;
+    points?: number;
+    isActive?: boolean;
+  }
+): Promise<ScrumTask> {
+  const res = await apiClient<ScrumTask>(`/api/tasks/${taskId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   });
   return res.data;
 }
 
-export async function linkProjectToScrum(
-  scrumId: number,
-  projectId: number
-): Promise<ScrumLinkedProject> {
-  const res = await apiClient<ScrumLinkedProject>(`/api/scrums/${scrumId}/projects/link`, {
-    method: 'POST',
-    body: JSON.stringify({ projectId }),
-  });
-  return res.data;
-}
-
-export async function unlinkProjectFromScrum(scrumId: number, projectId: number): Promise<void> {
-  await apiClient<null>(`/api/scrums/${scrumId}/projects/${projectId}/link`, {
-    method: 'DELETE',
-  });
-}
-
-export async function syncScrumProjectMembers(
-  scrumId: number,
-  projectId: number,
-  userIds: number[]
-): Promise<ScrumUserRef[]> {
-  const res = await apiClient<ScrumUserRef[]>(`/api/scrums/${scrumId}/projects/${projectId}/members`, {
+export async function syncTaskMembers(taskId: number, userIds: number[]): Promise<ScrumUserRef[]> {
+  const res = await apiClient<ScrumUserRef[]>(`/api/tasks/${taskId}/members`, {
     method: 'PUT',
     body: JSON.stringify({ userIds }),
   });
   return res.data;
+}
+
+export async function deleteScrumTask(taskId: number): Promise<void> {
+  await apiClient<null>(`/api/tasks/${taskId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function fetchTaskWorkSessions(
+  taskId: number,
+  query: WorkTargetSessionsQuery = {}
+): Promise<{ data: WorkTargetSessionsData; meta?: PaginationMeta }> {
+  const cleanParams: Record<string, string | number> = {};
+  if (query.date) cleanParams.date = query.date;
+  if (query.dateFrom) cleanParams.dateFrom = query.dateFrom;
+  if (query.dateTo) cleanParams.dateTo = query.dateTo;
+  if (query.approval && query.approval !== 'ALL') cleanParams.approval = query.approval;
+  if (query.userId) cleanParams.userId = query.userId;
+  if (query.page) cleanParams.page = query.page;
+  if (query.limit) cleanParams.limit = query.limit;
+
+  const res = await apiClient<WorkTargetSessionsData>(`/api/tasks/${taskId}/work-sessions`, {
+    params: cleanParams,
+  });
+  return { data: res.data, meta: res.meta };
 }
 
 export async function fetchSprints(scrumId: number): Promise<Sprint[]> {
@@ -141,7 +168,13 @@ export async function fetchSprints(scrumId: number): Promise<Sprint[]> {
 
 export async function createSprint(
   scrumId: number,
-  payload?: { title?: string; description?: string; startDate?: string; endDate?: string }
+  payload?: {
+    title?: string;
+    description?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    progressPercent?: number;
+  }
 ): Promise<Sprint> {
   const res = await apiClient<Sprint>(`/api/scrums/${scrumId}/sprints`, {
     method: 'POST',
@@ -157,7 +190,13 @@ export async function fetchSprintById(id: number): Promise<Sprint> {
 
 export async function updateSprint(
   id: number,
-  payload: { title?: string; description?: string; startDate?: string | null; endDate?: string | null }
+  payload: {
+    title?: string;
+    description?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    progressPercent?: number;
+  }
 ): Promise<Sprint> {
   const res = await apiClient<Sprint>(`/api/sprints/${id}`, {
     method: 'PATCH',
@@ -176,41 +215,6 @@ export async function updateSprintStatus(id: number, status: SprintStatus): Prom
 
 export async function deleteSprint(id: number): Promise<void> {
   await apiClient<null>(`/api/sprints/${id}`, {
-    method: 'DELETE',
-  });
-}
-
-export async function createSprintProject(
-  sprintId: number,
-  payload: { name: string; points?: number; assigneeId?: number | null; projectId?: number | null }
-): Promise<SprintProject> {
-  const res = await apiClient<SprintProject>(`/api/sprints/${sprintId}/projects`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-  return res.data;
-}
-
-export async function updateSprintProject(
-  id: number,
-  payload: {
-    name?: string;
-    points?: number;
-    assigneeId?: number | null;
-    projectId?: number | null;
-    status?: ItemStatus;
-    sortOrder?: number;
-  }
-): Promise<SprintProject> {
-  const res = await apiClient<SprintProject>(`/api/sprint-projects/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
-  });
-  return res.data;
-}
-
-export async function deleteSprintProject(id: number): Promise<void> {
-  await apiClient<null>(`/api/sprint-projects/${id}`, {
     method: 'DELETE',
   });
 }
@@ -253,10 +257,16 @@ export async function fetchWorkTargetsMine(): Promise<WorkTargetsResponse> {
 
 export async function fetchScrumReport(
   scrumId: number,
-  params?: { sprintId?: number; from?: string; to?: string }
+  params?: { sprintId?: number; taskId?: number; from?: string; to?: string }
 ): Promise<ScrumReportData> {
+  const cleanParams: Record<string, string | number> = {};
+  if (params?.sprintId) cleanParams.sprintId = params.sprintId;
+  if (params?.taskId) cleanParams.taskId = params.taskId;
+  if (params?.from) cleanParams.from = params.from;
+  if (params?.to) cleanParams.to = params.to;
+
   const res = await apiClient<ScrumReportData>(`/api/scrums/${scrumId}/report`, {
-    params,
+    params: cleanParams,
   });
   return res.data;
 }

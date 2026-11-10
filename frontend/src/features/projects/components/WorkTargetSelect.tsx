@@ -68,10 +68,19 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
     try {
       const raw = localStorage.getItem(`rokad_recent_targets_${userId}`);
       if (raw) {
-        const parsed: TimerTarget[] = JSON.parse(raw);
-        for (const t of parsed) {
-          if (t && t.id && t.kind) {
-            map.set(`${t.kind}_${t.id}`, t);
+        const parsed: unknown[] = JSON.parse(raw);
+        for (const item of parsed) {
+          if (!item || typeof item !== 'object') continue;
+          const obj = item as Record<string, unknown>;
+          const normalizedKind = obj.kind === 'STUDIO' ? 'PROJECT' : obj.kind;
+          if ((normalizedKind === 'PROJECT' || normalizedKind === 'TASK') && typeof obj.id === 'number') {
+            map.set(`${normalizedKind}_${obj.id}`, {
+              kind: normalizedKind,
+              id: obj.id,
+              label: String(obj.label || ''),
+              points: typeof obj.points === 'number' ? obj.points : undefined,
+              scrumColor: typeof obj.scrumColor === 'string' ? obj.scrumColor : undefined,
+            });
           }
         }
       }
@@ -81,6 +90,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
 
     if (targetsData?.recent) {
       for (const r of targetsData.recent) {
+        if (r.kind !== 'PROJECT' && r.kind !== 'TASK') continue;
         const key = `${r.kind}_${r.id}`;
         if (!map.has(key)) {
           map.set(key, {
@@ -100,23 +110,21 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
   const filteredActiveScrums = useMemo(() => {
     if (!targetsData?.scrums) return [];
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return targetsData.scrums;
+    if (!term) return targetsData.scrums.filter((s) => (s.tasks?.length || 0) > 0);
 
     return targetsData.scrums
       .map((s) => {
         const scrumMatched = s.scrum.name.toLowerCase().includes(term);
-        const projects = s.projects || [];
-        const items = s.items || [];
+        const tasks = s.tasks || [];
         if (scrumMatched) {
-          return { ...s, projects, items };
+          return { ...s, tasks };
         }
         return {
           ...s,
-          projects: projects.filter((p) => p.name.toLowerCase().includes(term)),
-          items: items.filter((item) => item.name.toLowerCase().includes(term)),
+          tasks: tasks.filter((t) => t.name.toLowerCase().includes(term)),
         };
       })
-      .filter((s) => s.items.length > 0 || s.projects.length > 0);
+      .filter((s) => s.tasks.length > 0);
   }, [targetsData, searchTerm]);
 
   const filteredStudioProjects = useMemo(() => {
@@ -131,7 +139,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
 
   const totalScrumTargets = useMemo(() => {
     return (targetsData?.scrums || []).reduce(
-      (acc, s) => acc + (s.items?.length || 0) + (s.projects?.length || 0),
+      (acc, s) => acc + (s.tasks?.length || 0),
       0
     );
   }, [targetsData?.scrums]);
@@ -184,9 +192,9 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
         <span className="text-xs sm:text-sm font-extrabold text-sec dark:text-white truncate">
           {title}
         </span>
-        {selectedTarget.kind === 'SPRINT' && typeof selectedTarget.points === 'number' && (
+        {selectedTarget.kind === 'TASK' && typeof selectedTarget.points === 'number' && (
           <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sec/[0.06] dark:bg-gray-800 text-sec/70 dark:text-gray-300 font-bold shrink-0 tabular-nums">
-            {toPersianDigits(selectedTarget.points)} pt
+            {toPersianDigits(selectedTarget.points)} پوینت
           </span>
         )}
       </div>
@@ -259,7 +267,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                         )}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          {rt.kind === 'SPRINT' ? (
+                          {rt.kind === 'TASK' ? (
                             <Zap className="w-3.5 h-3.5 text-college-normal shrink-0" />
                           ) : (
                             <FolderKanban
@@ -282,13 +290,13 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 px-2 text-[11px] font-black text-sec/60 dark:text-gray-400">
                 <Zap className="w-3.5 h-3.5 text-college-normal" />
-                <span>تیم‌های اسکرام من</span>
+                <span>تسک‌های اسکرام من</span>
               </div>
 
               {totalScrumTargets === 0 ? (
                 <div className="px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-sec/10 dark:border-gray-800 text-center">
                   <p className="text-[11px] text-sec/60 dark:text-gray-400 font-bold">
-                    پروژه یا تسک فعالی در اسکرام‌ها به شما اختصاص نیافته است.
+                    تسک فعالی در اسکرام‌ها به شما اختصاص نیافته است.
                   </p>
                 </div>
               ) : filteredActiveScrums.length === 0 ? (
@@ -299,8 +307,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                 <div className="space-y-2.5">
                   {filteredActiveScrums.map((s) => {
                     const colorMeta = SCRUM_COLOR_MAP[s.scrum.color] || SCRUM_COLOR_MAP.ECOSYSTEM;
-                    const scrumProjects = s.projects || [];
-                    const sprintItems = s.items || [];
+                    const scrumTasks = s.tasks || [];
 
                     return (
                       <div
@@ -317,25 +324,24 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                           )}
                         </div>
 
-                        {scrumProjects.length > 0 && (
+                        {scrumTasks.length > 0 && (
                           <div className="space-y-1">
-                            <span className="block px-1.5 text-[10px] font-black text-sec/55 dark:text-gray-400">
-                              پروژه‌های اسکرام
-                            </span>
-                            {scrumProjects.map((p) => {
+                            {scrumTasks.map((task) => {
                               const isSelected =
-                                selectedTarget?.kind === 'STUDIO' && selectedTarget?.id === p.id;
-                              const fullLabel = `[${s.scrum.name}] ${p.name}`;
+                                selectedTarget?.kind === 'TASK' &&
+                                selectedTarget?.id === task.id;
+                              const fullLabel = `[${s.scrum.name}] ${task.name}`;
 
                               return (
                                 <button
-                                  key={`scrum_proj_${p.id}`}
+                                  key={`task_${task.id}`}
                                   type="button"
                                   onClick={() =>
                                     handleSelect({
-                                      kind: 'STUDIO',
-                                      id: p.id,
+                                      kind: 'TASK',
+                                      id: task.id,
                                       label: fullLabel,
+                                      points: task.points,
                                       scrumColor: s.scrum.color,
                                     })
                                   }
@@ -346,54 +352,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                                       : 'hover:bg-white dark:hover:bg-gray-700 text-sec dark:text-gray-200 font-bold'
                                   )}
                                 >
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <FolderKanban
-                                      className={cn(
-                                        'w-3.5 h-3.5 shrink-0',
-                                        isSelected ? 'text-sec' : 'text-primary'
-                                      )}
-                                    />
-                                    <span className="truncate">{p.name}</span>
-                                  </div>
-                                  {isSelected && <Check className="w-3.5 h-3.5 text-sec shrink-0" />}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {s.sprint && sprintItems.length > 0 && (
-                          <div className="space-y-1">
-                            <span className="block px-1.5 text-[10px] font-black text-sec/55 dark:text-gray-400">
-                              آیتم‌های اسپرینت فعال
-                            </span>
-                            {sprintItems.map((item) => {
-                              const isSelected =
-                                selectedTarget?.kind === 'SPRINT' &&
-                                selectedTarget?.id === item.id;
-                              const fullLabel = `[${s.scrum.name} · S${s.sprint!.number}] ${item.name}`;
-
-                              return (
-                                <button
-                                  key={`item_${item.id}`}
-                                  type="button"
-                                  onClick={() =>
-                                    handleSelect({
-                                      kind: 'SPRINT',
-                                      id: item.id,
-                                      label: fullLabel,
-                                      points: item.points,
-                                      scrumColor: s.scrum.color,
-                                    })
-                                  }
-                                  className={cn(
-                                    'w-full min-h-[38px] flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-start text-xs transition-colors cursor-pointer',
-                                    isSelected
-                                      ? 'bg-primary text-sec font-black shadow-hard-sm'
-                                      : 'hover:bg-white dark:hover:bg-gray-700 text-sec dark:text-gray-200 font-bold'
-                                  )}
-                                >
-                                  <span className="truncate min-w-0">{item.name}</span>
+                                  <span className="truncate min-w-0">{task.name}</span>
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <span
                                       className={cn(
@@ -403,7 +362,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                                           : 'bg-sec/[0.07] dark:bg-gray-700 text-sec/70 dark:text-gray-300'
                                       )}
                                     >
-                                      {toPersianDigits(item.points)} pt
+                                      {toPersianDigits(task.points)} پوینت
                                     </span>
                                     {isSelected && <Check className="w-3.5 h-3.5 text-sec" />}
                                   </div>
@@ -433,7 +392,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                 <div className="space-y-1">
                   {filteredStudioProjects.map((p) => {
                     const isSelected =
-                      selectedTarget?.kind === 'STUDIO' &&
+                      selectedTarget?.kind === 'PROJECT' &&
                       selectedTarget?.id === p.id;
                     return (
                       <button
@@ -441,7 +400,7 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
                         type="button"
                         onClick={() =>
                           handleSelect({
-                            kind: 'STUDIO',
+                            kind: 'PROJECT',
                             id: p.id,
                             label: p.name,
                           })

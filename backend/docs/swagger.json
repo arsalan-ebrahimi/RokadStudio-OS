@@ -758,7 +758,7 @@
           "Projects"
         ],
         "summary": "ایجاد پروژه جدید و انتساب اختیاری اعضا (سوپرادمین)",
-        "description": "ایجاد پروژه جدید و اتصال اختیاری به اسکرام فعال (`scrumId`) یا انتساب اعضا (`memberIds`) در یک تراکنش اتمیک.",
+        "description": "ایجاد پروژه جدید و انتساب اعضا (`memberIds`) در یک تراکنش اتمیک.",
         "security": [
           {
             "bearerAuth": []
@@ -797,26 +797,6 @@
           },
           "403": {
             "description": "فقط SUPER_ADMIN دسترسی دارد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "اسکرام انتخاب‌شده یافت نشد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "امکان اتصال پروژه به اسکرام غیرفعال وجود ندارد",
             "content": {
               "application/json": {
                 "schema": {
@@ -880,7 +860,7 @@
           "Projects"
         ],
         "summary": "ویرایش مشخصات پروژه (سوپرادمین)",
-        "description": "ویرایش مشخصات پروژه از جمله اتصال/قطع اتصال به اسکرام (`scrumId`). در صورت تغییر اسکرام، ارجاع SprintProject.projectId در اسکرام قبلی null می‌شود.",
+        "description": "ویرایش نام، توضیحات و وضعیت فعال بودن پروژه استودیو.",
         "security": [
           {
             "bearerAuth": []
@@ -921,16 +901,6 @@
           },
           "404": {
             "description": "پروژه یافت نشد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "اسکرام انتخاب‌شده غیرفعال است",
             "content": {
               "application/json": {
                 "schema": {
@@ -1049,6 +1019,125 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "پروژه یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/work-sessions": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "مشاهده گزارش کارکرد و سشن‌های پروژه بر اساس تاریخ و وضعیت (مدیران)",
+        "description": "دریافت خلاصه سشن‌های تاییدشده، در انتظار و ردشده به تفکیک کاربر همراه با لیست صفحه‌بندی‌شده سشن‌ها. برای ADMIN و SUPER_ADMIN قابل دسترس است.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "approval",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ],
+              "default": "ALL"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "گزارش سشن‌های پروژه",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkTargetSessionsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط ADMIN و SUPER_ADMIN دسترسی دارند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1519,12 +1608,42 @@
             "description": "فیلتر بر اساس شناسه پرسنل"
           },
           {
+            "name": "targetType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "PROJECT",
+                "TASK"
+              ],
+              "default": "ALL"
+            },
+            "description": "فیلتر نوع هدف (همه، پروژه‌های استودیو، تسک‌های اسکرام)"
+          },
+          {
             "name": "projectId",
             "in": "query",
             "schema": {
               "type": "integer"
             },
             "description": "فیلتر بر اساس شناسه پروژه"
+          },
+          {
+            "name": "taskId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "فیلتر بر اساس شناسه تسک اسکرام"
+          },
+          {
+            "name": "approval",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ApprovalStatus"
+            },
+            "description": "فیلتر وضعیت تاییدیه"
           },
           {
             "name": "date",
@@ -1633,13 +1752,109 @@
         }
       }
     },
+    "/api/work-sessions/targets": {
+      "get": {
+        "tags": [
+          "WorkSessions"
+        ],
+        "summary": "لیست گزینه‌های پروژه و تسک برای فیلتر گزارش (مدیران)",
+        "description": "لیست پروژه‌های استودیو و تسک‌های اسکرام به همراه نام و رنگ اسکرام جهت انتخاب در فیلتر گزارش عملکرد.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "لیست پروژه‌ها و تسک‌ها",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "isActive": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "tasks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "isActive": {
+                                "type": "boolean"
+                              },
+                              "points": {
+                                "type": "integer"
+                              },
+                              "scrumId": {
+                                "type": "integer"
+                              },
+                              "scrumName": {
+                                "type": "string"
+                              },
+                              "scrumColor": {
+                                "$ref": "#/components/schemas/ScrumColor"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط ADMIN و SUPER_ADMIN دسترسی دارند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/work-sessions/summary": {
       "get": {
         "tags": [
           "WorkSessions"
         ],
         "summary": "گزارش تجمیعی سشن‌های کاری با گروه‌بندی (مدیران)",
-        "description": "\nدریافت آمار تجمیعی زمان‌های کاری محاسبه‌شده مستقیم در دیتابیس با `groupBy` بر اساس:\n- `user`: تجمیع زمان به ازای هر کاربر\n- `project`: تجمیع زمان به ازای هر پروژه\n- `user_project`: تجمیع زمان به ازای هر ترکیب کاربر و پروژه (پیش‌فرض)\n        ",
+        "description": "\nدریافت آمار تجمیعی زمان‌های کاری محاسبه‌شده مستقیم در دیتابیس با `groupBy` بر اساس:\n- `user`: تجمیع زمان به ازای هر کاربر\n- `project`: تجمیع زمان به ازای هر هدف (پروژه یا تسک)\n- `user_project`: تجمیع زمان به ازای هر ترکیب کاربر و هدف (پیش‌فرض)\n        ",
         "security": [
           {
             "bearerAuth": []
@@ -1669,12 +1884,42 @@
             "description": "فیلتر کاربر"
           },
           {
+            "name": "targetType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "PROJECT",
+                "TASK"
+              ],
+              "default": "ALL"
+            },
+            "description": "فیلتر نوع هدف (همه، پروژه‌ها، تسک‌ها)"
+          },
+          {
             "name": "projectId",
             "in": "query",
             "schema": {
               "type": "integer"
             },
             "description": "فیلتر پروژه"
+          },
+          {
+            "name": "taskId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "فیلتر تسک اسکرام"
+          },
+          {
+            "name": "approval",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ApprovalStatus"
+            },
+            "description": "فیلتر وضعیت تاییدیه"
           },
           {
             "name": "date",
@@ -1717,6 +1962,142 @@
           },
           "403": {
             "description": "فقط ADMIN و SUPER_ADMIN دسترسی دارند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/work-sessions/{id}/decision": {
+      "patch": {
+        "tags": [
+          "WorkSessions"
+        ],
+        "summary": "تایید یا رد سشن کاری (ADMIN / SUPER_ADMIN / SCRUM_ADMIN منتسب)",
+        "description": "تغییر وضعیت سشن کاری به APPROVED یا REJECTED. نقش ADMIN و SUPER_ADMIN می‌توانند سشن‌های پروژه‌ها (و SUPER_ADMIN برای تسک‌ها نیز) را مدیریت کنند. SCRUM_ADMIN فقط مجاز به تصمیم‌گیری روی سشن‌های تسک‌های اسکرام‌های تحت مدیریت خود (و نه سوپرادمین) است.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttendanceDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تصمیم ثبت شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی برای تایید/رد این سشن",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "سشن یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/work-sessions/{id}": {
+      "delete": {
+        "tags": [
+          "WorkSessions"
+        ],
+        "summary": "حذف سشن کاری",
+        "description": "حذف سشن کاری توسط خود کاربر یا مدیران (ADMIN / SUPER_ADMIN).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "سشن حذف شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessNullResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی حذف",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "سشن یافت نشد",
             "content": {
               "application/json": {
                 "schema": {
@@ -2107,7 +2488,7 @@
           "Scrum"
         ],
         "summary": "حذف اسکرام (فقط سوپرادمین)",
-        "description": "فقط توسط سوپرادمین قابل انجام است. در صورت وجود سشن کاری روی آیتم‌های اسپرینت، با 409 مسدود می‌شود.",
+        "description": "فقط توسط سوپرادمین قابل انجام است. در صورت وجود سشن کاری روی تسک‌های اسکرام، با 409 مسدود می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -2173,7 +2554,7 @@
           "Scrum"
         ],
         "summary": "همگام‌سازی اعضای اسکرام (Set Diffing)",
-        "description": "تنظیم اعضای اسکرام (کاربران با نقش ADMIN و کاربران غیرفعال پذیرفته نمی‌شوند). در صورت حذف عضوی که تسک منتسب داشته، تسک‌های وی بدون مسئول می‌شوند.",
+        "description": "تنظیم اعضای اسکرام (کاربران با نقش ADMIN و کاربران غیرفعال پذیرفته نمی‌شوند). در صورت حذف عضوی که به تسک‌های اسکرام اختصاص داشته، از انتساب آن تسک‌ها نیز برداشته می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -2514,6 +2895,13 @@
                     "type": "string",
                     "format": "date",
                     "nullable": true
+                  },
+                  "progressPercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 0,
+                    "example": 0
                   }
                 }
               }
@@ -2952,6 +3340,13 @@
             }
           },
           {
+            "name": "taskId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "name": "from",
             "in": "query",
             "schema": {
@@ -3024,13 +3419,13 @@
         }
       }
     },
-    "/api/scrums/{id}/projects": {
+    "/api/scrums/{id}/tasks": {
       "get": {
         "tags": [
           "Scrum"
         ],
-        "summary": "لیست پروژه‌های استودیو متصل به اسکرام",
-        "description": "تمام پروژه‌های متصل‌شده به این اسکرام را برمی‌گرداند. فیلد trackedSeconds فقط برای مدیران اسکرام و سوپرادمین ارسال می‌شود و برای اعضای عادی حذف می‌گردد.",
+        "summary": "لیست تسک‌های اسکرام",
+        "description": "تمام تسک‌های اسکرام را به همراه افراد منتسب (members) و آمار زمان کارکرد (trackedSeconds) برمی‌گرداند. برای اعضای عادی، trackedSeconds فقط شامل سشن‌های شخصی خود کاربر است.",
         "security": [
           {
             "bearerAuth": []
@@ -3044,11 +3439,27 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "لیست پروژه‌های متصل به اسکرام",
+            "description": "لیست تسک‌های اسکرام",
             "content": {
               "application/json": {
                 "schema": {
@@ -3064,7 +3475,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/ScrumLinkedProjectItem"
+                        "$ref": "#/components/schemas/ScrumTaskItem"
                       }
                     }
                   }
@@ -3098,8 +3509,8 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "ایجاد پروژه جدید مستقیم داخل اسکرام (ادمین اسکرام / سوپرادمین)",
-        "description": "ایجاد پروژه استودیو با scrumId تنظیم‌شده و انتساب اختیاری اعضا (تمام شناسه‌های memberIds باید عضو فعال همین اسکرام باشند).",
+        "summary": "ایجاد تسک جدید در اسکرام (ادمین اسکرام / سوپرادمین)",
+        "description": "ایجاد تسک با عنوان، توضیحات، پوینت و انتساب چند کاربر عضو همین اسکرام (memberIds).",
         "security": [
           {
             "bearerAuth": []
@@ -3127,12 +3538,22 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "minLength": 2,
-                    "maxLength": 100
+                    "minLength": 1,
+                    "maxLength": 150
                   },
                   "description": {
                     "type": "string",
                     "nullable": true
+                  },
+                  "points": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000,
+                    "default": 0
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true
                   },
                   "memberIds": {
                     "type": "array",
@@ -3148,7 +3569,7 @@
         },
         "responses": {
           "201": {
-            "description": "پروژه ایجاد و به اسکرام متصل شد",
+            "description": "تسک ایجاد شد",
             "content": {
               "application/json": {
                 "schema": {
@@ -3162,7 +3583,7 @@
                       "type": "string"
                     },
                     "data": {
-                      "$ref": "#/components/schemas/ScrumLinkedProjectItem"
+                      "$ref": "#/components/schemas/ScrumTaskItem"
                     }
                   }
                 }
@@ -3180,7 +3601,7 @@
             }
           },
           "403": {
-            "description": "عدم دسترسی ویرایش اسکرام",
+            "description": "عدم دسترسی مدیریت اسکرام",
             "content": {
               "application/json": {
                 "schema": {
@@ -3200,7 +3621,7 @@
             }
           },
           "422": {
-            "description": "اعضای انتخاب‌شده باید عضو فعال اسکرام باشند",
+            "description": "اعضای انتخاب‌شده باید عضو فعال همین اسکرام باشند",
             "content": {
               "application/json": {
                 "schema": {
@@ -3212,13 +3633,12 @@
         }
       }
     },
-    "/api/scrums/{id}/projects/available": {
+    "/api/tasks/{id}": {
       "get": {
         "tags": [
           "Scrum"
         ],
-        "summary": "لیست پروژه‌های آزاد قابل اتصال به اسکرام",
-        "description": "دریافت حداکثر ۵۰ پروژه فعال استودیو که هنوز به هیچ اسکرامی متصل نیستند (`scrumId IS NULL`).",
+        "summary": "دریافت جزئیات یک تسک اسکرام",
         "security": [
           {
             "bearerAuth": []
@@ -3230,21 +3650,14 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
+              "type": "integer",
+              "minimum": 1
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "پروژه‌های آزاد قابل اتصال",
+            "description": "اطلاعات تسک",
             "content": {
               "application/json": {
                 "schema": {
@@ -3258,28 +3671,15 @@
                       "type": "string"
                     },
                     "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AvailableScrumProjectItem"
-                      }
+                      "$ref": "#/components/schemas/ScrumTaskItem"
                     }
                   }
                 }
               }
             }
           },
-          "403": {
-            "description": "عدم دسترسی ویرایش اسکرام",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
-            "description": "اسکرام یافت نشد",
+            "description": "تسک یافت نشد یا دسترسی ندارید",
             "content": {
               "application/json": {
                 "schema": {
@@ -3289,14 +3689,12 @@
             }
           }
         }
-      }
-    },
-    "/api/scrums/{id}/projects/link": {
-      "post": {
+      },
+      "patch": {
         "tags": [
           "Scrum"
         ],
-        "summary": "اتصال یک پروژه استودیوی موجود به اسکرام",
+        "summary": "ویرایش مشخصات تسک اسکرام",
         "security": [
           {
             "bearerAuth": []
@@ -3308,7 +3706,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 1
             }
           }
         ],
@@ -3318,13 +3717,23 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "projectId"
-                ],
                 "properties": {
-                  "projectId": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 150
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "points": {
                     "type": "integer",
-                    "minimum": 1
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "isActive": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -3333,7 +3742,7 @@
         },
         "responses": {
           "200": {
-            "description": "پروژه به اسکرام متصل شد",
+            "description": "تسک ویرایش شد",
             "content": {
               "application/json": {
                 "schema": {
@@ -3347,25 +3756,15 @@
                       "type": "string"
                     },
                     "data": {
-                      "$ref": "#/components/schemas/ScrumLinkedProjectItem"
+                      "$ref": "#/components/schemas/ScrumTaskItem"
                     }
                   }
                 }
               }
             }
           },
-          "400": {
-            "description": "ورودی نامعتبر",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
           "403": {
-            "description": "عدم دسترسی ویرایش اسکرام",
+            "description": "عدم دسترسی مدیریت",
             "content": {
               "application/json": {
                 "schema": {
@@ -3375,27 +3774,7 @@
             }
           },
           "404": {
-            "description": "اسکرام یا پروژه یافت نشد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "پروژه هم‌اکنون به اسکرام دیگری متصل است",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "پروژه غیرفعال است",
+            "description": "تسک یافت نشد",
             "content": {
               "application/json": {
                 "schema": {
@@ -3405,15 +3784,13 @@
             }
           }
         }
-      }
-    },
-    "/api/scrums/{id}/projects/{projectId}/link": {
+      },
       "delete": {
         "tags": [
           "Scrum"
         ],
-        "summary": "قطع اتصال پروژه از اسکرام",
-        "description": "اتصال پروژه به اسکرام را قطع کرده (`Project.scrumId = null`) و ارجاع `SprintProject.projectId` در اسپرینت‌های همین اسکرام را null می‌کند. سوابق سشن‌ها حفظ می‌شوند.",
+        "summary": "حذف تسک اسکرام",
+        "description": "در صورت داشتن سشن کاری ثبت‌شده، با خطای 409 مسدود می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -3425,21 +3802,14 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "projectId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 1
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "اتصال قطع شد",
+            "description": "تسک حذف شد",
             "content": {
               "application/json": {
                 "schema": {
@@ -3449,7 +3819,7 @@
             }
           },
           "403": {
-            "description": "عدم دسترسی ویرایش اسکرام",
+            "description": "عدم دسترسی مدیریت",
             "content": {
               "application/json": {
                 "schema": {
@@ -3459,7 +3829,17 @@
             }
           },
           "404": {
-            "description": "اسکرام یا پروژه متصل یافت نشد",
+            "description": "تسک یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "تسک دارای سشن کاری است و قابل حذف نیست",
             "content": {
               "application/json": {
                 "schema": {
@@ -3471,13 +3851,13 @@
         }
       }
     },
-    "/api/scrums/{id}/projects/{projectId}/members": {
+    "/api/tasks/{id}/members": {
       "put": {
         "tags": [
           "Scrum"
         ],
-        "summary": "همگام‌سازی اعضای پروژه متصل درون اسکرام",
-        "description": "فقط بین اعضای اسکرام Set Diffing انجام می‌دهد؛ کاربرانی که عضو پروژه هستند اما عضو این اسکرام نیستند دست‌نخورده باقی می‌مانند. اعضای ارسال‌شده باید عضو فعال اسکرام باشند (422).",
+        "summary": "همگام‌سازی افراد منتسب به تسک (Set Diffing)",
+        "description": "جایگزینی افراد اختصاص‌یافته به تسک از بین اعضای فعال همان اسکرام.",
         "security": [
           {
             "bearerAuth": []
@@ -3489,15 +3869,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "name": "projectId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 1
             }
           }
         ],
@@ -3506,26 +3879,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "userIds"
-                ],
-                "properties": {
-                  "userIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer",
-                      "minimum": 1
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/SyncMembersRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "اعضای پروژه بروزرسانی شدند",
+            "description": "افراد منتسب بروزرسانی شدند",
             "content": {
               "application/json": {
                 "schema": {
@@ -3549,18 +3910,8 @@
               }
             }
           },
-          "400": {
-            "description": "ورودی نامعتبر",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
           "403": {
-            "description": "عدم دسترسی ویرایش اسکرام",
+            "description": "عدم دسترسی مدیریت",
             "content": {
               "application/json": {
                 "schema": {
@@ -3570,7 +3921,7 @@
             }
           },
           "404": {
-            "description": "اسکرام یا پروژه متصل یافت نشد",
+            "description": "تسک یافت نشد",
             "content": {
               "application/json": {
                 "schema": {
@@ -3580,7 +3931,126 @@
             }
           },
           "422": {
-            "description": "کاربران باید عضو فعال همین اسکرام باشند",
+            "description": "کاربران انتخاب‌شده عضو فعال این اسکرام نیستند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/work-sessions": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "مشاهده گزارش کارکرد و سشن‌های تسک بر اساس تاریخ و وضعیت",
+        "description": "عضو عادی فقط سشن‌های شخصی خود را می‌بیند و درخواست userId غیر از خودش 403 می‌دهد. ادمین اسکرام منتسب و سوپرادمین تمام سشن‌ها (تاییدشده، در انتظار، ردشده) به تفکیک کاربر را مشاهده کرده و می‌توانند از طریق PATCH /api/work-sessions/{id}/decision تایید یا رد کنند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "approval",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ],
+              "default": "ALL"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "گزارش سشن‌های تسک",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkTargetSessionsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی غیرمجاز (مثلاً درخواست userId هم‌تیمی توسط عضو عادی)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "تسک یافت نشد یا دسترسی به اسکرام ندارید",
             "content": {
               "application/json": {
                 "schema": {
@@ -3698,8 +4168,8 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "جزئیات اسپرینت و پروژه‌های آن",
-        "description": "برای اعضای عادی، totalTrackedSeconds و sessionCount فقط شامل سشن‌های خود کاربر است.",
+        "summary": "جزئیات اسپرینت",
+        "description": "مشخصات اسپرینت شامل تاریخ شروع/پایان، فاز (PLANNED/ACTIVE/COMPLETED) و درصد پیشرفت دستی (progressPercent).",
         "security": [
           {
             "bearerAuth": []
@@ -3717,7 +4187,7 @@
         ],
         "responses": {
           "200": {
-            "description": "اطلاعات کامل اسپرینت",
+            "description": "اطلاعات اسپرینت",
             "content": {
               "application/json": {
                 "schema": {
@@ -3764,7 +4234,7 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "ویرایش متادیتای اسپرینت",
+        "summary": "ویرایش متادیتا و درصد پیشرفت اسپرینت",
         "security": [
           {
             "bearerAuth": []
@@ -3803,6 +4273,12 @@
                     "type": "string",
                     "format": "date",
                     "nullable": true
+                  },
+                  "progressPercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "example": 65
                   }
                 }
               }
@@ -3869,7 +4345,6 @@
           "Scrum"
         ],
         "summary": "حذف اسپرینت",
-        "description": "در صورت وجود سشن کاری، با خطای 409 مواجه می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -3915,16 +4390,6 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "دارای سشن کاری است و قابل حذف نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -3934,8 +4399,8 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "تغییر وضعیت اسپرینت (ماشین وضعیت)",
-        "description": "فقط انتقال PLANNED->ACTIVE و ACTIVE->COMPLETED مجاز است. فعال‌سازی اسپرینت در صورت وجود اسپرینت فعال دیگر با 409 رد می‌شود.",
+        "summary": "تغییر فاز اسپرینت (برگشت‌پذیر بین برنامه‌ریزی، فعال و تمام‌شده)",
+        "description": "تغییر فاز اسپرینت در هر دو جهت بین PLANNED، ACTIVE و COMPLETED مجاز است. فعال‌سازی اسپرینت (ACTIVE) در صورت وجود اسپرینت فعال دیگر در همین اسکرام با خطای 409 رد می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -4035,323 +4500,13 @@
         }
       }
     },
-    "/api/sprints/{id}/projects": {
-      "post": {
-        "tags": [
-          "Scrum"
-        ],
-        "summary": "افزودن پروژه/تسک به اسپرینت",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "name"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "example": "طراحی رابط کاربری"
-                  },
-                  "points": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 100,
-                    "default": 0,
-                    "example": 5
-                  },
-                  "assigneeId": {
-                    "type": "integer",
-                    "nullable": true,
-                    "example": 3
-                  },
-                  "projectId": {
-                    "type": "integer",
-                    "nullable": true,
-                    "description": "شناسه اختیاری پروژه متصل‌شده به همین اسکرام"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "پروژه اسپرینت ایجاد شد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/SprintProjectItem"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ورودی یا مسئول نامعتبر",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی مدیریت مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "اسپرینت یافت نشد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "پروژه انتخاب‌شده به این اسکرام متصل نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sprint-projects/{id}": {
-      "patch": {
-        "tags": [
-          "Scrum"
-        ],
-        "summary": "ویرایش پروژه/تسک اسپرینت",
-        "description": "ادمین منتسب اسکرام یا سوپرادمین می‌توانند تمام فیلدها را تغییر دهند. کاربر منتسب غیر ادمین فقط می‌تواند status را تغییر دهد (ارسال سایر فیلدها 403 می‌دهد).",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "points": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 100
-                  },
-                  "assigneeId": {
-                    "type": "integer",
-                    "nullable": true
-                  },
-                  "status": {
-                    "$ref": "#/components/schemas/ItemStatus"
-                  },
-                  "sortOrder": {
-                    "type": "integer"
-                  },
-                  "projectId": {
-                    "type": "integer",
-                    "nullable": true,
-                    "description": "شناسه اختیاری پروژه متصل‌شده به همین اسکرام (یا null برای قطع ارتباط)"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "پروژه اسپرینت بروزرسانی شد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/SprintProjectItem"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "ورودی یا مسئول نامعتبر",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی غیرمجاز برای تغییر سایر فیلدها توسط عضو عادی",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "پروژه اسپرینت یافت نشد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "پروژه انتخاب‌شده به این اسکرام متصل نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Scrum"
-        ],
-        "summary": "حذف پروژه اسپرینت",
-        "description": "در صورت وجود سشن کاری، با خطای 409 مسدود می‌شود.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "پروژه اسپرینت حذف شد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessNullResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "دسترسی حذف مجاز نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "پروژه اسپرینت یافت نشد",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "دارای سشن کاری است و قابل حذف نیست",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/work-targets/mine": {
       "get": {
         "tags": [
           "WorkSessions"
         ],
         "summary": "دریافت اهداف کاری کاربر برای تایم‌ترکر (Work Targets)",
-        "description": "شامل حداکثر ۳ هدف اخیر معتبر، گروه‌های اسکرام کاربر (آیتم‌های اسپرینت فعال + پروژه‌های استودیو متصل‌شده به اسکرام که کاربر عضو پروژه است)، و سایر پروژه‌های استودیو.",
+        "description": "شامل حداکثر ۳ هدف اخیر معتبر، گروه‌های اسکرام کاربر (تسک‌های فعال اسکرام که کاربر عضو آن‌هاست؛ بدون نیاز به اسپرینت فعال) و پروژه‌های استودیو.",
         "security": [
           {
             "bearerAuth": []
@@ -4970,19 +5125,6 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-11-01T12:00:00.000Z"
-          },
-          "scrumId": {
-            "type": "integer",
-            "nullable": true,
-            "example": 1
-          },
-          "scrum": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ScrumBrief"
-              }
-            ],
-            "nullable": true
           }
         }
       },
@@ -5057,19 +5199,6 @@
                 }
               }
             }
-          },
-          "scrumId": {
-            "type": "integer",
-            "nullable": true,
-            "example": 1
-          },
-          "scrum": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ScrumBrief"
-              }
-            ],
-            "nullable": true
           }
         }
       },
@@ -5115,12 +5244,6 @@
               2,
               3
             ]
-          },
-          "scrumId": {
-            "type": "integer",
-            "minimum": 1,
-            "nullable": true,
-            "description": "شناسه اختیاری اسکرام فعال جهت اتصال پروژه"
           }
         }
       },
@@ -5156,12 +5279,6 @@
           "isActive": {
             "type": "boolean",
             "example": true
-          },
-          "scrumId": {
-            "type": "integer",
-            "minimum": 1,
-            "nullable": true,
-            "description": "شناسه اختیاری اسکرام فعال یا null برای قطع اتصال"
           }
         }
       },
@@ -5604,18 +5721,18 @@
         "required": [
           "durationSeconds"
         ],
-        "description": "ثبت سشن کاری. بر اساس قوانین، باید دقیقاً یکی از projectId یا sprintProjectId ارسال شود (در غیر این صورت خطای 422 بازگردانده می‌شود).",
+        "description": "ثبت سشن کاری. بر اساس قوانین، باید دقیقاً یکی از projectId یا taskId ارسال شود (در غیر این صورت خطای 422 بازگردانده می‌شود).",
         "properties": {
           "projectId": {
             "type": "integer",
             "minimum": 1,
-            "description": "شناسه پروژه استودیو (اختیاری در صورت ارسال sprintProjectId)",
+            "description": "شناسه پروژه استودیو (اختیاری در صورت ارسال taskId)",
             "example": 10
           },
-          "sprintProjectId": {
+          "taskId": {
             "type": "integer",
             "minimum": 1,
-            "description": "شناسه پروژه/تسک اسپرینت (اختیاری در صورت ارسال projectId). کاربر باید منتسب به این تسک باشد و اسپرینت فعال باشد.",
+            "description": "شناسه تسک اسکرام (اختیاری در صورت ارسال projectId). کاربر باید عضو این تسک و تسک فعال باشد.",
             "example": 25
           },
           "durationSeconds": {
@@ -5635,6 +5752,31 @@
             "format": "uuid",
             "description": "شناسه یکتا جهت تضمین Idempotency",
             "example": "c73a812b-2321-4d33-bc87-9d7a224a1bfa"
+          }
+        }
+      },
+      "WorkSessionTaskBrief": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 25
+          },
+          "name": {
+            "type": "string",
+            "example": "پیاده‌سازی ماژول اسکرام"
+          },
+          "points": {
+            "type": "integer",
+            "example": 8
+          },
+          "scrum": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScrumBrief"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -5660,9 +5802,23 @@
                 "type": "integer",
                 "example": 2
               },
+              "targetType": {
+                "type": "string",
+                "enum": [
+                  "PROJECT",
+                  "TASK"
+                ],
+                "example": "PROJECT"
+              },
               "projectId": {
                 "type": "integer",
+                "nullable": true,
                 "example": 10
+              },
+              "taskId": {
+                "type": "integer",
+                "nullable": true,
+                "example": null
               },
               "attendanceId": {
                 "type": "integer",
@@ -5679,6 +5835,7 @@
               },
               "project": {
                 "type": "object",
+                "nullable": true,
                 "properties": {
                   "id": {
                     "type": "integer",
@@ -5689,6 +5846,14 @@
                     "example": "Animation Sequence A"
                   }
                 }
+              },
+              "task": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/WorkSessionTaskBrief"
+                  }
+                ],
+                "nullable": true
               }
             }
           }
@@ -5701,9 +5866,45 @@
             "type": "integer",
             "example": 101
           },
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "PROJECT",
+              "TASK"
+            ],
+            "example": "PROJECT"
+          },
           "projectId": {
             "type": "integer",
+            "nullable": true,
             "example": 10
+          },
+          "project": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 10
+              },
+              "name": {
+                "type": "string",
+                "example": "Animation Sequence A"
+              }
+            }
+          },
+          "taskId": {
+            "type": "integer",
+            "nullable": true,
+            "example": null
+          },
+          "task": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkSessionTaskBrief"
+              }
+            ],
+            "nullable": true
           },
           "projectName": {
             "type": "string",
@@ -5717,6 +5918,17 @@
             "type": "string",
             "format": "date",
             "example": "2026-11-01"
+          },
+          "workDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-01"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ApprovalStatus"
+          },
+          "source": {
+            "$ref": "#/components/schemas/DecisionSource"
           },
           "createdAt": {
             "type": "string",
@@ -5776,8 +5988,22 @@
               }
             }
           },
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "PROJECT",
+              "TASK"
+            ],
+            "example": "PROJECT"
+          },
+          "projectId": {
+            "type": "integer",
+            "nullable": true,
+            "example": 10
+          },
           "project": {
             "type": "object",
+            "nullable": true,
             "properties": {
               "id": {
                 "type": "integer",
@@ -5789,6 +6015,19 @@
               }
             }
           },
+          "taskId": {
+            "type": "integer",
+            "nullable": true,
+            "example": null
+          },
+          "task": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkSessionTaskBrief"
+              }
+            ],
+            "nullable": true
+          },
           "durationSeconds": {
             "type": "integer",
             "example": 825
@@ -5797,6 +6036,34 @@
             "type": "string",
             "format": "date",
             "example": "2026-11-01"
+          },
+          "workDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-01"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ApprovalStatus"
+          },
+          "source": {
+            "$ref": "#/components/schemas/DecisionSource"
+          },
+          "decidedBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserBasicItem"
+              }
+            ],
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "createdAt": {
             "type": "string",
@@ -5847,6 +6114,14 @@
             "type": "integer",
             "example": 2
           },
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "PROJECT",
+              "TASK"
+            ],
+            "example": "PROJECT"
+          },
           "user": {
             "type": "object",
             "nullable": true,
@@ -5874,6 +6149,14 @@
                 "example": "Animation Sequence A"
               }
             }
+          },
+          "task": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkSessionTaskBrief"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -5915,15 +6198,6 @@
           "COMPLETED"
         ],
         "example": "ACTIVE"
-      },
-      "ItemStatus": {
-        "type": "string",
-        "enum": [
-          "TODO",
-          "DOING",
-          "DONE"
-        ],
-        "example": "DOING"
       },
       "EventScheduleType": {
         "type": "string",
@@ -6076,6 +6350,10 @@
             "type": "integer",
             "example": 4
           },
+          "taskCount": {
+            "type": "integer",
+            "example": 3
+          },
           "myRole": {
             "type": "string",
             "enum": [
@@ -6108,6 +6386,12 @@
               "title": {
                 "type": "string",
                 "example": "اسپرینت ۱"
+              },
+              "progressPercent": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "example": 65
               }
             }
           },
@@ -6127,31 +6411,33 @@
           }
         }
       },
-      "SprintProjectItem": {
+      "ScrumTaskItem": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "example": 101
           },
-          "sprintId": {
+          "scrumId": {
             "type": "integer",
-            "example": 12
+            "example": 1
           },
           "name": {
             "type": "string",
             "example": "پیاده‌سازی ماژول اسکرام"
           },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "طراحی و پیاده‌سازی سرویس تسک‌ها"
+          },
           "points": {
             "type": "integer",
             "example": 8
           },
-          "status": {
-            "$ref": "#/components/schemas/ItemStatus"
-          },
-          "sortOrder": {
-            "type": "integer",
-            "example": 0
+          "isActive": {
+            "type": "boolean",
+            "example": true
           },
           "createdAt": {
             "type": "string",
@@ -6161,44 +6447,30 @@
             "type": "string",
             "format": "date-time"
           },
-          "assignee": {
-            "type": "object",
-            "nullable": true,
-            "properties": {
-              "id": {
-                "type": "integer",
-                "example": 3
-              },
-              "name": {
-                "type": "string",
-                "example": "Artin Amiri"
-              }
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserBasicItem"
             }
           },
-          "totalTrackedSeconds": {
-            "type": "integer",
-            "example": 3000
+          "isAssignedToMe": {
+            "type": "boolean",
+            "example": true
           },
-          "sessionCount": {
-            "type": "integer",
-            "example": 2
-          },
-          "projectId": {
-            "type": "integer",
-            "nullable": true,
-            "example": 2
-          },
-          "project": {
+          "trackedSeconds": {
             "type": "object",
-            "nullable": true,
             "properties": {
-              "id": {
+              "approved": {
                 "type": "integer",
-                "example": 2
+                "example": 1800
               },
-              "name": {
-                "type": "string",
-                "example": "Rokad Studio OS Platform"
+              "pending": {
+                "type": "integer",
+                "example": 900
+              },
+              "rejected": {
+                "type": "integer",
+                "example": 0
               }
             }
           }
@@ -6240,6 +6512,13 @@
           "status": {
             "$ref": "#/components/schemas/SprintStatus"
           },
+          "progressPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 65,
+            "description": "درصد پیشرفت دستی تعریف‌شده توسط ادمین"
+          },
           "completedAt": {
             "type": "string",
             "format": "date-time",
@@ -6252,30 +6531,6 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
-          },
-          "totalPoints": {
-            "type": "integer",
-            "example": 25
-          },
-          "donePoints": {
-            "type": "integer",
-            "example": 13
-          },
-          "itemCount": {
-            "type": "integer",
-            "example": 4
-          },
-          "totalTrackedSeconds": {
-            "type": "integer",
-            "example": 9000,
-            "description": "فقط در خروجی جزئیات اسپرینت (GET /api/sprints/{id}) بازگردانده می‌شود"
-          },
-          "projects": {
-            "type": "array",
-            "description": "فقط در خروجی جزئیات اسپرینت (GET /api/sprints/{id}) بازگردانده می‌شود",
-            "items": {
-              "$ref": "#/components/schemas/SprintProjectItem"
-            }
           }
         }
       },
@@ -6398,29 +6653,7 @@
             "items": {
               "type": "object",
               "properties": {
-                "kind": {
-                  "type": "string",
-                  "enum": [
-                    "SPRINT_ITEM",
-                    "PROJECT"
-                  ],
-                  "example": "SPRINT_ITEM"
-                },
-                "member": {
-                  "type": "object",
-                  "nullable": true,
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "example": 4
-                    },
-                    "name": {
-                      "type": "string",
-                      "example": "Artin Amiri"
-                    }
-                  }
-                },
-                "item": {
+                "task": {
                   "type": "object",
                   "properties": {
                     "id": {
@@ -6435,42 +6668,23 @@
                       "type": "integer",
                       "example": 5
                     },
-                    "status": {
-                      "$ref": "#/components/schemas/ItemStatus"
-                    },
-                    "sprint": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "integer",
-                          "example": 12
-                        },
-                        "number": {
-                          "type": "integer",
-                          "example": 1
-                        },
-                        "title": {
-                          "type": "string",
-                          "example": "اسپرینت ۱"
-                        }
-                      }
-                    }
-                  },
-                  "nullable": true
-                },
-                "project": {
-                  "type": "object",
-                  "nullable": true,
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "example": 1
-                    },
-                    "name": {
-                      "type": "string",
-                      "example": "Rokad Studio OS Platform"
+                    "isActive": {
+                      "type": "boolean",
+                      "example": true
                     }
                   }
+                },
+                "member": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/UserBasicItem"
+                    }
+                  ],
+                  "nullable": true
+                },
+                "assignedMembersCount": {
+                  "type": "integer",
+                  "example": 2
                 },
                 "sessionCount": {
                   "type": "integer",
@@ -6488,52 +6702,62 @@
               }
             }
           },
-          "sprintAggregates": {
+          "taskAggregates": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "sprintId": {
+                "taskId": {
                   "type": "integer",
-                  "example": 12
+                  "example": 101
                 },
-                "sprintNumber": {
-                  "type": "integer",
-                  "example": 1
-                },
-                "sprintTitle": {
+                "taskName": {
                   "type": "string",
-                  "example": "اسپرینت ۱"
+                  "example": "طراحی رابط کاربری"
                 },
-                "totalPoints": {
+                "points": {
                   "type": "integer",
-                  "example": 25
+                  "example": 5
                 },
-                "donePoints": {
+                "isActive": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "memberCount": {
                   "type": "integer",
-                  "example": 13
+                  "example": 2
                 },
                 "totalSeconds": {
                   "type": "integer",
-                  "example": 9000
+                  "example": 3600
                 },
                 "sessionCount": {
                   "type": "integer",
-                  "example": 5
+                  "example": 2
                 }
               }
+            }
+          },
+          "sprints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintResponse"
             }
           },
           "total": {
             "type": "object",
             "properties": {
+              "totalTasks": {
+                "type": "integer",
+                "example": 3
+              },
+              "activeTasks": {
+                "type": "integer",
+                "example": 2
+              },
               "totalPoints": {
                 "type": "integer",
                 "example": 25
-              },
-              "donePoints": {
-                "type": "integer",
-                "example": 13
               },
               "totalSeconds": {
                 "type": "integer",
@@ -6593,69 +6817,237 @@
           }
         }
       },
-      "ScrumLinkedProjectItem": {
+      "WorkTargetSummaryUserRow": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserBasicItem"
+          },
+          "totalSeconds": {
+            "type": "integer",
+            "example": 3600
+          },
+          "approvedSeconds": {
+            "type": "integer",
+            "example": 2700
+          },
+          "pendingSeconds": {
+            "type": "integer",
+            "example": 900
+          },
+          "rejectedSeconds": {
+            "type": "integer",
+            "example": 0
+          },
+          "sessionCount": {
+            "type": "integer",
+            "example": 3
+          }
+        }
+      },
+      "WorkTargetSessionRow": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
-            "example": 1
+            "example": 101
           },
-          "name": {
+          "targetType": {
             "type": "string",
-            "example": "Rokad Studio OS Platform"
+            "enum": [
+              "PROJECT",
+              "TASK"
+            ],
+            "example": "TASK"
           },
-          "description": {
-            "type": "string",
+          "projectId": {
+            "type": "integer",
             "nullable": true
           },
-          "isActive": {
+          "project": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "taskId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "task": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkSessionTaskBrief"
+              }
+            ],
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserBasicItem"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "example": 1800
+          },
+          "workDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-10"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ApprovalStatus"
+          },
+          "source": {
+            "$ref": "#/components/schemas/DecisionSource"
+          },
+          "decidedBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserBasicItem"
+              }
+            ],
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "canModerate": {
             "type": "boolean",
             "example": true
           },
-          "members": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UserBasicItem"
+          "canDelete": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "WorkTargetSessionsData": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "PROJECT",
+                  "TASK"
+                ]
+              },
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "isActive": {
+                "type": "boolean"
+              },
+              "points": {
+                "type": "integer"
+              },
+              "scrum": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ScrumBrief"
+                  }
+                ],
+                "nullable": true
+              }
             }
           },
-          "trackedSeconds": {
+          "permissions": {
             "type": "object",
-            "description": "فقط برای ادمین منتسب اسکرام یا سوپرادمین ارسال می‌شود",
             "properties": {
-              "approved": {
-                "type": "integer",
-                "example": 900
+              "canViewAllUsers": {
+                "type": "boolean"
               },
-              "pending": {
-                "type": "integer",
-                "example": 1500
+              "canModerate": {
+                "type": "boolean"
+              },
+              "canDelete": {
+                "type": "boolean"
               }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "totalSeconds": {
+                "type": "integer"
+              },
+              "approvedSeconds": {
+                "type": "integer"
+              },
+              "pendingSeconds": {
+                "type": "integer"
+              },
+              "rejectedSeconds": {
+                "type": "integer"
+              },
+              "sessionCount": {
+                "type": "integer"
+              },
+              "approvedCount": {
+                "type": "integer"
+              },
+              "pendingCount": {
+                "type": "integer"
+              },
+              "rejectedCount": {
+                "type": "integer"
+              },
+              "byUser": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkTargetSummaryUserRow"
+                }
+              }
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkTargetSessionRow"
             }
           }
         }
       },
-      "AvailableScrumProjectItem": {
+      "WorkTargetSessionsResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 2
-          },
-          "name": {
-            "type": "string",
-            "example": "Design System & Visual Identity"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
+          "success": {
             "type": "boolean",
             "example": true
           },
-          "memberCount": {
-            "type": "integer",
-            "example": 4
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WorkTargetSessionsData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
           }
         }
       },
@@ -6680,7 +7072,7 @@
               }
             }
           },
-          "items": {
+          "tasks": {
             "type": "array",
             "items": {
               "type": "object",
@@ -6691,19 +7083,14 @@
                 "name": {
                   "type": "string"
                 },
+                "description": {
+                  "type": "string",
+                  "nullable": true
+                },
                 "points": {
                   "type": "integer"
-                },
-                "status": {
-                  "$ref": "#/components/schemas/ItemStatus"
                 }
               }
-            }
-          },
-          "projects": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UserBasicItem"
             }
           }
         }
@@ -6819,17 +7206,17 @@
                 "type": "integer",
                 "example": 2
               },
-              "openItems": {
+              "activeTasks": {
                 "type": "integer",
-                "example": 2
+                "example": 3
               },
-              "donePoints": {
+              "totalTasks": {
                 "type": "integer",
-                "example": 5
+                "example": 4
               },
-              "totalPoints": {
+              "totalTaskPoints": {
                 "type": "integer",
-                "example": 18
+                "example": 26
               }
             }
           },
@@ -6853,9 +7240,17 @@
                   "type": "integer",
                   "example": 4
                 },
-                "linkedProjectCount": {
+                "taskCount": {
                   "type": "integer",
-                  "example": 1
+                  "example": 3
+                },
+                "activeTaskCount": {
+                  "type": "integer",
+                  "example": 2
+                },
+                "totalTaskPoints": {
+                  "type": "integer",
+                  "example": 21
                 },
                 "activeSprint": {
                   "type": "object",
@@ -6875,14 +7270,10 @@
                       "format": "date",
                       "nullable": true
                     },
-                    "totalPoints": {
-                      "type": "integer"
-                    },
-                    "donePoints": {
-                      "type": "integer"
-                    },
-                    "openItems": {
-                      "type": "integer"
+                    "progressPercent": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
                     }
                   }
                 },

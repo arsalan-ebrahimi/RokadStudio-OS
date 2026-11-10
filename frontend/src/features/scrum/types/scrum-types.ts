@@ -2,8 +2,6 @@ export type ScrumColor = 'ECOSYSTEM' | 'MALE' | 'FEMALE' | 'COLLEGE' | 'CLUB';
 
 export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 
-export type ItemStatus = 'TODO' | 'DOING' | 'DONE';
-
 export type EventScheduleType = 'WEEKLY' | 'ONCE';
 
 export type ScrumRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
@@ -109,10 +107,16 @@ export interface Scrum {
   isActive: boolean;
   admins: ScrumUserRef[];
   memberCount?: number;
+  taskCount?: number;
   myRole?: ScrumRole;
   canEdit?: boolean;
   permissions?: ScrumPermissions;
-  activeSprint?: { id: number; number: number; title: string } | null;
+  activeSprint?: {
+    id: number;
+    number: number;
+    title: string;
+    progressPercent?: number;
+  } | null;
   members?: ScrumMember[];
   createdAt?: string;
   updatedAt?: string;
@@ -127,50 +131,28 @@ export interface Sprint {
   startDate?: string | null;
   endDate?: string | null;
   status: SprintStatus;
+  progressPercent: number;
   completedAt?: string | null;
-  totalPoints: number;
-  donePoints: number;
-  itemCount: number;
-  totalTrackedSeconds?: number;
-  projects?: SprintProject[];
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface SprintProject {
+export interface ScrumTask {
   id: number;
-  sprintId: number;
-  projectId?: number | null;
-  project?: { id: number; name: string } | null;
-  name: string;
-  points: number;
-  status: ItemStatus;
-  sortOrder: number;
-  assignee?: ScrumUserRef | null;
-  totalTrackedSeconds?: number;
-  sessionCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface ScrumLinkedProject {
-  id: number;
+  scrumId: number;
   name: string;
   description?: string | null;
+  points: number;
   isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   members: ScrumUserRef[];
+  isAssignedToMe?: boolean;
   trackedSeconds?: {
     approved: number;
     pending: number;
+    rejected: number;
   };
-}
-
-export interface AvailableScrumProject {
-  id: number;
-  name: string;
-  description?: string | null;
-  isActive: boolean;
-  memberCount: number;
 }
 
 export interface ScrumKpi {
@@ -220,22 +202,24 @@ export interface TodayScrumEvent {
 }
 
 export interface WorkTarget {
-  kind: 'STUDIO' | 'SPRINT';
+  kind: 'PROJECT' | 'TASK';
   id: number;
   label?: string;
   name: string;
   pathLabel?: string;
   points?: number;
-  status?: ItemStatus;
   scrum?: { id: number; name: string; color: ScrumColor };
-  sprint?: { id: number; number: number; title: string };
 }
 
 export interface WorkTargetsScrumGroup {
   scrum: { id: number; name: string; color: ScrumColor };
   sprint: { id: number; number: number; title: string } | null;
-  items: { id: number; name: string; points: number; status: ItemStatus }[];
-  projects: { id: number; name: string }[];
+  tasks: {
+    id: number;
+    name: string;
+    description?: string | null;
+    points: number;
+  }[];
 }
 
 export interface WorkTargetsResponse {
@@ -245,16 +229,14 @@ export interface WorkTargetsResponse {
 }
 
 export interface ScrumReportRow {
-  kind: 'SPRINT_ITEM' | 'PROJECT';
-  member: ScrumUserRef | null;
-  item: {
+  task: {
     id: number;
     name: string;
     points: number;
-    status: ItemStatus;
-    sprint: { id: number; number: number; title: string };
-  } | null;
-  project: { id: number; name: string } | null;
+    isActive: boolean;
+  };
+  member: ScrumUserRef | null;
+  assignedMembersCount: number;
   sessionCount: number;
   totalSeconds: number;
   secondsPerPoint: number | null;
@@ -262,18 +244,20 @@ export interface ScrumReportRow {
 
 export interface ScrumReportData {
   rows: ScrumReportRow[];
-  sprintAggregates: {
-    sprintId: number;
-    sprintNumber: number;
-    sprintTitle: string;
-    totalPoints: number;
-    donePoints: number;
+  taskAggregates: {
+    taskId: number;
+    taskName: string;
+    points: number;
+    isActive: boolean;
+    memberCount: number;
     totalSeconds: number;
     sessionCount: number;
   }[];
+  sprints: Sprint[];
   total: {
+    totalTasks: number;
+    activeTasks: number;
     totalPoints: number;
-    donePoints: number;
     totalSeconds: number;
     sessionCount: number;
   };
@@ -304,15 +288,15 @@ export interface ScrumAdminDashboardScrum {
   name: string;
   color: ScrumColor;
   memberCount: number;
-  linkedProjectCount: number;
+  taskCount: number;
+  activeTaskCount: number;
+  totalTaskPoints: number;
   activeSprint: {
     id: number;
     number: number;
     title: string;
     endDate: string | null;
-    totalPoints: number;
-    donePoints: number;
-    openItems: number;
+    progressPercent: number;
   } | null;
   kpi: {
     total: number;
@@ -336,9 +320,9 @@ export interface ScrumAdminDashboardData {
     scrums: number;
     members: number;
     activeSprints: number;
-    openItems: number;
-    donePoints: number;
-    totalPoints: number;
+    activeTasks: number;
+    totalTasks: number;
+    totalTaskPoints: number;
   };
   scrums: ScrumAdminDashboardScrum[];
   todayEvents: ScrumAdminDashboardEvent[];
