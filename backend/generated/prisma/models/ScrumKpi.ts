@@ -29,9 +29,8 @@ export type AggregateScrumKpi = {
 export type ScrumKpiAvgAggregateOutputType = {
   id: number | null
   scrumId: number | null
-  target: runtime.Decimal | null
-  firstMonthTarget: runtime.Decimal | null
   actualValue: runtime.Decimal | null
+  progressPercent: runtime.Decimal | null
   minExpected: runtime.Decimal | null
   sortOrder: number | null
 }
@@ -39,9 +38,8 @@ export type ScrumKpiAvgAggregateOutputType = {
 export type ScrumKpiSumAggregateOutputType = {
   id: number | null
   scrumId: number | null
-  target: runtime.Decimal | null
-  firstMonthTarget: runtime.Decimal | null
   actualValue: runtime.Decimal | null
+  progressPercent: runtime.Decimal | null
   minExpected: runtime.Decimal | null
   sortOrder: number | null
 }
@@ -53,9 +51,12 @@ export type ScrumKpiMinAggregateOutputType = {
   formula: string | null
   strategicGoal: string | null
   unit: string | null
-  target: runtime.Decimal | null
-  firstMonthTarget: runtime.Decimal | null
+  target: string | null
+  firstMonthTarget: string | null
+  finalTarget: string | null
   actualValue: runtime.Decimal | null
+  progressPercent: runtime.Decimal | null
+  status: $Enums.KpiStatus | null
   minExpected: runtime.Decimal | null
   sortOrder: number | null
   updatedAt: Date | null
@@ -68,9 +69,12 @@ export type ScrumKpiMaxAggregateOutputType = {
   formula: string | null
   strategicGoal: string | null
   unit: string | null
-  target: runtime.Decimal | null
-  firstMonthTarget: runtime.Decimal | null
+  target: string | null
+  firstMonthTarget: string | null
+  finalTarget: string | null
   actualValue: runtime.Decimal | null
+  progressPercent: runtime.Decimal | null
+  status: $Enums.KpiStatus | null
   minExpected: runtime.Decimal | null
   sortOrder: number | null
   updatedAt: Date | null
@@ -85,7 +89,10 @@ export type ScrumKpiCountAggregateOutputType = {
   unit: number
   target: number
   firstMonthTarget: number
+  finalTarget: number
   actualValue: number
+  progressPercent: number
+  status: number
   minExpected: number
   sortOrder: number
   updatedAt: number
@@ -96,9 +103,8 @@ export type ScrumKpiCountAggregateOutputType = {
 export type ScrumKpiAvgAggregateInputType = {
   id?: true
   scrumId?: true
-  target?: true
-  firstMonthTarget?: true
   actualValue?: true
+  progressPercent?: true
   minExpected?: true
   sortOrder?: true
 }
@@ -106,9 +112,8 @@ export type ScrumKpiAvgAggregateInputType = {
 export type ScrumKpiSumAggregateInputType = {
   id?: true
   scrumId?: true
-  target?: true
-  firstMonthTarget?: true
   actualValue?: true
+  progressPercent?: true
   minExpected?: true
   sortOrder?: true
 }
@@ -122,7 +127,10 @@ export type ScrumKpiMinAggregateInputType = {
   unit?: true
   target?: true
   firstMonthTarget?: true
+  finalTarget?: true
   actualValue?: true
+  progressPercent?: true
+  status?: true
   minExpected?: true
   sortOrder?: true
   updatedAt?: true
@@ -137,7 +145,10 @@ export type ScrumKpiMaxAggregateInputType = {
   unit?: true
   target?: true
   firstMonthTarget?: true
+  finalTarget?: true
   actualValue?: true
+  progressPercent?: true
+  status?: true
   minExpected?: true
   sortOrder?: true
   updatedAt?: true
@@ -152,7 +163,10 @@ export type ScrumKpiCountAggregateInputType = {
   unit?: true
   target?: true
   firstMonthTarget?: true
+  finalTarget?: true
   actualValue?: true
+  progressPercent?: true
+  status?: true
   minExpected?: true
   sortOrder?: true
   updatedAt?: true
@@ -252,9 +266,12 @@ export type ScrumKpiGroupByOutputType = {
   formula: string | null
   strategicGoal: string | null
   unit: string | null
-  target: runtime.Decimal | null
-  firstMonthTarget: runtime.Decimal | null
+  target: string | null
+  firstMonthTarget: string | null
+  finalTarget: string | null
   actualValue: runtime.Decimal | null
+  progressPercent: runtime.Decimal | null
+  status: $Enums.KpiStatus | null
   minExpected: runtime.Decimal | null
   sortOrder: number
   updatedAt: Date
@@ -290,9 +307,12 @@ export type ScrumKpiWhereInput = {
   formula?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   strategicGoal?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   unit?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
-  target?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
+  firstMonthTarget?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
+  finalTarget?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   actualValue?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.EnumKpiStatusNullableFilter<"ScrumKpi"> | $Enums.KpiStatus | null
   minExpected?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFilter<"ScrumKpi"> | number
   updatedAt?: Prisma.DateTimeFilter<"ScrumKpi"> | Date | string
@@ -308,7 +328,10 @@ export type ScrumKpiOrderByWithRelationInput = {
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
   target?: Prisma.SortOrderInput | Prisma.SortOrder
   firstMonthTarget?: Prisma.SortOrderInput | Prisma.SortOrder
+  finalTarget?: Prisma.SortOrderInput | Prisma.SortOrder
   actualValue?: Prisma.SortOrderInput | Prisma.SortOrder
+  progressPercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrderInput | Prisma.SortOrder
   minExpected?: Prisma.SortOrderInput | Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -325,9 +348,12 @@ export type ScrumKpiWhereUniqueInput = Prisma.AtLeast<{
   formula?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   strategicGoal?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   unit?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
-  target?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
+  firstMonthTarget?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
+  finalTarget?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   actualValue?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.EnumKpiStatusNullableFilter<"ScrumKpi"> | $Enums.KpiStatus | null
   minExpected?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFilter<"ScrumKpi"> | number
   updatedAt?: Prisma.DateTimeFilter<"ScrumKpi"> | Date | string
@@ -343,7 +369,10 @@ export type ScrumKpiOrderByWithAggregationInput = {
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
   target?: Prisma.SortOrderInput | Prisma.SortOrder
   firstMonthTarget?: Prisma.SortOrderInput | Prisma.SortOrder
+  finalTarget?: Prisma.SortOrderInput | Prisma.SortOrder
   actualValue?: Prisma.SortOrderInput | Prisma.SortOrder
+  progressPercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrderInput | Prisma.SortOrder
   minExpected?: Prisma.SortOrderInput | Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -364,9 +393,12 @@ export type ScrumKpiScalarWhereWithAggregatesInput = {
   formula?: Prisma.StringNullableWithAggregatesFilter<"ScrumKpi"> | string | null
   strategicGoal?: Prisma.StringNullableWithAggregatesFilter<"ScrumKpi"> | string | null
   unit?: Prisma.StringNullableWithAggregatesFilter<"ScrumKpi"> | string | null
-  target?: Prisma.DecimalNullableWithAggregatesFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.DecimalNullableWithAggregatesFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.StringNullableWithAggregatesFilter<"ScrumKpi"> | string | null
+  firstMonthTarget?: Prisma.StringNullableWithAggregatesFilter<"ScrumKpi"> | string | null
+  finalTarget?: Prisma.StringNullableWithAggregatesFilter<"ScrumKpi"> | string | null
   actualValue?: Prisma.DecimalNullableWithAggregatesFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.DecimalNullableWithAggregatesFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.EnumKpiStatusNullableWithAggregatesFilter<"ScrumKpi"> | $Enums.KpiStatus | null
   minExpected?: Prisma.DecimalNullableWithAggregatesFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntWithAggregatesFilter<"ScrumKpi"> | number
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ScrumKpi"> | Date | string
@@ -377,9 +409,12 @@ export type ScrumKpiCreateInput = {
   formula?: string | null
   strategicGoal?: string | null
   unit?: string | null
-  target?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: string | null
+  firstMonthTarget?: string | null
+  finalTarget?: string | null
   actualValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: $Enums.KpiStatus | null
   minExpected?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: number
   updatedAt?: Date | string
@@ -393,9 +428,12 @@ export type ScrumKpiUncheckedCreateInput = {
   formula?: string | null
   strategicGoal?: string | null
   unit?: string | null
-  target?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: string | null
+  firstMonthTarget?: string | null
+  finalTarget?: string | null
   actualValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: $Enums.KpiStatus | null
   minExpected?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: number
   updatedAt?: Date | string
@@ -406,9 +444,12 @@ export type ScrumKpiUpdateInput = {
   formula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strategicGoal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  target?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstMonthTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  finalTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actualValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.NullableEnumKpiStatusFieldUpdateOperationsInput | $Enums.KpiStatus | null
   minExpected?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -422,9 +463,12 @@ export type ScrumKpiUncheckedUpdateInput = {
   formula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strategicGoal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  target?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstMonthTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  finalTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actualValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.NullableEnumKpiStatusFieldUpdateOperationsInput | $Enums.KpiStatus | null
   minExpected?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -437,9 +481,12 @@ export type ScrumKpiCreateManyInput = {
   formula?: string | null
   strategicGoal?: string | null
   unit?: string | null
-  target?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: string | null
+  firstMonthTarget?: string | null
+  finalTarget?: string | null
   actualValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: $Enums.KpiStatus | null
   minExpected?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: number
   updatedAt?: Date | string
@@ -450,9 +497,12 @@ export type ScrumKpiUpdateManyMutationInput = {
   formula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strategicGoal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  target?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstMonthTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  finalTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actualValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.NullableEnumKpiStatusFieldUpdateOperationsInput | $Enums.KpiStatus | null
   minExpected?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -465,9 +515,12 @@ export type ScrumKpiUncheckedUpdateManyInput = {
   formula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strategicGoal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  target?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstMonthTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  finalTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actualValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.NullableEnumKpiStatusFieldUpdateOperationsInput | $Enums.KpiStatus | null
   minExpected?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -492,7 +545,10 @@ export type ScrumKpiCountOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   target?: Prisma.SortOrder
   firstMonthTarget?: Prisma.SortOrder
+  finalTarget?: Prisma.SortOrder
   actualValue?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   minExpected?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -501,9 +557,8 @@ export type ScrumKpiCountOrderByAggregateInput = {
 export type ScrumKpiAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
-  target?: Prisma.SortOrder
-  firstMonthTarget?: Prisma.SortOrder
   actualValue?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
   minExpected?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
 }
@@ -517,7 +572,10 @@ export type ScrumKpiMaxOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   target?: Prisma.SortOrder
   firstMonthTarget?: Prisma.SortOrder
+  finalTarget?: Prisma.SortOrder
   actualValue?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   minExpected?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -532,7 +590,10 @@ export type ScrumKpiMinOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   target?: Prisma.SortOrder
   firstMonthTarget?: Prisma.SortOrder
+  finalTarget?: Prisma.SortOrder
   actualValue?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   minExpected?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -541,9 +602,8 @@ export type ScrumKpiMinOrderByAggregateInput = {
 export type ScrumKpiSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   scrumId?: Prisma.SortOrder
-  target?: Prisma.SortOrder
-  firstMonthTarget?: Prisma.SortOrder
   actualValue?: Prisma.SortOrder
+  progressPercent?: Prisma.SortOrder
   minExpected?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
 }
@@ -598,14 +658,21 @@ export type NullableDecimalFieldUpdateOperationsInput = {
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
 }
 
+export type NullableEnumKpiStatusFieldUpdateOperationsInput = {
+  set?: $Enums.KpiStatus | null
+}
+
 export type ScrumKpiCreateWithoutScrumInput = {
   indicator?: string | null
   formula?: string | null
   strategicGoal?: string | null
   unit?: string | null
-  target?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: string | null
+  firstMonthTarget?: string | null
+  finalTarget?: string | null
   actualValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: $Enums.KpiStatus | null
   minExpected?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: number
   updatedAt?: Date | string
@@ -617,9 +684,12 @@ export type ScrumKpiUncheckedCreateWithoutScrumInput = {
   formula?: string | null
   strategicGoal?: string | null
   unit?: string | null
-  target?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: string | null
+  firstMonthTarget?: string | null
+  finalTarget?: string | null
   actualValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: $Enums.KpiStatus | null
   minExpected?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: number
   updatedAt?: Date | string
@@ -661,9 +731,12 @@ export type ScrumKpiScalarWhereInput = {
   formula?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   strategicGoal?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   unit?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
-  target?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
+  firstMonthTarget?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
+  finalTarget?: Prisma.StringNullableFilter<"ScrumKpi"> | string | null
   actualValue?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.EnumKpiStatusNullableFilter<"ScrumKpi"> | $Enums.KpiStatus | null
   minExpected?: Prisma.DecimalNullableFilter<"ScrumKpi"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFilter<"ScrumKpi"> | number
   updatedAt?: Prisma.DateTimeFilter<"ScrumKpi"> | Date | string
@@ -675,9 +748,12 @@ export type ScrumKpiCreateManyScrumInput = {
   formula?: string | null
   strategicGoal?: string | null
   unit?: string | null
-  target?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: string | null
+  firstMonthTarget?: string | null
+  finalTarget?: string | null
   actualValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: $Enums.KpiStatus | null
   minExpected?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: number
   updatedAt?: Date | string
@@ -688,9 +764,12 @@ export type ScrumKpiUpdateWithoutScrumInput = {
   formula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strategicGoal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  target?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstMonthTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  finalTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actualValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.NullableEnumKpiStatusFieldUpdateOperationsInput | $Enums.KpiStatus | null
   minExpected?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -702,9 +781,12 @@ export type ScrumKpiUncheckedUpdateWithoutScrumInput = {
   formula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strategicGoal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  target?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstMonthTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  finalTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actualValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.NullableEnumKpiStatusFieldUpdateOperationsInput | $Enums.KpiStatus | null
   minExpected?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -716,9 +798,12 @@ export type ScrumKpiUncheckedUpdateManyWithoutScrumInput = {
   formula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   strategicGoal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  target?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  firstMonthTarget?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  target?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstMonthTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  finalTarget?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   actualValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  progressPercent?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  status?: Prisma.NullableEnumKpiStatusFieldUpdateOperationsInput | $Enums.KpiStatus | null
   minExpected?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -735,7 +820,10 @@ export type ScrumKpiSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   unit?: boolean
   target?: boolean
   firstMonthTarget?: boolean
+  finalTarget?: boolean
   actualValue?: boolean
+  progressPercent?: boolean
+  status?: boolean
   minExpected?: boolean
   sortOrder?: boolean
   updatedAt?: boolean
@@ -751,7 +839,10 @@ export type ScrumKpiSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   unit?: boolean
   target?: boolean
   firstMonthTarget?: boolean
+  finalTarget?: boolean
   actualValue?: boolean
+  progressPercent?: boolean
+  status?: boolean
   minExpected?: boolean
   sortOrder?: boolean
   updatedAt?: boolean
@@ -767,7 +858,10 @@ export type ScrumKpiSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   unit?: boolean
   target?: boolean
   firstMonthTarget?: boolean
+  finalTarget?: boolean
   actualValue?: boolean
+  progressPercent?: boolean
+  status?: boolean
   minExpected?: boolean
   sortOrder?: boolean
   updatedAt?: boolean
@@ -783,13 +877,16 @@ export type ScrumKpiSelectScalar = {
   unit?: boolean
   target?: boolean
   firstMonthTarget?: boolean
+  finalTarget?: boolean
   actualValue?: boolean
+  progressPercent?: boolean
+  status?: boolean
   minExpected?: boolean
   sortOrder?: boolean
   updatedAt?: boolean
 }
 
-export type ScrumKpiOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scrumId" | "indicator" | "formula" | "strategicGoal" | "unit" | "target" | "firstMonthTarget" | "actualValue" | "minExpected" | "sortOrder" | "updatedAt", ExtArgs["result"]["scrumKpi"]>
+export type ScrumKpiOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "scrumId" | "indicator" | "formula" | "strategicGoal" | "unit" | "target" | "firstMonthTarget" | "finalTarget" | "actualValue" | "progressPercent" | "status" | "minExpected" | "sortOrder" | "updatedAt", ExtArgs["result"]["scrumKpi"]>
 export type ScrumKpiInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scrum?: boolean | Prisma.ScrumDefaultArgs<ExtArgs>
 }
@@ -812,9 +909,12 @@ export type $ScrumKpiPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     formula: string | null
     strategicGoal: string | null
     unit: string | null
-    target: runtime.Decimal | null
-    firstMonthTarget: runtime.Decimal | null
+    target: string | null
+    firstMonthTarget: string | null
+    finalTarget: string | null
     actualValue: runtime.Decimal | null
+    progressPercent: runtime.Decimal | null
+    status: $Enums.KpiStatus | null
     minExpected: runtime.Decimal | null
     sortOrder: number
     updatedAt: Date
@@ -1248,9 +1348,12 @@ export interface ScrumKpiFieldRefs {
   readonly formula: Prisma.FieldRef<"ScrumKpi", 'String'>
   readonly strategicGoal: Prisma.FieldRef<"ScrumKpi", 'String'>
   readonly unit: Prisma.FieldRef<"ScrumKpi", 'String'>
-  readonly target: Prisma.FieldRef<"ScrumKpi", 'Decimal'>
-  readonly firstMonthTarget: Prisma.FieldRef<"ScrumKpi", 'Decimal'>
+  readonly target: Prisma.FieldRef<"ScrumKpi", 'String'>
+  readonly firstMonthTarget: Prisma.FieldRef<"ScrumKpi", 'String'>
+  readonly finalTarget: Prisma.FieldRef<"ScrumKpi", 'String'>
   readonly actualValue: Prisma.FieldRef<"ScrumKpi", 'Decimal'>
+  readonly progressPercent: Prisma.FieldRef<"ScrumKpi", 'Decimal'>
+  readonly status: Prisma.FieldRef<"ScrumKpi", 'KpiStatus'>
   readonly minExpected: Prisma.FieldRef<"ScrumKpi", 'Decimal'>
   readonly sortOrder: Prisma.FieldRef<"ScrumKpi", 'Int'>
   readonly updatedAt: Prisma.FieldRef<"ScrumKpi", 'DateTime'>

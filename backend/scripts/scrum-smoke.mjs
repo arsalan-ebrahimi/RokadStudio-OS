@@ -170,6 +170,7 @@ const main = async () => {
         "/api/scrums/{id}/admins",
         "/api/scrums/{id}/members",
         "/api/scrums/{id}/tasks",
+        "/api/tasks/mine",
         "/api/tasks/{id}",
         "/api/tasks/{id}/members",
         "/api/tasks/{id}/work-sessions",
@@ -205,6 +206,7 @@ const main = async () => {
         "ScrumResponse",
         "SprintResponse",
         "ScrumTaskItem",
+        "MyScrumTasksResponseData",
         "WorkSessionTaskBrief",
         "WorkTargetSummaryUserRow",
         "WorkTargetSessionRow",
@@ -370,7 +372,8 @@ const main = async () => {
       }
       const ownerRow = oRes.json.data[0];
       assert(Object.prototype.hasOwnProperty.call(ownerRow, "minExpected"), "Admin missing minExpected");
-      assert(ownerRow.progressPercent === 94.12 && ownerRow.status === "IN_RANGE", "KPI computation mismatch");
+      assert(typeof ownerRow.firstMonthTarget === "string" && typeof ownerRow.target === "string" && typeof ownerRow.finalTarget === "string", "KPI targets must be strings");
+      assert(ownerRow.progressPercent === 80 && ownerRow.status === "IN_RANGE", "KPI stored progress/status mismatch");
       assert(sRes.json.data[0].minExpected === ownerRow.minExpected, "SA minExpected mismatch");
       seededKpiList = oRes.json.data;
       return `progress=${ownerRow.progressPercent}, status=${ownerRow.status}`;
@@ -511,12 +514,13 @@ const main = async () => {
         token: tempScrumAdmin.token,
         body: {
           rows: [
-            { indicator: "Below Min", target: 100, minExpected: 50, actualValue: 30 },
-            { indicator: "On Target", target: 100, minExpected: 50, actualValue: 100 },
+            { indicator: "Below Min", firstMonthTarget: "۴۰ درصد", target: "۸۰ درصد", finalTarget: "۱۰۰ درصد", minExpected: 50, actualValue: 30, progressPercent: 30, status: "BELOW_MIN" },
+            { indicator: "On Target", firstMonthTarget: "۶۰", target: "۹۰", finalTarget: "۱۰۰", minExpected: 50, actualValue: 100, progressPercent: 100, status: "ON_TARGET" },
           ],
         },
       });
       assert(rKpi.status === 200 && rKpi.json.data.length === 2, "KPI batch update failed");
+      assert(rKpi.json.data[0].finalTarget === "۱۰۰ درصد" && rKpi.json.data[0].status === "BELOW_MIN" && rKpi.json.data[1].progressPercent === 100, "KPI manual fields/targets mismatch");
 
       const { todayStr, persianDayOfWeek } = getTehranTodayAndWeekday();
       const otherDay = (persianDayOfWeek + 1) % 7;
@@ -1014,6 +1018,18 @@ const main = async () => {
       const rTaskAMemA = await api(`/api/tasks/${taskA.id}/work-sessions`, { token: tempMemberA.token });
       assert(rTaskAMemA.status === 200 && rTaskAMemA.json.data.summary.approvedSeconds === 1000 && rTaskAMemA.json.data.target.sprint?.id === sprint1.id, "Member A own taskA view failed");
 
+      // My Scrum Tasks endpoint with Scrum & exact date filters
+      const rMyTasksForb = await api("/api/tasks/mine", { token: adminAuth.token });
+      assert(rMyTasksForb.status === 403, `ADMIN /api/tasks/mine expected 403, got ${rMyTasksForb.status}`);
+      const rMyTasks = await api(`/api/tasks/mine?scrumId=${tempScrumId}&date=${todayStr}`, { token: tempMemberA.token });
+      assert(
+        rMyTasks.status === 200 &&
+          rMyTasks.json.data.tasks.some((t) => t.id === taskA.id && t.trackedSeconds.approved === 1000 && t.trackedSeconds.total === 1000) &&
+          rMyTasks.json.data.summary.approvedSeconds === 1000 &&
+          rMyTasks.json.data.scrums.some((s) => s.id === tempScrumId),
+        `GET /api/tasks/mine mismatch: ${JSON.stringify(rMyTasks.json)}`
+      );
+
       // Studio Project view for ADMIN and assigned member (read-only) shows ALL contributors (A=400s APPROVED + C=200s PENDING)
       const rProjView = await api(`/api/projects/${standaloneProjId}/work-sessions?date=${todayStr}`, { token: adminAuth.token });
       const rProjMemView = await api(`/api/projects/${standaloneProjId}/work-sessions?date=${todayStr}`, { token: tempMemberA.token });
@@ -1122,7 +1138,13 @@ const main = async () => {
       assert(d.totals.activeTasks === 2 && d.totals.totalTasks === 3 && d.totals.totalTaskPoints === 16, `Unexpected task totals: ${JSON.stringify(d.totals)}`);
       assert(d.scrums[0].taskCount === 3 && d.scrums[0].activeTaskCount === 2 && d.scrums[0].totalTaskPoints === 16, "Unexpected scrum task card stats");
       assert(d.scrums[0].activeSprint?.progressPercent === 60, `Expected progressPercent=60, got ${d.scrums[0].activeSprint?.progressPercent}`);
-      assert(d.scrums[0].kpi.total === 2 && d.todayEvents.length === 2, "KPI/events count mismatch");
+      assert(
+        d.scrums[0].kpi.total === 2 &&
+          d.scrums[0].kpi.belowMin === 1 &&
+          d.scrums[0].kpi.onTarget === 1 &&
+          d.todayEvents.length === 2,
+        "KPI/events count mismatch"
+      );
 
       const rSaDash = await api("/api/scrum-admin/dashboard", { token: saAuth.token });
       const sumCounts = rSaDash.json.data.scrums.reduce((acc, s) => acc + s.memberCount, 0);

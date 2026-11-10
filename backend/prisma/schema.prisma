@@ -50,6 +50,12 @@ enum EventScheduleType {
   ONCE
 }
 
+enum KpiStatus {
+  BELOW_MIN
+  IN_RANGE
+  ON_TARGET
+}
+
 model User {
   id                 Int             @id @default(autoincrement())
   code               String          @unique
@@ -203,20 +209,23 @@ model TaskMember {
 }
 
 model ScrumKpi {
-  id               Int      @id @default(autoincrement())
+  id               Int        @id @default(autoincrement())
   scrumId          Int
   indicator        String?
   formula          String?
   strategicGoal    String?
   unit             String?
-  target           Decimal? @db.Decimal(12, 2)
-  firstMonthTarget Decimal? @db.Decimal(12, 2)
-  actualValue      Decimal? @db.Decimal(12, 2)
-  minExpected      Decimal? @db.Decimal(12, 2)
-  sortOrder        Int      @default(0)
-  updatedAt        DateTime @updatedAt
+  target           String?
+  firstMonthTarget String?
+  finalTarget      String?
+  actualValue      Decimal?   @db.Decimal(12, 2)
+  progressPercent  Decimal?   @db.Decimal(5, 2)
+  status           KpiStatus?
+  minExpected      Decimal?   @db.Decimal(12, 2)
+  sortOrder        Int        @default(0)
+  updatedAt        DateTime   @updatedAt
 
-  scrum            Scrum    @relation(fields: [scrumId], references: [id], onDelete: Cascade)
+  scrum            Scrum      @relation(fields: [scrumId], references: [id], onDelete: Cascade)
 
   @@index([scrumId])
 }

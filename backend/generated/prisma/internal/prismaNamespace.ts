@@ -1550,7 +1550,10 @@ export const ScrumKpiScalarFieldEnum = {
   unit: 'unit',
   target: 'target',
   firstMonthTarget: 'firstMonthTarget',
+  finalTarget: 'finalTarget',
   actualValue: 'actualValue',
+  progressPercent: 'progressPercent',
+  status: 'status',
   minExpected: 'minExpected',
   sortOrder: 'sortOrder',
   updatedAt: 'updatedAt'
@@ -1745,6 +1748,20 @@ export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'Decimal[]'
  */
 export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+/**
+ * Reference to a field of type 'KpiStatus'
+ */
+export type EnumKpiStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KpiStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'KpiStatus[]'
+ */
+export type ListEnumKpiStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KpiStatus[]'>
     
 
 

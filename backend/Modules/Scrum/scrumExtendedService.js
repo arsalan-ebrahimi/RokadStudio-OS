@@ -198,6 +198,168 @@ export const listScrumTasksService = async (
   return tasks.map((t) => formatScrumTask(t, trackedMap, currentUser.id));
 };
 
+export const buildWorkDateFilter = ({ date, dateFrom, dateTo } = {}) => {
+  if (typeof date === "string" && date.trim() !== "") {
+    return toDateOnly(date.trim());
+  }
+  const range = {};
+  if (typeof dateFrom === "string" && dateFrom.trim() !== "") {
+    range.gte = toDateOnly(dateFrom.trim());
+  }
+  if (typeof dateTo === "string" && dateTo.trim() !== "") {
+    range.lte = toDateOnly(dateTo.trim());
+  }
+  return Object.keys(range).length > 0 ? range : undefined;
+};
+
+export const getMyScrumTasksService = async (
+  { scrumId, isActive, search, date, dateFrom, dateTo } = {},
+  currentUser
+) => {
+  const taskWhere = {
+    members: { some: { userId: currentUser.id } },
+  };
+
+  if (scrumId !== undefined && scrumId !== null && scrumId !== "") {
+    taskWhere.scrumId = Number(scrumId);
+  }
+  if (typeof isActive === "boolean") {
+    taskWhere.isActive = isActive;
+  }
+  if (typeof search === "string" && search.trim() !== "") {
+    const q = search.trim();
+    taskWhere.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { scrum: { name: { contains: q, mode: "insensitive" } } },
+    ];
+  }
+
+  const [scrumOptions, tasks] = await Promise.all([
+    prisma.scrum.findMany({
+      where: {
+        tasks: {
+          some: {
+            members: { some: { userId: currentUser.id } },
+          },
+        },
+      },
+      take: MAX_LIST_LIMIT,
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        isActive: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.task.findMany({
+      where: taskWhere,
+      take: MAX_LIST_LIMIT,
+      select: {
+        ...taskSelectFields,
+        scrum: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            isActive: true,
+          },
+        },
+      },
+      orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
+    }),
+  ]);
+
+  const taskIds = tasks.map((t) => t.id);
+  const workDateFilter = buildWorkDateFilter({ date, dateFrom, dateTo });
+
+  const groupedSessions =
+    taskIds.length > 0
+      ? await prisma.workSession.groupBy({
+          by: ["taskId", "approval"],
+          where: {
+            taskId: { in: taskIds },
+            userId: currentUser.id,
+            approval: { in: ["APPROVED", "PENDING", "REJECTED"] },
+            ...(workDateFilter ? { workDate: workDateFilter } : {}),
+          },
+          _sum: { durationSeconds: true },
+          _count: { id: true },
+        })
+      : [];
+
+  const statsMap = new Map();
+  for (const row of groupedSessions) {
+    if (!row.taskId) continue;
+    if (!statsMap.has(row.taskId)) {
+      statsMap.set(row.taskId, {
+        trackedSeconds: { approved: 0, pending: 0, rejected: 0, total: 0 },
+        sessionCounts: { approved: 0, pending: 0, rejected: 0, total: 0 },
+      });
+    }
+    const entry = statsMap.get(row.taskId);
+    const secs = Number(row._sum.durationSeconds || 0);
+    const cnt = Number(row._count.id || 0);
+    entry.trackedSeconds.total += secs;
+    entry.sessionCounts.total += cnt;
+
+    if (row.approval === "APPROVED") {
+      entry.trackedSeconds.approved += secs;
+      entry.sessionCounts.approved += cnt;
+    } else if (row.approval === "PENDING") {
+      entry.trackedSeconds.pending += secs;
+      entry.sessionCounts.pending += cnt;
+    } else if (row.approval === "REJECTED") {
+      entry.trackedSeconds.rejected += secs;
+      entry.sessionCounts.rejected += cnt;
+    }
+  }
+
+  const summary = {
+    totalTasks: tasks.length,
+    activeTasks: 0,
+    workedTasksCount: 0,
+    totalPoints: 0,
+    approvedSeconds: 0,
+    pendingSeconds: 0,
+    rejectedSeconds: 0,
+    totalSeconds: 0,
+    sessionCount: 0,
+  };
+
+  const formattedTasks = tasks.map((task) => {
+    const base = formatScrumTask(task, null, currentUser.id);
+    const stats = statsMap.get(task.id) || {
+      trackedSeconds: { approved: 0, pending: 0, rejected: 0, total: 0 },
+      sessionCounts: { approved: 0, pending: 0, rejected: 0, total: 0 },
+    };
+
+    if (task.isActive) summary.activeTasks += 1;
+    if (stats.sessionCounts.total > 0) summary.workedTasksCount += 1;
+    summary.totalPoints += Number(task.points || 0);
+    summary.approvedSeconds += stats.trackedSeconds.approved;
+    summary.pendingSeconds += stats.trackedSeconds.pending;
+    summary.rejectedSeconds += stats.trackedSeconds.rejected;
+    summary.totalSeconds += stats.trackedSeconds.total;
+    summary.sessionCount += stats.sessionCounts.total;
+
+    return {
+      ...base,
+      isAssignedToMe: true,
+      scrum: task.scrum,
+      trackedSeconds: stats.trackedSeconds,
+      sessionCounts: stats.sessionCounts,
+    };
+  });
+
+  return {
+    scrums: scrumOptions,
+    tasks: formattedTasks,
+    summary,
+  };
+};
+
 export const getTaskByIdService = async (taskId, currentUser, canEditContent) => {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -853,24 +1015,9 @@ export const getScrumAdminDashboardService = async (currentUser, now = new Date(
       SELECT
         "scrumId"::int AS "scrumId",
         COUNT(*)::int AS "total",
-        COUNT(*) FILTER (
-          WHERE "actualValue" IS NOT NULL
-            AND "target" IS NOT NULL
-            AND "minExpected" IS NOT NULL
-            AND "actualValue" < "minExpected"
-        )::int AS "belowMin",
-        COUNT(*) FILTER (
-          WHERE "actualValue" IS NOT NULL
-            AND "target" IS NOT NULL
-            AND NOT ("minExpected" IS NOT NULL AND "actualValue" < "minExpected")
-            AND "actualValue" >= "target"
-        )::int AS "onTarget",
-        COUNT(*) FILTER (
-          WHERE "actualValue" IS NOT NULL
-            AND "target" IS NOT NULL
-            AND NOT ("minExpected" IS NOT NULL AND "actualValue" < "minExpected")
-            AND "actualValue" < "target"
-        )::int AS "inRange"
+        COUNT(*) FILTER (WHERE "status" = 'BELOW_MIN')::int AS "belowMin",
+        COUNT(*) FILTER (WHERE "status" = 'ON_TARGET')::int AS "onTarget",
+        COUNT(*) FILTER (WHERE "status" = 'IN_RANGE')::int AS "inRange"
       FROM "ScrumKpi"
       WHERE "scrumId" = ANY(${scrumIds}::int[])
       GROUP BY "scrumId"

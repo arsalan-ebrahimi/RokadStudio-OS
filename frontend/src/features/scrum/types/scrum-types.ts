@@ -8,6 +8,8 @@ export type ScrumRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
 
 export type LeaderboardPeriod = 'SPRINT' | 'MONTH' | 'ALL';
 
+export type KpiStatus = 'BELOW_MIN' | 'IN_RANGE' | 'ON_TARGET';
+
 export interface ScrumColorMeta {
   bg: string;
   chipBg: string;
@@ -176,13 +178,14 @@ export interface ScrumKpi {
   formula?: string | null;
   strategicGoal?: string | null;
   unit?: string | null;
-  target?: number | null;
-  firstMonthTarget?: number | null;
+  firstMonthTarget?: string | null;
+  target?: string | null;
+  finalTarget?: string | null;
   actualValue?: number | null;
   minExpected?: number | null;
   sortOrder?: number;
   progressPercent?: number | null;
-  status?: 'BELOW_MIN' | 'IN_RANGE' | 'ON_TARGET' | null;
+  status?: KpiStatus | null;
   updatedAt?: string;
 }
 
@@ -300,6 +303,76 @@ export interface ScrumLeaderboardData {
     rank: number | null;
     approvedSeconds: number;
     pendingSeconds: number;
+  };
+}
+
+export interface MyScrumTasksQuery {
+  scrumId?: number;
+  isActive?: boolean;
+  search?: string;
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface MyScrumOption {
+  id: number;
+  name: string;
+  color: ScrumColor;
+  isActive: boolean;
+}
+
+export interface MyScrumTaskItem {
+  id: number;
+  scrumId: number;
+  sprintId?: number | null;
+  sprint?: {
+    id: number;
+    number: number;
+    title: string;
+    status: SprintStatus;
+  } | null;
+  scrum: {
+    id: number;
+    name: string;
+    color: ScrumColor;
+    isActive: boolean;
+  };
+  name: string;
+  description?: string | null;
+  points: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  members: ScrumUserRef[];
+  isAssignedToMe: boolean;
+  trackedSeconds: {
+    approved: number;
+    pending: number;
+    rejected: number;
+    total: number;
+  };
+  sessionCounts: {
+    approved: number;
+    pending: number;
+    rejected: number;
+    total: number;
+  };
+}
+
+export interface MyScrumTasksResponse {
+  scrums: MyScrumOption[];
+  tasks: MyScrumTaskItem[];
+  summary: {
+    totalTasks: number;
+    activeTasks: number;
+    workedTasksCount: number;
+    totalPoints: number;
+    approvedSeconds: number;
+    pendingSeconds: number;
+    rejectedSeconds: number;
+    totalSeconds: number;
+    sessionCount: number;
   };
 }
 

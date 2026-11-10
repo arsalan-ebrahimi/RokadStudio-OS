@@ -25,6 +25,7 @@ import {
 } from "./scrumService.js";
 import {
   listScrumTasksService,
+  getMyScrumTasksService,
   getTaskByIdService,
   createScrumTaskService,
   updateScrumTaskService,
@@ -287,6 +288,16 @@ export const listScrumTasks = catchAsync(async (req, res) => {
     success: true,
     message: "تسک‌های اسکرام با موفقیت دریافت شدند",
     data: tasks,
+  });
+});
+
+export const getMyTasks = catchAsync(async (req, res) => {
+  const query = req.validatedQuery || req.query;
+  const result = await getMyScrumTasksService(query, req.user);
+  return res.status(200).json({
+    success: true,
+    message: "تسک‌های اسکرام شما با موفقیت دریافت شدند",
+    data: result,
   });
 });
 

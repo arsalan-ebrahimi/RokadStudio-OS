@@ -20,6 +20,7 @@ import {
   updateSprintBodyValidator,
   updateSprintStatusBodyValidator,
   listScrumTasksQueryValidator,
+  myTasksQueryValidator,
   createTaskBodyValidator,
   updateTaskBodyValidator,
   updateTaskMembersBodyValidator,
@@ -44,6 +45,7 @@ import {
   updateSprintStatus,
   deleteSprint,
   listScrumTasks,
+  getMyTasks,
   createScrumTask,
   getTaskById,
   updateScrumTask,
@@ -268,6 +270,9 @@ sprintRouter.delete(
 // ==========================================
 export const taskRouter = express.Router();
 taskRouter.use(isLogin, requireNonAttendanceAdmin);
+
+// MUST be declared BEFORE /:id to avoid param capture
+taskRouter.get("/mine", myTasksQueryValidator, getMyTasks);
 
 taskRouter.get(
   "/:id/work-sessions",

@@ -1,38 +1,34 @@
+const VALID_KPI_STATUSES = new Set(["BELOW_MIN", "IN_RANGE", "ON_TARGET"]);
+
+const normalizeNullableText = (val) => {
+  if (typeof val !== "string") return null;
+  return val.trim() === "" ? null : val;
+};
+
 /**
  * Serializes KPI rows according to caller role.
  * For plain members, `minExpected` is omitted entirely from the object.
  */
 export const serializeKpiRow = (kpi, isAdmin = false) => {
-  const target = kpi.target != null ? Number(kpi.target) : null;
-  const firstMonthTarget = kpi.firstMonthTarget != null ? Number(kpi.firstMonthTarget) : null;
   const actualValue = kpi.actualValue != null ? Number(kpi.actualValue) : null;
   const minExpected = kpi.minExpected != null ? Number(kpi.minExpected) : null;
-
-  let progressPercent = null;
-  if (target != null && actualValue != null && Number.isFinite(target) && Number.isFinite(actualValue) && target !== 0) {
-    progressPercent = Math.round((actualValue / target) * 10000) / 100;
-  }
-
-  let status = null;
-  if (actualValue != null && target != null) {
-    if (minExpected != null && actualValue < minExpected) {
-      status = "BELOW_MIN";
-    } else if (actualValue >= target) {
-      status = "ON_TARGET";
-    } else {
-      status = "IN_RANGE";
-    }
-  }
+  const rawProgress = kpi.progressPercent != null ? Number(kpi.progressPercent) : null;
+  const progressPercent =
+    rawProgress !== null && Number.isFinite(rawProgress)
+      ? Math.round(rawProgress * 100) / 100
+      : null;
+  const status = VALID_KPI_STATUSES.has(kpi.status) ? kpi.status : null;
 
   const base = {
     id: kpi.id,
     scrumId: kpi.scrumId,
-    indicator: kpi.indicator || null,
-    formula: kpi.formula || null,
-    strategicGoal: kpi.strategicGoal || null,
-    unit: kpi.unit || null,
-    target,
-    firstMonthTarget,
+    indicator: normalizeNullableText(kpi.indicator),
+    formula: normalizeNullableText(kpi.formula),
+    strategicGoal: normalizeNullableText(kpi.strategicGoal),
+    unit: normalizeNullableText(kpi.unit),
+    target: normalizeNullableText(kpi.target),
+    firstMonthTarget: normalizeNullableText(kpi.firstMonthTarget),
+    finalTarget: normalizeNullableText(kpi.finalTarget),
     actualValue,
     sortOrder: kpi.sortOrder,
     updatedAt: kpi.updatedAt,

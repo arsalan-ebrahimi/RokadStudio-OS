@@ -14,12 +14,19 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { toPersianDigits } from '@/shared/lib/formatters';
 import { useKpis, useBatchUpdateKpis } from '../hooks/use-scrum';
-import type { ScrumKpi, Scrum } from '../types/scrum-types';
+import type { KpiStatus, Scrum, ScrumKpi } from '../types/scrum-types';
 
 interface KpiTabProps {
   scrum: Scrum;
   canEdit: boolean;
 }
+
+const KPI_STATUS_OPTIONS: { value: '' | KpiStatus; label: string }[] = [
+  { value: '', label: 'نامشخص' },
+  { value: 'BELOW_MIN', label: 'کمتر از انتظار' },
+  { value: 'IN_RANGE', label: 'در محدوده' },
+  { value: 'ON_TARGET', label: 'رسیده به هدف' },
+];
 
 export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
   const { data: kpis = [], isLoading, isError, error, refetch } = useKpis(scrum.id);
@@ -35,9 +42,12 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
     formula: '',
     strategicGoal: '',
     unit: '',
-    target: null,
-    firstMonthTarget: null,
+    firstMonthTarget: '',
+    target: '',
+    finalTarget: '',
     actualValue: null,
+    progressPercent: null,
+    status: null,
     minExpected: null,
   });
 
@@ -47,9 +57,12 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
       r.formula,
       r.strategicGoal,
       r.unit,
-      r.target,
       r.firstMonthTarget,
+      r.target,
+      r.finalTarget,
       r.actualValue,
+      r.progressPercent,
+      r.status,
       r.minExpected,
     ];
     return fields.every(
@@ -62,7 +75,7 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
       {
         id: 'indicator',
         header: 'شاخص',
-        minWidth: '190px',
+        minWidth: '185px',
         isSticky: true,
         renderView: (row) => (
           <ExpandableTextCell
@@ -99,34 +112,6 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
         ),
       },
       {
-        id: 'target',
-        header: 'تارگت',
-        minWidth: '110px',
-        align: 'center',
-        renderView: (row) =>
-          row.target != null ? (
-            <span className="inline-flex items-center justify-center gap-1.5 font-black text-sec dark:text-white tabular-nums">
-              <span>{toPersianDigits(row.target)}</span>
-              <UnitChip unit={row.unit} />
-            </span>
-          ) : (
-            <span className="text-sec/35 dark:text-gray-500">—</span>
-          ),
-        renderEdit: (row, _index, onChange) => (
-          <div className="flex items-center justify-center gap-1">
-            <input
-              type="number"
-              step="any"
-              value={row.target ?? ''}
-              onChange={(e) => onChange({ target: e.target.value ? Number(e.target.value) : null })}
-              placeholder="عدد"
-              className={cn(INLINE_INPUT_CLASS, 'text-center tabular-nums font-bold')}
-            />
-            <UnitChip unit={row.unit} />
-          </div>
-        ),
-      },
-      {
         id: 'strategicGoal',
         header: 'هدف استراتژیک',
         minWidth: '185px',
@@ -148,34 +133,71 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
       {
         id: 'firstMonthTarget',
         header: 'تارگت ماه اول',
-        minWidth: '110px',
-        align: 'center',
-        renderView: (row) =>
-          row.firstMonthTarget != null ? (
-            <span className="inline-flex items-center justify-center gap-1.5 text-sec/80 dark:text-gray-200 font-bold tabular-nums">
-              <span>{toPersianDigits(row.firstMonthTarget)}</span>
-              <UnitChip unit={row.unit} />
-            </span>
-          ) : (
-            <span className="text-sec/35 dark:text-gray-500">—</span>
-          ),
-        renderEdit: (row, _index, onChange) => (
-          <input
-            type="number"
-            step="any"
-            value={row.firstMonthTarget ?? ''}
-            onChange={(e) =>
-              onChange({ firstMonthTarget: e.target.value ? Number(e.target.value) : null })
+        minWidth: '145px',
+        renderView: (row) => (
+          <ExpandableTextCell
+            text={
+              row.firstMonthTarget != null && row.firstMonthTarget !== ''
+                ? toPersianDigits(row.firstMonthTarget)
+                : null
             }
-            placeholder="عدد"
-            className={cn(INLINE_INPUT_CLASS, 'text-center tabular-nums')}
+            className="text-sec/80 dark:text-gray-200 font-bold"
+          />
+        ),
+        renderEdit: (row, _index, onChange) => (
+          <AutoGrowTextarea
+            value={row.firstMonthTarget ?? ''}
+            onChange={(e) => onChange({ firstMonthTarget: e.target.value })}
+            placeholder="مثال: ۷۰ درصد"
+          />
+        ),
+      },
+      {
+        id: 'target',
+        header: 'تارگت',
+        minWidth: '145px',
+        renderView: (row) => (
+          <ExpandableTextCell
+            text={row.target != null && row.target !== '' ? toPersianDigits(row.target) : null}
+            className="font-black text-sec dark:text-white"
+          />
+        ),
+        renderEdit: (row, _index, onChange) => (
+          <AutoGrowTextarea
+            value={row.target ?? ''}
+            onChange={(e) => onChange({ target: e.target.value })}
+            placeholder="مثال: ۸۵ درصد"
+            className="font-bold"
+          />
+        ),
+      },
+      {
+        id: 'finalTarget',
+        header: 'تارگت نهایی',
+        minWidth: '145px',
+        renderView: (row) => (
+          <ExpandableTextCell
+            text={
+              row.finalTarget != null && row.finalTarget !== ''
+                ? toPersianDigits(row.finalTarget)
+                : null
+            }
+            className="font-black text-sec dark:text-primary"
+          />
+        ),
+        renderEdit: (row, _index, onChange) => (
+          <AutoGrowTextarea
+            value={row.finalTarget ?? ''}
+            onChange={(e) => onChange({ finalTarget: e.target.value })}
+            placeholder="مثال: ۱۰۰ درصد"
+            className="font-bold"
           />
         ),
       },
       {
         id: 'actualValue',
         header: 'پیشرفت واقعی',
-        minWidth: '110px',
+        minWidth: '115px',
         align: 'center',
         renderView: (row) =>
           row.actualValue != null ? (
@@ -191,9 +213,17 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
             type="number"
             step="any"
             value={row.actualValue ?? ''}
-            onChange={(e) =>
-              onChange({ actualValue: e.target.value ? Number(e.target.value) : null })
-            }
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') {
+                onChange({ actualValue: null });
+                return;
+              }
+              const parsed = Number(raw);
+              if (Number.isFinite(parsed)) {
+                onChange({ actualValue: parsed });
+              }
+            }}
             placeholder="عدد"
             className={cn(INLINE_INPUT_CLASS, 'text-center tabular-nums font-bold')}
           />
@@ -202,7 +232,8 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
       {
         id: 'progressPercent',
         header: 'پیشرفت٪',
-        minWidth: '135px',
+        minWidth: '140px',
+        align: 'center',
         renderView: (row) =>
           row.progressPercent != null ? (
             <ProgressBar
@@ -222,18 +253,37 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
           ) : (
             <span className="text-sec/35 dark:text-gray-500">—</span>
           ),
-        renderEdit: (row) => (
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold text-sec/55 dark:text-gray-400 tabular-nums">
-            {row.progressPercent != null
-              ? `${toPersianDigits(row.progressPercent.toFixed(1))}٪`
-              : 'محاسبه خودکار'}
-          </span>
+        renderEdit: (row, _index, onChange) => (
+          <div className="flex items-center justify-center gap-1">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step="any"
+              value={row.progressPercent ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  onChange({ progressPercent: null });
+                  return;
+                }
+                const parsed = Number(raw);
+                if (Number.isFinite(parsed)) {
+                  onChange({ progressPercent: parsed });
+                }
+              }}
+              placeholder="۰ تا ۱۰۰"
+              aria-label={`درصد پیشرفت ${row.indicator || 'شاخص'}`}
+              className={cn(INLINE_INPUT_CLASS, 'text-center tabular-nums font-bold')}
+            />
+            <span className="text-xs font-bold text-sec/60 dark:text-gray-400 shrink-0">٪</span>
+          </div>
         ),
       },
       {
         id: 'status',
         header: 'وضعیت',
-        minWidth: '135px',
+        minWidth: '150px',
         align: 'center',
         renderView: (row) => {
           if (!row.status) return <span className="text-sec/35 dark:text-gray-500">—</span>;
@@ -245,10 +295,22 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
           }
           return <StatusDotPill tone="warning" label="در محدوده" />;
         },
-        renderEdit: () => (
-          <span className="inline-block px-2 py-1 text-[11px] font-bold text-sec/55 dark:text-gray-400">
-            محاسبه خودکار
-          </span>
+        renderEdit: (row, _index, onChange) => (
+          <select
+            value={row.status ?? ''}
+            onChange={(e) => {
+              const val = e.target.value as '' | KpiStatus;
+              onChange({ status: val === '' ? null : val });
+            }}
+            aria-label={`وضعیت ${row.indicator || 'شاخص'}`}
+            className={cn(INLINE_INPUT_CLASS, 'cursor-pointer font-bold')}
+          >
+            {KPI_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value || 'EMPTY'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         ),
       },
     ];
@@ -274,9 +336,17 @@ export const KpiTab: React.FC<KpiTabProps> = ({ scrum, canEdit }) => {
             type="number"
             step="any"
             value={row.minExpected ?? ''}
-            onChange={(e) =>
-              onChange({ minExpected: e.target.value ? Number(e.target.value) : null })
-            }
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') {
+                onChange({ minExpected: null });
+                return;
+              }
+              const parsed = Number(raw);
+              if (Number.isFinite(parsed)) {
+                onChange({ minExpected: parsed });
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Tab' && !e.shiftKey && isLastCell && onTabLastCell) {
                 e.preventDefault();

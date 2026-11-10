@@ -184,6 +184,7 @@ const UserDashboardPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
       queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
     },
@@ -257,7 +258,7 @@ const UserDashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 shrink-0 max-w-full">
             <button
               type="button"
               onClick={toggleTheme}
@@ -412,7 +413,7 @@ const UserDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 shrink-0 max-w-full">
           <Link
             to="/my-projects"
             className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
@@ -422,15 +423,28 @@ const UserDashboardPage: React.FC = () => {
             <FolderKanban className="w-4 h-4 text-primary shrink-0" />
             <span className="hidden md:inline whitespace-nowrap">پروژه‌های من</span>
           </Link>
-          <Link
-            to="/my-scrums"
-            className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
-            title="اسکرام‌های من"
-            aria-label="اسکرام‌های من"
-          >
-            <Layers className="w-4 h-4 text-primary shrink-0" />
-            <span className="hidden md:inline whitespace-nowrap">اسکرام‌های من</span>
-          </Link>
+          {user?.role !== 'ADMIN' && (
+            <>
+              <Link
+                to="/my-scrum-tasks"
+                className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
+                title="تسک‌های اسکرام من"
+                aria-label="تسک‌های اسکرام من"
+              >
+                <ListChecks className="w-4 h-4 text-primary shrink-0" />
+                <span className="hidden md:inline whitespace-nowrap">تسک‌های اسکرام من</span>
+              </Link>
+              <Link
+                to="/my-scrums"
+                className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
+                title="اسکرام‌های من"
+                aria-label="اسکرام‌های من"
+              >
+                <Layers className="w-4 h-4 text-primary shrink-0" />
+                <span className="hidden md:inline whitespace-nowrap">اسکرام‌های من</span>
+              </Link>
+            </>
+          )}
           <button
             type="button"
             onClick={() => setIsPetModalOpen(true)}

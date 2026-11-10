@@ -636,6 +636,7 @@ export function useTimer(
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
         queryClient.invalidateQueries({ queryKey: ['scrum'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
         queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان هدف کاری ثبت و تغییر یافت');
@@ -777,6 +778,7 @@ export function useTimer(
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
         queryClient.invalidateQueries({ queryKey: ['scrum'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
         queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان کار با موفقیت ثبت شد');

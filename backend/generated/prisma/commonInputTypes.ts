@@ -264,6 +264,13 @@ export type DecimalNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedDecimalNullableFilter<$PrismaModel> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
+export type EnumKpiStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.KpiStatus | Prisma.EnumKpiStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKpiStatusNullableFilter<$PrismaModel> | $Enums.KpiStatus | null
+}
+
 export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
   equals?: runtime.Decimal | runtime.DecimalJsLike | number | string | Prisma.DecimalFieldRefInput<$PrismaModel> | null
   in?: runtime.Decimal[] | runtime.DecimalJsLike[] | number[] | string[] | Prisma.ListDecimalFieldRefInput<$PrismaModel> | null
@@ -278,6 +285,16 @@ export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
+}
+
+export type EnumKpiStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KpiStatus | Prisma.EnumKpiStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKpiStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.KpiStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKpiStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKpiStatusNullableFilter<$PrismaModel>
 }
 
 export type EnumEventScheduleTypeFilter<$PrismaModel = never> = {
@@ -611,6 +628,13 @@ export type NestedDecimalNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedDecimalNullableFilter<$PrismaModel> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
 }
 
+export type NestedEnumKpiStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.KpiStatus | Prisma.EnumKpiStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKpiStatusNullableFilter<$PrismaModel> | $Enums.KpiStatus | null
+}
+
 export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
   equals?: runtime.Decimal | runtime.DecimalJsLike | number | string | Prisma.DecimalFieldRefInput<$PrismaModel> | null
   in?: runtime.Decimal[] | runtime.DecimalJsLike[] | number[] | string[] | Prisma.ListDecimalFieldRefInput<$PrismaModel> | null
@@ -625,6 +649,16 @@ export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumKpiStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KpiStatus | Prisma.EnumKpiStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KpiStatus[] | Prisma.ListEnumKpiStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKpiStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.KpiStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKpiStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKpiStatusNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumEventScheduleTypeFilter<$PrismaModel = never> = {

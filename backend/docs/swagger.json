@@ -3690,6 +3690,118 @@
         }
       }
     },
+    "/api/tasks/mine": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "فهرست تسک‌های اسکرام کاربر جاری به همراه مجموع زمان کارکرد فیلترشده بر اساس تاریخ و اسکرام",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "scrumId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "فهرست تسک‌های اختصاص‌داده‌شده به کاربر و آمار کارکرد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MyScrumTasksResponseData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "پارامترهای فیلتر نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tasks/{id}": {
       "get": {
         "tags": [
@@ -6314,14 +6426,22 @@
             "example": "درصد"
           },
           "target": {
-            "type": "number",
+            "type": "string",
             "nullable": true,
-            "example": 85
+            "description": "تارگت (رشته متنی)",
+            "example": "۸۵ درصد"
           },
           "firstMonthTarget": {
-            "type": "number",
+            "type": "string",
             "nullable": true,
-            "example": 70
+            "description": "تارگت ماه اول (رشته متنی)",
+            "example": "۷۰ درصد"
+          },
+          "finalTarget": {
+            "type": "string",
+            "nullable": true,
+            "description": "تارگت نهایی (رشته متنی)",
+            "example": "۹۵ درصد"
           },
           "actualValue": {
             "type": "number",
@@ -6339,7 +6459,10 @@
           "progressPercent": {
             "type": "number",
             "nullable": true,
-            "example": 94.12
+            "minimum": 0,
+            "maximum": 100,
+            "description": "درصد پیشرفت دستی (۰ تا ۱۰۰)",
+            "example": 80
           },
           "status": {
             "type": "string",
@@ -6578,6 +6701,161 @@
               "rejected": {
                 "type": "integer",
                 "example": 0
+              }
+            }
+          }
+        }
+      },
+      "MyScrumTaskItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 101
+          },
+          "scrumId": {
+            "type": "integer",
+            "example": 1
+          },
+          "sprintId": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          },
+          "sprint": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskSprintBrief"
+              }
+            ],
+            "nullable": true
+          },
+          "scrum": {
+            "$ref": "#/components/schemas/ScrumBrief"
+          },
+          "name": {
+            "type": "string",
+            "example": "پیاده‌سازی ماژول اسکرام"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "points": {
+            "type": "integer",
+            "example": 8
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserBasicItem"
+            }
+          },
+          "isAssignedToMe": {
+            "type": "boolean",
+            "example": true
+          },
+          "trackedSeconds": {
+            "type": "object",
+            "properties": {
+              "approved": {
+                "type": "integer",
+                "example": 1800
+              },
+              "pending": {
+                "type": "integer",
+                "example": 900
+              },
+              "rejected": {
+                "type": "integer",
+                "example": 0
+              },
+              "total": {
+                "type": "integer",
+                "example": 2700
+              }
+            }
+          },
+          "sessionCounts": {
+            "type": "object",
+            "properties": {
+              "approved": {
+                "type": "integer",
+                "example": 2
+              },
+              "pending": {
+                "type": "integer",
+                "example": 1
+              },
+              "rejected": {
+                "type": "integer",
+                "example": 0
+              },
+              "total": {
+                "type": "integer",
+                "example": 3
+              }
+            }
+          }
+        }
+      },
+      "MyScrumTasksResponseData": {
+        "type": "object",
+        "properties": {
+          "scrums": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScrumBrief"
+            }
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyScrumTaskItem"
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "totalTasks": {
+                "type": "integer",
+                "example": 4
+              },
+              "activeTasks": {
+                "type": "integer",
+                "example": 3
+              },
+              "workedTasksCount": {
+                "type": "integer",
+                "example": 2
+              },
+              "totalPoints": {
+                "type": "integer",
+                "example": 21
+              },
+              "approvedSeconds": {
+                "type": "integer",
+                "example": 3600
+              },
+              "pendingSeconds": {
+                "type": "integer",
+                "example": 900
+              },
+              "rejectedSeconds": {
+                "type": "integer",
+                "example": 0
+              },
+              "totalSeconds": {
+                "type": "integer",
+                "example": 4500
+              },
+              "sessionCount": {
+                "type": "integer",
+                "example": 4
               }
             }
           }

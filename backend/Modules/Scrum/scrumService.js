@@ -703,6 +703,8 @@ export const getKpisService = async (scrumId, isAdmin = false) => {
 };
 
 export const batchUpdateKpisService = async (scrumId, rawRows = [], isAdmin = false) => {
+  const VALID_KPI_STATUSES = new Set(["BELOW_MIN", "IN_RANGE", "ON_TARGET"]);
+
   const isRowEmpty = (r) => {
     const fields = [
       r.indicator,
@@ -711,7 +713,10 @@ export const batchUpdateKpisService = async (scrumId, rawRows = [], isAdmin = fa
       r.unit,
       r.target,
       r.firstMonthTarget,
+      r.finalTarget,
       r.actualValue,
+      r.progressPercent,
+      r.status,
       r.minExpected,
     ];
     return fields.every(
@@ -719,8 +724,19 @@ export const batchUpdateKpisService = async (scrumId, rawRows = [], isAdmin = fa
     );
   };
 
+  const toNullableText = (val) =>
+    typeof val === "string" && val.trim() !== "" ? val.trim() : null;
+
   const toNullableDecimal = (val) =>
     val !== undefined && val !== null && val !== "" ? Number(val) : null;
+
+  const toNullablePercent = (val) =>
+    val !== undefined && val !== null && val !== ""
+      ? Math.round(Number(val) * 100) / 100
+      : null;
+
+  const toNullableStatus = (val) =>
+    typeof val === "string" && VALID_KPI_STATUSES.has(val) ? val : null;
 
   const updatedRows = await prisma.$transaction(async (tx) => {
     const existing = await tx.scrumKpi.findMany({
@@ -749,14 +765,16 @@ export const batchUpdateKpisService = async (scrumId, rawRows = [], isAdmin = fa
     for (let i = 0; i < validRows.length; i++) {
       const r = validRows[i];
       const data = {
-        indicator: typeof r.indicator === "string" && r.indicator.trim() ? r.indicator.trim() : null,
-        formula: typeof r.formula === "string" && r.formula.trim() ? r.formula.trim() : null,
-        strategicGoal:
-          typeof r.strategicGoal === "string" && r.strategicGoal.trim() ? r.strategicGoal.trim() : null,
-        unit: typeof r.unit === "string" && r.unit.trim() ? r.unit.trim() : null,
-        target: toNullableDecimal(r.target),
-        firstMonthTarget: toNullableDecimal(r.firstMonthTarget),
+        indicator: toNullableText(r.indicator),
+        formula: toNullableText(r.formula),
+        strategicGoal: toNullableText(r.strategicGoal),
+        unit: toNullableText(r.unit),
+        target: toNullableText(r.target),
+        firstMonthTarget: toNullableText(r.firstMonthTarget),
+        finalTarget: toNullableText(r.finalTarget),
         actualValue: toNullableDecimal(r.actualValue),
+        progressPercent: toNullablePercent(r.progressPercent),
+        status: toNullableStatus(r.status),
         minExpected: toNullableDecimal(r.minExpected),
         sortOrder: i,
       };

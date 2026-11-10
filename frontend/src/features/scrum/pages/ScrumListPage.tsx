@@ -43,6 +43,7 @@ export const ScrumListPage: React.FC = () => {
       updateScrum(id, { isActive }),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['scrums'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum', updated.id] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });

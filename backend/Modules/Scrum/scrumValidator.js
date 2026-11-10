@@ -8,6 +8,7 @@ const KPI_MAX_ABS = 9999999999.99;
 const SCRUM_COLORS = ["ECOSYSTEM", "MALE", "FEMALE", "COLLEGE", "CLUB"];
 const SPRINT_STATUSES = ["PLANNED", "ACTIVE", "COMPLETED"];
 const EVENT_SCHEDULE_TYPES = ["WEEKLY", "ONCE"];
+const KPI_STATUSES = ["BELOW_MIN", "IN_RANGE", "ON_TARGET"];
 
 const KPI_ALLOWED_ROW_KEYS = new Set([
   "id",
@@ -18,6 +19,7 @@ const KPI_ALLOWED_ROW_KEYS = new Set([
   "unit",
   "target",
   "firstMonthTarget",
+  "finalTarget",
   "actualValue",
   "minExpected",
   "sortOrder",
@@ -443,6 +445,45 @@ export const listScrumTasksQueryValidator = [
   handleValidation,
 ];
 
+export const myTasksQueryValidator = [
+  rejectUnknownQueryMiddleware(["scrumId", "isActive", "search", "date", "dateFrom", "dateTo"]),
+  query("scrumId")
+    .optional()
+    .isInt({ min: 1, max: INT32_MAX })
+    .withMessage("شناسه اسکرام باید یک عدد صحیح مثبت باشد")
+    .toInt(),
+  query("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("فیلد isActive باید از نوع boolean باشد")
+    .toBoolean(),
+  query("search")
+    .optional()
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage("عبارت جستجو نباید بیشتر از ۱۰۰ کاراکتر باشد")
+    .trim(),
+  query("date").optional().custom(strictDateValidator),
+  query("dateFrom").optional().custom(strictDateValidator),
+  query("dateTo").optional().custom(strictDateValidator),
+  query().custom((_, { req }) => {
+    const { dateFrom, dateTo } = req.query || {};
+    if (
+      typeof dateFrom === "string" &&
+      typeof dateTo === "string" &&
+      dateFrom !== "" &&
+      dateTo !== "" &&
+      isIsoDateString(dateFrom) &&
+      isIsoDateString(dateTo) &&
+      toDateOnly(dateFrom).getTime() > toDateOnly(dateTo).getTime()
+    ) {
+      throw new Error("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد");
+    }
+    return true;
+  }),
+  handleValidation,
+];
+
 export const createTaskBodyValidator = [
   rejectUnknownKeysMiddleware(["name", "description", "points", "isActive", "sprintId", "memberIds"]),
   body("name")
@@ -555,8 +596,11 @@ export const batchKpiBodyValidator = [
         formula: 500,
         strategicGoal: 500,
         unit: 50,
+        target: 255,
+        firstMonthTarget: 255,
+        finalTarget: 255,
       };
-      const numFields = ["target", "firstMonthTarget", "actualValue", "minExpected"];
+      const numFields = ["actualValue", "minExpected"];
       const seenIds = new Set();
 
       for (let i = 0; i < rows.length; i++) {
@@ -601,6 +645,23 @@ export const batchKpiBodyValidator = [
             if (Math.abs(val) > KPI_MAX_ABS) {
               throw new Error(`مقدار فیلد ${f} در ردیف ${i + 1} خارج از محدوده مجاز است`);
             }
+          }
+        }
+
+        if (r.progressPercent !== undefined && r.progressPercent !== null && r.progressPercent !== "") {
+          if (
+            typeof r.progressPercent !== "number" ||
+            !Number.isFinite(r.progressPercent) ||
+            r.progressPercent < 0 ||
+            r.progressPercent > 100
+          ) {
+            throw new Error(`درصد پیشرفت در ردیف ${i + 1} باید عدد بین ۰ تا ۱۰۰ باشد`);
+          }
+        }
+
+        if (r.status !== undefined && r.status !== null && r.status !== "") {
+          if (typeof r.status !== "string" || !KPI_STATUSES.includes(r.status)) {
+            throw new Error(`وضعیت KPI در ردیف ${i + 1} نامعتبر است`);
           }
         }
       }

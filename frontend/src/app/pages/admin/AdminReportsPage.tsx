@@ -136,6 +136,7 @@ export const AdminReportsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
       queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       toast.success('وضعیت سشن با موفقیت تغییر کرد');
@@ -172,6 +173,7 @@ export const AdminReportsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
       queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
     },

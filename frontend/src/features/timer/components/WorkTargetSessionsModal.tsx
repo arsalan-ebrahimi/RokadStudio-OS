@@ -47,6 +47,9 @@ import type {
   WorkTargetKind,
 } from '@/shared/types/models';
 
+export type WorkTargetDatePreset = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'SINGLE' | 'RANGE';
+type ApprovalFilter = 'ALL' | ApprovalStatus;
+
 export interface WorkTargetSessionsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -57,10 +60,12 @@ export interface WorkTargetSessionsModalProps {
   scrumName?: string;
   scrumColor?: ScrumColor;
   points?: number;
+  initialDatePreset?: WorkTargetDatePreset;
+  initialSingleDate?: string;
+  initialRangeFrom?: string;
+  initialRangeTo?: string;
+  initialUserId?: number;
 }
-
-type DatePreset = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'SINGLE' | 'RANGE';
-type ApprovalFilter = 'ALL' | ApprovalStatus;
 
 const SCRUM_COLOR_BADGE_VARIANT: Record<
   ScrumColor,
@@ -73,7 +78,7 @@ const SCRUM_COLOR_BADGE_VARIANT: Record<
   CLUB: 'club',
 };
 
-const DATE_PRESET_OPTIONS: { value: DatePreset; label: string }[] = [
+const DATE_PRESET_OPTIONS: { value: WorkTargetDatePreset; label: string }[] = [
   { value: 'ALL', label: 'همه تاریخ‌ها' },
   { value: 'TODAY', label: 'امروز' },
   { value: 'WEEK', label: 'این هفته' },
@@ -92,17 +97,22 @@ export const WorkTargetSessionsModal: React.FC<WorkTargetSessionsModalProps> = (
   scrumName,
   scrumColor,
   points,
+  initialDatePreset,
+  initialSingleDate,
+  initialRangeFrom,
+  initialRangeTo,
+  initialUserId,
 }) => {
   const queryClient = useQueryClient();
   const todayIso = useMemo(() => getTehranTodayString(), []);
   const weekRange = useMemo(() => getJalaliWeekRange(todayIso), [todayIso]);
 
-  const [datePreset, setDatePreset] = useState<DatePreset>('ALL');
-  const [singleDate, setSingleDate] = useState<string>(todayIso);
-  const [rangeFrom, setRangeFrom] = useState<string>(weekRange.from);
-  const [rangeTo, setRangeTo] = useState<string>(todayIso);
+  const [datePreset, setDatePreset] = useState<WorkTargetDatePreset>(initialDatePreset || 'ALL');
+  const [singleDate, setSingleDate] = useState<string>(initialSingleDate || todayIso);
+  const [rangeFrom, setRangeFrom] = useState<string>(initialRangeFrom || weekRange.from);
+  const [rangeTo, setRangeTo] = useState<string>(initialRangeTo || todayIso);
   const [approvalFilter, setApprovalFilter] = useState<ApprovalFilter>('ALL');
-  const [selectedUserId, setSelectedUserId] = useState<number | undefined>(undefined);
+  const [selectedUserId, setSelectedUserId] = useState<number | undefined>(initialUserId);
   const [page, setPage] = useState<number>(1);
 
   const [activeDecision, setActiveDecision] = useState<{
@@ -117,16 +127,27 @@ export const WorkTargetSessionsModal: React.FC<WorkTargetSessionsModalProps> = (
 
   useEffect(() => {
     if (!isOpen) return;
-    setDatePreset('ALL');
-    setSingleDate(todayIso);
-    setRangeFrom(weekRange.from);
-    setRangeTo(todayIso);
+    setDatePreset(initialDatePreset || 'ALL');
+    setSingleDate(initialSingleDate || todayIso);
+    setRangeFrom(initialRangeFrom || weekRange.from);
+    setRangeTo(initialRangeTo || todayIso);
     setApprovalFilter('ALL');
-    setSelectedUserId(undefined);
+    setSelectedUserId(initialUserId);
     setPage(1);
     setActiveDecision(null);
     setDeletingSession(null);
-  }, [isOpen, targetKind, targetId, todayIso, weekRange.from]);
+  }, [
+    isOpen,
+    targetKind,
+    targetId,
+    todayIso,
+    weekRange.from,
+    initialDatePreset,
+    initialSingleDate,
+    initialRangeFrom,
+    initialRangeTo,
+    initialUserId,
+  ]);
 
   const queryParams = useMemo(() => {
     let date: string | undefined;
@@ -175,6 +196,7 @@ export const WorkTargetSessionsModal: React.FC<WorkTargetSessionsModalProps> = (
   const invalidateAfterMutation = () => {
     queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
     queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
     queryClient.invalidateQueries({ queryKey: ['scrum'] });
     queryClient.invalidateQueries({ queryKey: ['scrums'] });
     queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
@@ -245,7 +267,7 @@ export const WorkTargetSessionsModal: React.FC<WorkTargetSessionsModalProps> = (
     [summary],
   );
 
-  const handleDatePresetChange = (preset: DatePreset) => {
+  const handleDatePresetChange = (preset: WorkTargetDatePreset) => {
     setDatePreset(preset);
     setPage(1);
   };
@@ -394,6 +416,10 @@ export const WorkTargetSessionsModal: React.FC<WorkTargetSessionsModalProps> = (
                     aria-label="فیلتر بر اساس فرد"
                   >
                     <option value="">همه افراد ({toPersianDigits(summary.byUser.length)})</option>
+                    {selectedUserId &&
+                      !summary.byUser.some((u) => u.user.id === selectedUserId) && (
+                        <option value={selectedUserId}>سشن‌های من (۰ مورد)</option>
+                      )}
                     {summary.byUser.map((u) => (
                       <option key={u.user.id} value={u.user.id}>
                         {u.user.name} ({formatDurationToHoursMins(u.totalSeconds)})

@@ -10,6 +10,8 @@ import type {
   ScrumUserRef,
   Sprint,
   ScrumTask,
+  MyScrumTasksQuery,
+  MyScrumTasksResponse,
   ScrumKpi,
   ScrumEvent,
   TodayScrumEvent,
@@ -91,6 +93,23 @@ export async function fetchScrumTasks(
   if (params?.sprintId) cleanParams.sprintId = params.sprintId;
 
   const res = await apiClient<ScrumTask[]>(`/api/scrums/${scrumId}/tasks`, {
+    params: cleanParams,
+  });
+  return res.data;
+}
+
+export async function fetchMyScrumTasks(
+  params?: MyScrumTasksQuery
+): Promise<MyScrumTasksResponse> {
+  const cleanParams: Record<string, string | number | boolean> = {};
+  if (params?.scrumId) cleanParams.scrumId = params.scrumId;
+  if (typeof params?.isActive === 'boolean') cleanParams.isActive = params.isActive;
+  if (params?.search && params.search.trim()) cleanParams.search = params.search.trim();
+  if (params?.date) cleanParams.date = params.date;
+  if (params?.dateFrom) cleanParams.dateFrom = params.dateFrom;
+  if (params?.dateTo) cleanParams.dateTo = params.dateTo;
+
+  const res = await apiClient<MyScrumTasksResponse>('/api/tasks/mine', {
     params: cleanParams,
   });
   return res.data;

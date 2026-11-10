@@ -71,3 +71,12 @@ export const EventScheduleType = {
 } as const
 
 export type EventScheduleType = (typeof EventScheduleType)[keyof typeof EventScheduleType]
+
+
+export const KpiStatus = {
+  BELOW_MIN: 'BELOW_MIN',
+  IN_RANGE: 'IN_RANGE',
+  ON_TARGET: 'ON_TARGET'
+} as const
+
+export type KpiStatus = (typeof KpiStatus)[keyof typeof KpiStatus]
