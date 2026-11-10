@@ -25,6 +25,10 @@ interface TimerDisplayProps {
   onDismissRecoveredNotice: () => void;
   isOtherTabActive: boolean;
   onDismissOtherTabLock?: () => void;
+  staleTargetNotice?: {
+    label?: string;
+    onClear: () => void;
+  } | null;
   isSubmitting: boolean;
   headerSlot?: React.ReactNode;
 }
@@ -47,6 +51,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   onDismissRecoveredNotice,
   isOtherTabActive,
   onDismissOtherTabLock,
+  staleTargetNotice,
   isSubmitting,
   headerSlot,
 }) => {
@@ -103,8 +108,30 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
       </div>
 
       {/* Transient Notices Stack (when present) */}
-      {(showRecoveredNotice || isOtherTabActive || showFocusBanner) && (
+      {(showRecoveredNotice || isOtherTabActive || showFocusBanner || staleTargetNotice) && (
         <div className="w-full space-y-2.5">
+          {staleTargetNotice && (
+            <div
+              role="alert"
+              className="w-full flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-2xl bg-college-light dark:bg-amber-950/40 border-[1.5px] border-third text-sec dark:text-amber-200 text-xs font-bold animate-in fade-in"
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <AlertCircle className="w-4 h-4 text-[#9C5700] dark:text-amber-400 shrink-0" />
+                <span className="leading-relaxed">
+                  هدف کاری قبلی
+                  {staleTargetNotice.label ? ` («${staleTargetNotice.label}»)` : ''} دیگر فعال یا در دسترس نیست. یک پروژه جدید انتخاب کنید یا تایمر را پاک‌سازی کنید.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={staleTargetNotice.onClear}
+                className="px-3 py-1.5 min-h-[36px] rounded-xl bg-white dark:bg-[#182030] border-[1.5px] border-sec/30 dark:border-amber-500/40 text-sec dark:text-amber-100 hover:bg-rose-50 hover:border-rose-400 hover:text-[#C60036] dark:hover:bg-rose-950/40 dark:hover:text-rose-200 transition-colors text-[11px] font-black shrink-0 cursor-pointer"
+              >
+                پاک‌سازی تایمر
+              </button>
+            </div>
+          )}
+
           {showRecoveredNotice && (
             <div className="w-full flex items-center justify-between p-3 rounded-2xl bg-college-light dark:bg-amber-950/40 border-[1.5px] border-college-normal/60 text-sec dark:text-amber-200 text-xs font-bold animate-in fade-in">
               <div className="flex items-center gap-2">

@@ -8,6 +8,7 @@ import {
   Search,
   Check,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { ErrorState } from '@/shared/ui';
 import { cn } from '@/shared/lib/utils';
@@ -238,6 +239,18 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
     });
   };
 
+  const resolvedSelectedTarget = useMemo(() => {
+    if (!selectedTarget) return null;
+    if (!activeTargetMap) return selectedTarget;
+    return activeTargetMap.get(`${selectedTarget.kind}_${selectedTarget.id}`) || null;
+  }, [selectedTarget, activeTargetMap]);
+
+  const isStaleSelection = Boolean(
+    selectedTarget && !isLoading && !isError && activeTargetMap && !resolvedSelectedTarget
+  );
+
+  const displayTarget = resolvedSelectedTarget || selectedTarget;
+
   const renderSelectedDisplay = (isChipMode: boolean) => {
     if (!selectedTarget) {
       return (
@@ -253,11 +266,26 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
       );
     }
 
-    const match = selectedTarget.label.match(/^\[(.*?)\]\s*(.*)$/);
+    if (isStaleSelection) {
+      return (
+        <div className="flex items-center gap-2 min-w-0 text-[#9C5700] dark:text-amber-300">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span className="text-xs sm:text-sm font-extrabold truncate">
+            {selectedTarget.label
+              ? `${selectedTarget.label} (نامعتبر · انتخاب هدف جدید)`
+              : 'هدف قبلی نامعتبر · انتخاب پروژه جدید'}
+          </span>
+        </div>
+      );
+    }
+
+    const activeDisplay = displayTarget || selectedTarget;
+    const labelText = activeDisplay.label || 'هدف کاری انتخاب‌شده';
+    const match = labelText.match(/^\[(.*?)\]\s*(.*)$/);
     const prefix = match ? match[1] : null;
-    const title = match ? match[2] : selectedTarget.label;
-    const colorMeta = selectedTarget.scrumColor
-      ? SCRUM_COLOR_MAP[selectedTarget.scrumColor as ScrumColor]
+    const title = match ? match[2] : labelText;
+    const colorMeta = activeDisplay.scrumColor
+      ? SCRUM_COLOR_MAP[activeDisplay.scrumColor as ScrumColor]
       : null;
 
     return (
@@ -280,9 +308,9 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
         <span className="text-xs sm:text-sm font-extrabold text-sec dark:text-white truncate">
           {title}
         </span>
-        {selectedTarget.kind === 'TASK' && typeof selectedTarget.points === 'number' && (
+        {activeDisplay.kind === 'TASK' && typeof activeDisplay.points === 'number' && (
           <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sec/[0.06] dark:bg-gray-800 text-sec/70 dark:text-gray-300 font-bold shrink-0 tabular-nums">
-            {toPersianDigits(selectedTarget.points)} پوینت
+            {toPersianDigits(activeDisplay.points)} پوینت
           </span>
         )}
       </div>
@@ -538,17 +566,21 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
           aria-label="انتخاب پروژه یا هدف کاری"
           title={
             isLocked
-              ? `${selectedTarget?.label || 'هدف کاری'} (در زمان اجرای تایمر قفل است)`
-              : selectedTarget?.label || 'انتخاب پروژه / هدف کاری'
+              ? `${displayTarget?.label || 'هدف کاری'} (در زمان اجرای تایمر قفل است)`
+              : isStaleSelection
+                ? 'هدف کاری قبلی دیگر فعال نیست؛ یک پروژه جدید انتخاب کنید'
+                : displayTarget?.label || 'انتخاب پروژه / هدف کاری'
           }
           onClick={toggleOpen}
           className={cn(
             'min-h-[44px] max-w-full sm:max-w-[420px] inline-flex items-center justify-between gap-2.5 px-4 py-2 rounded-full border-[1.5px] transition-all select-none',
             isLocked
               ? 'border-sec/30 dark:border-primary/35 bg-sec/[0.04] dark:bg-[#182030] cursor-not-allowed'
-              : isOpen
-                ? 'border-primary bg-white dark:bg-[#182030] shadow-ecosystem cursor-pointer'
-                : 'border-sec dark:border-primary/45 bg-white dark:bg-[#182030] shadow-male dark:shadow-ecosystem hover:-translate-y-0.5 cursor-pointer'
+              : isStaleSelection
+                ? 'border-third bg-college-light/70 dark:bg-amber-950/35 shadow-college hover:-translate-y-0.5 cursor-pointer'
+                : isOpen
+                  ? 'border-primary bg-white dark:bg-[#182030] shadow-ecosystem cursor-pointer'
+                  : 'border-sec dark:border-primary/45 bg-white dark:bg-[#182030] shadow-male dark:shadow-ecosystem hover:-translate-y-0.5 cursor-pointer'
           )}
         >
           <div className="min-w-0 flex-1">{renderSelectedDisplay(true)}</div>
@@ -596,9 +628,11 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
           'w-full min-h-[44px] flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border-[1.5px] transition-all text-start',
           isLocked
             ? 'border-sec/20 dark:border-gray-800 bg-gray-100/70 dark:bg-gray-900/40 opacity-75 cursor-not-allowed'
-            : isOpen
-              ? 'border-primary bg-white dark:bg-[#182030] shadow-male'
-              : 'border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] hover:border-sec/55 shadow-hard-sm cursor-pointer'
+            : isStaleSelection
+              ? 'border-third bg-college-light/70 dark:bg-amber-950/35 shadow-college cursor-pointer'
+              : isOpen
+                ? 'border-primary bg-white dark:bg-[#182030] shadow-male'
+                : 'border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] hover:border-sec/55 shadow-hard-sm cursor-pointer'
         )}
       >
         <div className="min-w-0 flex-1">{renderSelectedDisplay(false)}</div>

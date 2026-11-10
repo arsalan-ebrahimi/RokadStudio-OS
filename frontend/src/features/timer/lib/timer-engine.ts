@@ -120,6 +120,11 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
 
   const pomodoroRemainingSeconds = Math.ceil(pomodoroRemainingMs / 1000);
 
+  const hasTarget = Boolean(
+    (state.target && state.target.id > 0) ||
+      (typeof state.projectId === 'number' && state.projectId > 0)
+  );
+
   // Control button labels and enablement
   const mainButtonLabel: 'شروع' | 'توقف' | 'ادامه' =
     state.status === 'IDLE' ? 'شروع' : state.status === 'RUNNING' ? 'توقف' : 'ادامه';
@@ -127,9 +132,9 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
   let mainButtonDisabled = false;
   let mainButtonDisabledReason: string | null = null;
 
-  if (state.status === 'IDLE' && !state.target && !state.projectId) {
+  if (!hasTarget) {
     mainButtonDisabled = true;
-    mainButtonDisabledReason = 'ابتدا یک پروژه انتخاب کنید.';
+    mainButtonDisabledReason = 'ابتدا یک پروژه یا هدف کاری انتخاب کنید.';
   } else if (isBreakActive) {
     mainButtonDisabled = true;
     const breakMins = Math.floor(pomodoroRemainingSeconds / 60);
@@ -145,6 +150,9 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
   if (state.status === 'RUNNING') {
     registerButtonDisabled = true;
     registerButtonDisabledReason = 'در هنگام اجرای تایمر امکان ثبت وجود ندارد. ابتدا تایمر را متوقف کنید.';
+  } else if (!hasTarget) {
+    registerButtonDisabled = true;
+    registerButtonDisabledReason = 'ابتدا یک پروژه یا هدف کاری انتخاب کنید.';
   } else if (workSeconds < MIN_REGISTERABLE_SECONDS) {
     registerButtonDisabled = true;
     registerButtonDisabledReason = 'زمان کار کمتر از حداقل مجاز برای ثبت است.';
@@ -177,7 +185,11 @@ export function getDerivedTimerState(state: TimerEngineState, now = Date.now()):
 
 export function startTimer(state: TimerEngineState, now = Date.now()): TimerEngineState {
   if (state.status === 'RUNNING') return state;
-  if (!state.target && !state.projectId) return state;
+  const hasTarget = Boolean(
+    (state.target && state.target.id > 0) ||
+      (typeof state.projectId === 'number' && state.projectId > 0)
+  );
+  if (!hasTarget) return state;
 
   // Cannot start during active break
   if (state.pomodoro.mode === 'BREAK' && state.pomodoro.breakEndsAt && now < state.pomodoro.breakEndsAt) {
@@ -436,10 +448,15 @@ export function restoreTimerState(
         droppedLegacySprint = true;
         target = normalizedFallback;
       } else {
+        const normalizedKind = data.target.kind === 'STUDIO' ? 'PROJECT' : data.target.kind;
         const parsedId = Number(data.target.id);
-        if (Number.isInteger(parsedId) && parsedId > 0) {
+        if (
+          (normalizedKind === 'PROJECT' || normalizedKind === 'TASK') &&
+          Number.isInteger(parsedId) &&
+          parsedId > 0
+        ) {
           target = {
-            kind: data.target.kind === 'TASK' ? 'TASK' : 'PROJECT',
+            kind: normalizedKind,
             id: parsedId,
             label: String(data.target.label || ''),
             points: typeof data.target.points === 'number' ? data.target.points : undefined,
@@ -455,11 +472,11 @@ export function restoreTimerState(
       target = normalizedFallback;
     }
 
-    if (droppedLegacySprint) {
+    if (droppedLegacySprint || !target) {
       return { state: createInitialTimerState(target), wasRecovered: false };
     }
 
-    const projectId = target?.kind === 'PROJECT' ? target.id : null;
+    const projectId = target.kind === 'PROJECT' ? target.id : null;
 
     let accumulatedMs = Number(data.work?.accumulatedMs) || 0;
     const runningSince = typeof data.work?.runningSince === 'number' ? data.work.runningSince : null;

@@ -9,7 +9,8 @@ export interface MappedWorkSessionError {
 
 export function mapWorkSessionError(
   err: unknown,
-  targetKind?: TimerTargetKind
+  targetKind?: TimerTargetKind,
+  targetLabel?: string
 ): MappedWorkSessionError {
   const status =
     err &&
@@ -30,6 +31,7 @@ export function mapWorkSessionError(
         : '';
 
   const lower = rawMessage.toLowerCase();
+  const quotedLabel = targetLabel?.trim() ? ` («${targetLabel.trim()}»)` : '';
 
   // 1. Network error (status === 0 or browser fetch network failure)
   if (
@@ -59,30 +61,54 @@ export function mapWorkSessionError(
     };
   }
 
-  // 3. Not found (404)
+  // 3. Specific inactive / legacy combined project message (check before generic "project not found")
   if (
-    status === 404 ||
-    lower.includes('project not found') ||
-    rawMessage.includes('تسک یافت نشد')
+    lower.includes('project not found or inactive') ||
+    lower.includes('project is inactive')
   ) {
-    if (
-      (targetKind === 'TASK' && !lower.includes('project not found')) ||
-      rawMessage.includes('تسک یافت نشد')
-    ) {
-      return {
-        message: 'تسک انتخاب‌شده یافت نشد (ممکن است حذف شده باشد).',
-        isUnauthorized: false,
-        canDiscardTarget: true,
-      };
-    }
     return {
-      message: 'پروژه انتخاب‌شده یافت نشد (ممکن است حذف شده باشد).',
+      message: lower.includes('project not found or inactive')
+        ? `این پروژه${quotedLabel} یافت نشد یا غیرفعال شده است.`
+        : `این پروژه${quotedLabel} غیرفعال شده است.`,
       isUnauthorized: false,
       canDiscardTarget: true,
     };
   }
 
-  // 4. Forbidden / membership / assignment error (403)
+  if (rawMessage.includes('اسکرام مربوطه غیرفعال است')) {
+    return {
+      message: 'اسکرام مربوط به این تسک غیرفعال شده است.',
+      isUnauthorized: false,
+      canDiscardTarget: true,
+    };
+  }
+
+  if (rawMessage.includes('این تسک غیرفعال است')) {
+    return {
+      message: `این تسک${quotedLabel} غیرفعال شده است.`,
+      isUnauthorized: false,
+      canDiscardTarget: true,
+    };
+  }
+
+  // 4. Explicit target not found (404 from Project/Task lookup — never conflate with generic 404 Route not found)
+  if (lower.includes('project not found')) {
+    return {
+      message: `پروژه انتخاب‌شده${quotedLabel} یافت نشد (ممکن است حذف شده باشد).`,
+      isUnauthorized: false,
+      canDiscardTarget: true,
+    };
+  }
+
+  if (rawMessage.includes('تسک یافت نشد')) {
+    return {
+      message: `تسک انتخاب‌شده${quotedLabel} یافت نشد (ممکن است حذف شده باشد).`,
+      isUnauthorized: false,
+      canDiscardTarget: true,
+    };
+  }
+
+  // 5. Forbidden / membership / assignment error (403)
   if (
     status === 403 ||
     lower.includes('not an assigned member') ||
@@ -98,19 +124,19 @@ export function mapWorkSessionError(
     }
     if (targetKind === 'TASK' || rawMessage.includes('تسک')) {
       return {
-        message: 'این تسک دیگر به شما اختصاص ندارد.',
+        message: `این تسک${quotedLabel} دیگر به شما اختصاص ندارد.`,
         isUnauthorized: false,
         canDiscardTarget: true,
       };
     }
     return {
-      message: 'شما عضو این پروژه نیستید.',
+      message: `شما عضو این پروژه${quotedLabel} نیستید.`,
       isUnauthorized: false,
       canDiscardTarget: true,
     };
   }
 
-  // 5. Attendance errors
+  // 6. Attendance errors (must run before generic 404 fallback in case attendance row returned 404)
   if (lower.includes('attendance')) {
     if (lower.includes('rejected')) {
       return {
@@ -133,33 +159,44 @@ export function mapWorkSessionError(
     };
   }
 
-  // 6. Specific inactive target / scrum errors
-  if (rawMessage.includes('اسکرام مربوطه غیرفعال است')) {
+  // 7. Other 404 errors (route mismatch, proxy issue, etc.) must NOT blame the user's selected project
+  if (status === 404) {
+    if (lower.includes('route not found')) {
+      return {
+        message: 'مسیر ثبت سشن در سرور یافت نشد. لطفا اتصال و نسخه سرور را بررسی کنید.',
+        isUnauthorized: false,
+        canDiscardTarget: false,
+      };
+    }
     return {
-      message: 'اسکرام مربوط به این تسک غیرفعال شده است.',
+      message: rawMessage || 'مورد درخواستی در سرور یافت نشد.',
+      isUnauthorized: false,
+      canDiscardTarget: false,
+    };
+  }
+
+  // 8. Payload / timestamp validation errors
+  if (rawMessage.includes('باید دقیقاً یکی از projectId یا taskId ارسال شود')) {
+    return {
+      message: 'لطفا ابتدا یک پروژه یا تسک معتبر انتخاب کنید.',
+      isUnauthorized: false,
+      canDiscardTarget: false,
+    };
+  }
+
+  if (lower.includes('older than 2 days')) {
+    return {
+      message: 'زمان شروع این سشن مربوط به بیش از ۲ روز پیش است و قابل ثبت نیست.',
       isUnauthorized: false,
       canDiscardTarget: true,
     };
   }
 
-  if (rawMessage.includes('این تسک غیرفعال است')) {
+  if (lower.includes('cannot be in the future')) {
     return {
-      message: 'این تسک غیرفعال شده است.',
+      message: 'ساعت سیستم با سرور هماهنگ نیست (زمان شروع در آینده است). لطفا ساعت دستگاه را بررسی کنید.',
       isUnauthorized: false,
-      canDiscardTarget: true,
-    };
-  }
-
-  if (
-    lower.includes('project not found or inactive') ||
-    lower.includes('project is inactive')
-  ) {
-    return {
-      message: lower.includes('project not found or inactive')
-        ? 'این پروژه یافت نشد یا غیرفعال شده است.'
-        : 'این پروژه غیرفعال شده است.',
-      isUnauthorized: false,
-      canDiscardTarget: true,
+      canDiscardTarget: false,
     };
   }
 

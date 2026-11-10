@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   TimerEngineState,
   TimerTarget,
@@ -120,15 +120,39 @@ function getSessionTabId(): string {
   }
 }
 
-export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null) {
+export interface UseTimerOptions {
+  /**
+   * Optional live validator returning:
+   * - true: target is currently active and assigned/accessible
+   * - false: active targets have loaded and target is definitely missing, inactive, or unassigned
+   * - null: active targets are still loading or unavailable (unknown)
+   */
+  isTargetAvailable?: (target: TimerTarget) => boolean | null;
+}
+
+export function useTimer(
+  initialTargetOrProjectId?: TimerTarget | number | null,
+  options?: UseTimerOptions
+) {
   const { user } = useAuthStore();
   const userId = user?.id || 'guest';
   const tabIdRef = useRef<string>(getSessionTabId());
+  const isTargetAvailableRef = useRef<UseTimerOptions['isTargetAvailable']>(options?.isTargetAvailable);
+  useEffect(() => {
+    isTargetAvailableRef.current = options?.isTargetAvailable;
+  }, [options?.isTargetAvailable]);
 
-  const normalizedInitial: TimerTarget | null =
-    typeof initialTargetOrProjectId === 'number'
-      ? { kind: 'PROJECT', id: initialTargetOrProjectId, label: '' }
-      : initialTargetOrProjectId || null;
+  const normalizedInitial: TimerTarget | null = useMemo(() => {
+    if (typeof initialTargetOrProjectId === 'number') {
+      return { kind: 'PROJECT', id: initialTargetOrProjectId, label: '' };
+    }
+    return initialTargetOrProjectId || null;
+  }, [initialTargetOrProjectId]);
+
+  const normalizedInitialRef = useRef<TimerTarget | null>(normalizedInitial);
+  useEffect(() => {
+    normalizedInitialRef.current = normalizedInitial;
+  }, [normalizedInitial]);
 
   const [initialData] = useState(() => {
     try {
@@ -166,6 +190,34 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
   useEffect(() => {
     engineStateRef.current = engineState;
   }, [engineState]);
+
+  const prevUserIdRef = useRef<number | string>(userId);
+  useEffect(() => {
+    if (prevUserIdRef.current === userId) return;
+    prevUserIdRef.current = userId;
+
+    let restored = {
+      state: createInitialTimerState(normalizedInitialRef.current),
+      wasRecovered: false,
+    };
+    try {
+      const raw = localStorage.getItem(getStorageKey(userId));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        restored = restoreTimerState(parsed, normalizedInitialRef.current);
+      }
+    } catch {
+      // Fallback
+    }
+
+    setEngineState(restored.state);
+    setShowRecoveredNotice(restored.wasRecovered);
+    setShowFocusBanner(false);
+    setPendingTargetChange(null);
+    setIsRegisterDialogOpen(false);
+    setSubmissionError(null);
+    setActiveClientRequestId(null);
+  }, [userId]);
 
   // Persist state to localStorage safely
   const persistState = useCallback(
@@ -335,8 +387,14 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
   // Start / Resume action
   const start = useCallback(() => {
-    if (!engineStateRef.current.target) {
+    const currentTarget = engineStateRef.current.target;
+    if (!currentTarget || !currentTarget.id) {
       toast.error('برای شروع، ابتدا یک پروژه یا هدف کاری انتخاب کنید.');
+      return;
+    }
+
+    if (isTargetAvailableRef.current?.(currentTarget) === false) {
+      toast.error('هدف کاری قبلی دیگر فعال یا در دسترس نیست. لطفا هدف جدیدی انتخاب کنید.');
       return;
     }
 
@@ -367,18 +425,47 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
     });
   }, [persistState]);
 
-  // Clear target / project selection
+  // Hydrate missing or renamed metadata on the active target without altering timer state
+  const syncTargetMetadata = useCallback(
+    (freshTarget: TimerTarget) => {
+      setEngineState((prev) => {
+        if (
+          !prev.target ||
+          prev.target.kind !== freshTarget.kind ||
+          prev.target.id !== freshTarget.id
+        ) {
+          return prev;
+        }
+        if (
+          prev.target.label === freshTarget.label &&
+          prev.target.points === freshTarget.points &&
+          prev.target.scrumColor === freshTarget.scrumColor
+        ) {
+          return prev;
+        }
+        const next: TimerEngineState = {
+          ...prev,
+          target: freshTarget,
+          projectId: freshTarget.kind === 'PROJECT' ? freshTarget.id : null,
+        };
+        persistState(next);
+        return next;
+      });
+    },
+    [persistState]
+  );
+
+  // Clear target / project selection cleanly (never leave phantom unattributed work time)
   const clearTarget = useCallback(() => {
     setEngineState((prev) => {
-      const derivedState = getDerivedTimerState(prev);
-      const next =
-        derivedState.workSeconds < 1
-          ? discardTarget(prev, null)
-          : { ...prev, target: null, projectId: null };
+      const next = discardTarget(prev, null);
       persistState(next);
       return next;
     });
+    setActiveClientRequestId(null);
+    setPendingTargetChange(null);
     setSubmissionError(null);
+    setShowFocusBanner(false);
   }, [persistState]);
 
   const clearProject = clearTarget;
@@ -392,23 +479,64 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
       setSubmissionError(null);
 
-      // If timer hasn't recorded time or had no previous target, switch immediately without dialog!
-      if (derivedState.workSeconds < 1 || !current.target) {
+      // Clicking the already-selected target only refreshes metadata without prompting a change
+      if (
+        current.target &&
+        current.target.kind === newTarget.kind &&
+        current.target.id === newTarget.id
+      ) {
+        syncTargetMetadata(newTarget);
+        return;
+      }
+
+      // If no target was selected, reset cleanly onto newTarget without prompting Reset/Continue
+      if (!current.target || !current.target.id) {
         setEngineState((prev) => {
-          const next = {
+          const next = discardTarget(prev, newTarget);
+          persistState(next);
+          return next;
+        });
+        setActiveClientRequestId(null);
+        return;
+      }
+
+      // If previous target is known deleted, inactive, or unassigned, switch cleanly instead of prompting/submitting dead target
+      if (isTargetAvailableRef.current?.(current.target) === false) {
+        removeRecentTarget(userId, current.target);
+        setEngineState((prev) => {
+          const next = discardTarget(prev, newTarget);
+          persistState(next);
+          return next;
+        });
+        setActiveClientRequestId(null);
+        setPendingTargetChange(null);
+        setShowFocusBanner(false);
+        toast.info(`هدف کاری قبلی دیگر در دسترس نیست؛ تایمر روی «${newTarget.label}» آماده شروع شد.`);
+        return;
+      }
+
+      // If timer hasn't recorded registerable work time yet, switch immediately without dialog
+      if (derivedState.workSeconds < 1) {
+        setEngineState((prev) => {
+          const next: TimerEngineState = {
             ...prev,
             target: newTarget,
             projectId: newTarget.kind === 'PROJECT' ? newTarget.id : null,
+            work: {
+              accumulatedMs: 0,
+              runningSince: null,
+              segmentStartedAt: null,
+            },
           };
           persistState(next);
           return next;
         });
       } else {
-        // Show target change confirmation dialog
+        // Valid previous target has unsaved work seconds >= 1: ask user whether to submit & continue or reset
         setPendingTargetChange(newTarget);
       }
     },
-    [persistState]
+    [persistState, syncTargetMetadata, userId]
   );
 
   const handleSelectProject = useCallback(
@@ -429,8 +557,15 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
       const current = engineStateRef.current;
       const currentDerived = getDerivedTimerState(current);
 
-      if (!current.target) {
+      if (!current.target || !current.target.id) {
+        setEngineState((prev) => {
+          const next = discardTarget(prev, pendingTargetChange);
+          persistState(next);
+          return next;
+        });
+        setActiveClientRequestId(null);
         setPendingTargetChange(null);
+        setSubmissionError(null);
         return;
       }
 
@@ -505,7 +640,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان هدف کاری ثبت و تغییر یافت');
       } catch (err: unknown) {
-        const mapped = mapWorkSessionError(err, current.target.kind);
+        const mapped = mapWorkSessionError(err, current.target.kind, current.target.label);
         if (mapped.canDiscardTarget) {
           removeRecentTarget(userId, current.target);
           queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
@@ -568,7 +703,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
       const current = engineStateRef.current;
       const currentDerived = getDerivedTimerState(current);
 
-      if (!current.target || currentDerived.workSeconds < 1) {
+      if (!current.target || !current.target.id || currentDerived.workSeconds < 1) {
         setIsRegisterDialogOpen(false);
         return;
       }
@@ -646,7 +781,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان کار با موفقیت ثبت شد');
       } catch (err: unknown) {
-        const mapped = mapWorkSessionError(err, current.target.kind);
+        const mapped = mapWorkSessionError(err, current.target.kind, current.target.label);
         if (mapped.canDiscardTarget) {
           removeRecentTarget(userId, current.target);
           queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
@@ -684,6 +819,13 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
 
   const derived = getDerivedTimerState(engineState, now);
 
+  const hasSelectedTarget = Boolean(engineState.target && engineState.target.id > 0);
+  const targetAvailability =
+    hasSelectedTarget && engineState.target && options?.isTargetAvailable
+      ? options.isTargetAvailable(engineState.target)
+      : null;
+  const isTargetInvalid = targetAvailability === false;
+
   // Compute TimerState compatible with ScreenPet
   const mappedState: TimerState =
     derived.isBreakActive
@@ -704,23 +846,32 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
     target: engineState.target,
     selectedTarget: engineState.target,
     projectId: engineState.target?.kind === 'PROJECT' ? engineState.target.id : null,
+    isTargetInvalid,
     workMs: derived.workMs,
     workSeconds: derived.workSeconds,
     pomodoroRemainingMs: derived.pomodoroRemainingMs,
     pomodoroRemainingSeconds: derived.pomodoroRemainingSeconds,
     pomodoroMode: derived.pomodoroMode as PomodoroMode,
     isBreakActive: derived.isBreakActive,
-    canStart: derived.canStart && Boolean(engineState.target) && !isOtherTabActive && !isSubmitting,
-    canRegister: derived.canRegister && !isOtherTabActive && !isSubmitting,
+    canStart: derived.canStart && hasSelectedTarget && !isTargetInvalid && !isOtherTabActive && !isSubmitting,
+    canRegister: derived.canRegister && !isTargetInvalid && !isOtherTabActive && !isSubmitting,
     mainButtonLabel: derived.mainButtonLabel,
-    mainButtonDisabled: derived.mainButtonDisabled || !engineState.target || isOtherTabActive || isSubmitting,
-    mainButtonDisabledReason: !engineState.target
-      ? 'برای شروع، ابتدا یک پروژه یا هدف کاری انتخاب کنید.'
+    mainButtonDisabled:
+      derived.mainButtonDisabled || !hasSelectedTarget || isTargetInvalid || isOtherTabActive || isSubmitting,
+    mainButtonDisabledReason: !hasSelectedTarget
+      ? 'ابتدا یک پروژه یا هدف کاری انتخاب کنید.'
+      : isTargetInvalid
+      ? 'هدف کاری قبلی دیگر فعال یا در دسترس نیست؛ پروژه جدیدی انتخاب کنید یا تایمر را پاک‌سازی کنید.'
       : isOtherTabActive
       ? 'تایمر در تب دیگری فعال است.'
       : derived.mainButtonDisabledReason,
-    registerButtonDisabled: derived.registerButtonDisabled || isOtherTabActive || isSubmitting,
-    registerButtonDisabledReason: isOtherTabActive ? 'تایمر در تب دیگری فعال است.' : derived.registerButtonDisabledReason,
+    registerButtonDisabled:
+      derived.registerButtonDisabled || isTargetInvalid || isOtherTabActive || isSubmitting,
+    registerButtonDisabledReason: isTargetInvalid
+      ? 'هدف کاری قبلی دیگر در دسترس نیست و قابل ثبت نمی‌باشد.'
+      : isOtherTabActive
+      ? 'تایمر در تب دیگری فعال است.'
+      : derived.registerButtonDisabledReason,
     isLocked: derived.projectSelectLocked || isSubmitting,
     savedProjectId: engineState.target?.kind === 'PROJECT' ? engineState.target.id : null,
     isOtherTabActive,
@@ -735,6 +886,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
     dismissFocusBanner: () => setShowFocusBanner(false),
     start,
     pause,
+    syncTargetMetadata,
     clearTarget,
     clearProject,
     handleSelectTarget,

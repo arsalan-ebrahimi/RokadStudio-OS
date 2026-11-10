@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   LogOut,
@@ -29,6 +29,7 @@ import {
   deleteWorkSession,
   SessionBadge,
   DeleteSessionDialog,
+  type TimerTarget,
 } from '@/features/timer';
 import { ScreenPet, PetSelectorModal } from '@/features/pet';
 import { Card, Button, Modal, toast } from '@/shared/ui';
@@ -65,40 +66,75 @@ const UserDashboardPage: React.FC = () => {
     }
   }, [attLoading]);
 
-  const timer = useTimer(null);
+  const activeTargetsMap = useMemo(() => {
+    if (!workTargets) return null;
+    const map = new Map<string, TimerTarget>();
+    for (const p of workTargets.studioProjects || []) {
+      map.set(`PROJECT_${p.id}`, {
+        kind: 'PROJECT',
+        id: p.id,
+        label: p.name,
+      });
+    }
+    for (const s of workTargets.scrums || []) {
+      for (const t of s.tasks || []) {
+        map.set(`TASK_${t.id}`, {
+          kind: 'TASK',
+          id: t.id,
+          label: `[${s.scrum.name}] ${t.name}`,
+          points: t.points,
+          scrumColor: s.scrum.color,
+        });
+      }
+    }
+    return map;
+  }, [workTargets]);
+
+  const checkTargetAvailable = useCallback(
+    (target: TimerTarget): boolean | null => {
+      if (targetsLoading || targetsError || !activeTargetsMap) return null;
+      return activeTargetsMap.has(`${target.kind}_${target.id}`);
+    },
+    [targetsLoading, targetsError, activeTargetsMap]
+  );
+
+  const timer = useTimer(null, {
+    isTargetAvailable: checkTargetAvailable,
+  });
   const {
     target: timerTarget,
     workSeconds: timerWorkSeconds,
     clearTarget,
+    syncTargetMetadata,
   } = timer;
 
-  // Validate that an idle / empty timer's selected PROJECT or TASK still exists and is assigned/active
+  // Hydrate valid legacy/renamed target metadata and prune stale/deleted idle targets
   useEffect(() => {
-    if (targetsLoading || targetsError || !workTargets || !timerTarget) return;
-    if (timerWorkSeconds > 0) return;
+    if (targetsLoading || targetsError || !activeTargetsMap || !timerTarget) return;
 
-    if (timerTarget.kind === 'PROJECT') {
-      const stillValid = (workTargets.studioProjects || []).some(
-        (p) => p.id === timerTarget.id
-      );
-      if (!stillValid) {
-        clearTarget();
+    const freshTarget = activeTargetsMap.get(`${timerTarget.kind}_${timerTarget.id}`);
+    if (freshTarget) {
+      if (
+        timerTarget.label !== freshTarget.label ||
+        timerTarget.points !== freshTarget.points ||
+        timerTarget.scrumColor !== freshTarget.scrumColor
+      ) {
+        syncTargetMetadata(freshTarget);
       }
-    } else if (timerTarget.kind === 'TASK') {
-      const stillValid = (workTargets.scrums || []).some((s) =>
-        (s.tasks || []).some((t) => t.id === timerTarget.id)
-      );
-      if (!stillValid) {
-        clearTarget();
-      }
+      return;
+    }
+
+    if (timerWorkSeconds < 1) {
+      clearTarget();
     }
   }, [
     targetsLoading,
     targetsError,
-    workTargets,
+    activeTargetsMap,
     timerTarget,
     timerWorkSeconds,
     clearTarget,
+    syncTargetMetadata,
   ]);
 
   const { isDark, toggleTheme } = useTheme();
@@ -469,6 +505,14 @@ const UserDashboardPage: React.FC = () => {
               onDismissRecoveredNotice={timer.dismissRecoveredNotice}
               isOtherTabActive={timer.isOtherTabActive}
               onDismissOtherTabLock={timer.dismissOtherTabLock}
+              staleTargetNotice={
+                timer.isTargetInvalid
+                  ? {
+                      label: timer.target?.label,
+                      onClear: timer.discardTargetAndReset,
+                    }
+                  : null
+              }
               isSubmitting={timer.isSubmitting}
             />
           </Card>
@@ -579,7 +623,13 @@ const UserDashboardPage: React.FC = () => {
                   ) : (
                     <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
                   )}
-                  <span className="truncate">{timer.target?.label || 'انتخاب نشده'}</span>
+                  <span className="truncate">
+                    {timer.isTargetInvalid
+                      ? timer.target?.label
+                        ? `${timer.target.label} (نامعتبر)`
+                        : 'هدف حذف‌شده / نامعتبر'
+                      : timer.target?.label || 'انتخاب نشده'}
+                  </span>
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-sec/10 dark:border-gray-800">
