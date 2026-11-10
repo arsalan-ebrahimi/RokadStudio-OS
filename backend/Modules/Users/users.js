@@ -3,6 +3,7 @@ import {
   createUser,
   getUsers,
   searchUsers,
+  getScrumAdmins,
   getUserById,
   updateUser,
   deleteUser,
@@ -31,6 +32,9 @@ usersRouter.get(
 
 // All other endpoints in Users are SUPER_ADMIN only
 usersRouter.use(allowedRoles("SUPER_ADMIN"));
+
+// Active SCRUM_ADMIN list for Scrum admin assignment (must be registered BEFORE /:id)
+usersRouter.get("/scrum-admins", searchUsersValidator, getScrumAdmins);
 
 usersRouter
   .route("/")

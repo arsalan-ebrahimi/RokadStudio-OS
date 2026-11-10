@@ -38,6 +38,11 @@ export type ProjectMember = Prisma.ProjectMemberModel
  */
 export type Scrum = Prisma.ScrumModel
 /**
+ * Model ScrumAdmin
+ * 
+ */
+export type ScrumAdmin = Prisma.ScrumAdminModel
+/**
  * Model ScrumMember
  * 
  */

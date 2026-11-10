@@ -125,10 +125,50 @@ export const ensureSchemaUpdated = async () => {
             "description" TEXT,
             "color" "ScrumColor" NOT NULL DEFAULT 'ECOSYSTEM',
             "isActive" BOOLEAN NOT NULL DEFAULT true,
-            "ownerId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
             "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
             "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
           );
+
+          -- 13b. Create ScrumAdmin Table and migrate legacy ownerId if present
+          CREATE TABLE IF NOT EXISTS "ScrumAdmin" (
+            "scrumId" INTEGER NOT NULL REFERENCES "Scrum"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "userId" INTEGER NOT NULL REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "assignedById" INTEGER REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE,
+            PRIMARY KEY ("scrumId", "userId")
+          );
+
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'Scrum' AND column_name = 'ownerId'
+          ) THEN
+            INSERT INTO "ScrumAdmin" ("scrumId", "userId")
+            SELECT s."id", s."ownerId"
+            FROM "Scrum" s
+            JOIN "User" u ON u."id" = s."ownerId"
+            WHERE s."ownerId" IS NOT NULL AND u."role" = 'SCRUM_ADMIN'
+            ON CONFLICT ("scrumId", "userId") DO NOTHING;
+
+            ALTER TABLE "Scrum" DROP CONSTRAINT IF EXISTS "Scrum_ownerId_fkey";
+            DROP INDEX IF EXISTS "Scrum_ownerId_idx";
+            ALTER TABLE "Scrum" DROP COLUMN IF EXISTS "ownerId";
+          END IF;
+
+          -- 13c. Add optional Scrum link on Project
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'Project' AND column_name = 'scrumId'
+          ) THEN
+            ALTER TABLE "Project" ADD COLUMN "scrumId" INTEGER;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'Project_scrumId_fkey'
+          ) THEN
+            ALTER TABLE "Project" ADD CONSTRAINT "Project_scrumId_fkey"
+              FOREIGN KEY ("scrumId") REFERENCES "Scrum"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+          END IF;
 
           -- 14. Create ScrumMember Table
           CREATE TABLE IF NOT EXISTS "ScrumMember" (
@@ -158,6 +198,7 @@ export const ensureSchemaUpdated = async () => {
           CREATE TABLE IF NOT EXISTS "SprintProject" (
             "id" SERIAL PRIMARY KEY,
             "sprintId" INTEGER NOT NULL REFERENCES "Sprint"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+            "projectId" INTEGER REFERENCES "Project"("id") ON DELETE SET NULL ON UPDATE CASCADE,
             "name" TEXT NOT NULL,
             "points" INTEGER NOT NULL DEFAULT 0,
             "assigneeId" INTEGER REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE,
@@ -166,6 +207,21 @@ export const ensureSchemaUpdated = async () => {
             "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
             "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
           );
+
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'SprintProject' AND column_name = 'projectId'
+          ) THEN
+            ALTER TABLE "SprintProject" ADD COLUMN "projectId" INTEGER;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'SprintProject_projectId_fkey'
+          ) THEN
+            ALTER TABLE "SprintProject" ADD CONSTRAINT "SprintProject_projectId_fkey"
+              FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+          END IF;
 
           -- 17. Create ScrumKpi Table
           CREATE TABLE IF NOT EXISTS "ScrumKpi" (
@@ -223,21 +279,35 @@ export const ensureSchemaUpdated = async () => {
               CHECK (("projectId" IS NOT NULL AND "sprintProjectId" IS NULL) OR ("projectId" IS NULL AND "sprintProjectId" IS NOT NULL));
           END IF;
 
-          -- 20. Ensure Sprint partial unique index
+          -- 20. Ensure Sprint partial unique index and Scrum performance indexes
           IF NOT EXISTS (
             SELECT 1 FROM pg_indexes 
             WHERE tablename = 'Sprint' AND indexname = 'Sprint_scrumId_active_unique'
           ) THEN
             CREATE UNIQUE INDEX "Sprint_scrumId_active_unique" ON "Sprint"("scrumId") WHERE "status" = 'ACTIVE';
           END IF;
+
+          CREATE INDEX IF NOT EXISTS "Scrum_isActive_idx" ON "Scrum"("isActive");
+          CREATE INDEX IF NOT EXISTS "ScrumAdmin_userId_idx" ON "ScrumAdmin"("userId");
+          CREATE INDEX IF NOT EXISTS "ScrumAdmin_assignedById_idx" ON "ScrumAdmin"("assignedById");
+          CREATE INDEX IF NOT EXISTS "Project_scrumId_idx" ON "Project"("scrumId");
+          CREATE INDEX IF NOT EXISTS "ScrumMember_userId_idx" ON "ScrumMember"("userId");
+          CREATE INDEX IF NOT EXISTS "Sprint_scrumId_status_idx" ON "Sprint"("scrumId", "status");
+          CREATE INDEX IF NOT EXISTS "SprintProject_sprintId_idx" ON "SprintProject"("sprintId");
+          CREATE INDEX IF NOT EXISTS "SprintProject_projectId_idx" ON "SprintProject"("projectId");
+          CREATE INDEX IF NOT EXISTS "SprintProject_assigneeId_idx" ON "SprintProject"("assigneeId");
+          CREATE INDEX IF NOT EXISTS "ScrumKpi_scrumId_idx" ON "ScrumKpi"("scrumId");
+          CREATE INDEX IF NOT EXISTS "ScrumEvent_scrumId_idx" ON "ScrumEvent"("scrumId");
+          CREATE INDEX IF NOT EXISTS "ScrumEvent_scheduleType_dayOfWeek_idx" ON "ScrumEvent"("scheduleType", "dayOfWeek");
+          CREATE INDEX IF NOT EXISTS "ScrumEvent_scheduleType_date_idx" ON "ScrumEvent"("scheduleType", "date");
+          CREATE INDEX IF NOT EXISTS "WorkSession_sprintProjectId_idx" ON "WorkSession"("sprintProjectId");
         END $$;
       `);
       isSynced = true;
       console.log("[AutoMigrate] Database schema verified and up to date.");
     } catch (err) {
       console.warn("[AutoMigrate] Schema sync notice:", err.message || err);
-      // Fails open: don't crash in case of temporary DB lock or read-only replica
-      isSynced = true;
+      // Do not mark synced on failure so subsequent checks can retry once DB is ready
     } finally {
       syncPromise = null;
     }

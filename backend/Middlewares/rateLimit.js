@@ -6,6 +6,9 @@ const LOGIN_FAIL_WINDOW_SECONDS = 15 * 60; // 15 minutes
 const WORK_SESSION_LIMIT = 30;
 const WORK_SESSION_WINDOW_SECONDS = 60; // 1 minute
 
+const SCRUM_WRITE_LIMIT = 60;
+const SCRUM_WRITE_WINDOW_SECONDS = 60; // 1 minute
+
 /**
  * Check if the IP has exceeded login failure attempts. Fails open if Redis is down.
  */
@@ -85,6 +88,33 @@ export const workSessionRateLimiter = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("WorkSession rate limiter error (failing open):", err.message);
+    next();
+  }
+};
+
+/**
+ * Per-user rate limit for Scrum write endpoints. Fails open if Redis is down.
+ */
+export const scrumWriteRateLimiter = async (req, res, next) => {
+  try {
+    if (!redis.isReady || !req.userId) return next();
+
+    const key = `ratelimit:scrum-write:${req.userId}`;
+    const count = await redis.incr(key);
+    if (count === 1) {
+      await redis.expire(key, SCRUM_WRITE_WINDOW_SECONDS);
+    }
+
+    if (count > SCRUM_WRITE_LIMIT) {
+      return res.status(429).json({
+        success: false,
+        message: "تعداد درخواست‌های ثبت اطلاعات بیش از حد مجاز است. لطفاً کمی بعد تلاش کنید",
+      });
+    }
+
+    next();
+  } catch (err) {
+    console.error("Scrum write rate limiter error (failing open):", err.message);
     next();
   }
 };

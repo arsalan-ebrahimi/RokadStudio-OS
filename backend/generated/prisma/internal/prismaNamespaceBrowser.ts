@@ -55,6 +55,7 @@ export const ModelName = {
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   Scrum: 'Scrum',
+  ScrumAdmin: 'ScrumAdmin',
   ScrumMember: 'ScrumMember',
   Sprint: 'Sprint',
   SprintProject: 'SprintProject',
@@ -99,6 +100,7 @@ export const ProjectScalarFieldEnum = {
   description: 'description',
   isActive: 'isActive',
   createdById: 'createdById',
+  scrumId: 'scrumId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -122,12 +124,21 @@ export const ScrumScalarFieldEnum = {
   description: 'description',
   color: 'color',
   isActive: 'isActive',
-  ownerId: 'ownerId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ScrumScalarFieldEnum = (typeof ScrumScalarFieldEnum)[keyof typeof ScrumScalarFieldEnum]
+
+
+export const ScrumAdminScalarFieldEnum = {
+  scrumId: 'scrumId',
+  userId: 'userId',
+  assignedAt: 'assignedAt',
+  assignedById: 'assignedById'
+} as const
+
+export type ScrumAdminScalarFieldEnum = (typeof ScrumAdminScalarFieldEnum)[keyof typeof ScrumAdminScalarFieldEnum]
 
 
 export const ScrumMemberScalarFieldEnum = {
@@ -159,6 +170,7 @@ export type SprintScalarFieldEnum = (typeof SprintScalarFieldEnum)[keyof typeof 
 export const SprintProjectScalarFieldEnum = {
   id: 'id',
   sprintId: 'sprintId',
+  projectId: 'projectId',
   name: 'name',
   points: 'points',
   assigneeId: 'assigneeId',

@@ -29,6 +29,7 @@ export type AggregateSprintProject = {
 export type SprintProjectAvgAggregateOutputType = {
   id: number | null
   sprintId: number | null
+  projectId: number | null
   points: number | null
   assigneeId: number | null
   sortOrder: number | null
@@ -37,6 +38,7 @@ export type SprintProjectAvgAggregateOutputType = {
 export type SprintProjectSumAggregateOutputType = {
   id: number | null
   sprintId: number | null
+  projectId: number | null
   points: number | null
   assigneeId: number | null
   sortOrder: number | null
@@ -45,6 +47,7 @@ export type SprintProjectSumAggregateOutputType = {
 export type SprintProjectMinAggregateOutputType = {
   id: number | null
   sprintId: number | null
+  projectId: number | null
   name: string | null
   points: number | null
   assigneeId: number | null
@@ -57,6 +60,7 @@ export type SprintProjectMinAggregateOutputType = {
 export type SprintProjectMaxAggregateOutputType = {
   id: number | null
   sprintId: number | null
+  projectId: number | null
   name: string | null
   points: number | null
   assigneeId: number | null
@@ -69,6 +73,7 @@ export type SprintProjectMaxAggregateOutputType = {
 export type SprintProjectCountAggregateOutputType = {
   id: number
   sprintId: number
+  projectId: number
   name: number
   points: number
   assigneeId: number
@@ -83,6 +88,7 @@ export type SprintProjectCountAggregateOutputType = {
 export type SprintProjectAvgAggregateInputType = {
   id?: true
   sprintId?: true
+  projectId?: true
   points?: true
   assigneeId?: true
   sortOrder?: true
@@ -91,6 +97,7 @@ export type SprintProjectAvgAggregateInputType = {
 export type SprintProjectSumAggregateInputType = {
   id?: true
   sprintId?: true
+  projectId?: true
   points?: true
   assigneeId?: true
   sortOrder?: true
@@ -99,6 +106,7 @@ export type SprintProjectSumAggregateInputType = {
 export type SprintProjectMinAggregateInputType = {
   id?: true
   sprintId?: true
+  projectId?: true
   name?: true
   points?: true
   assigneeId?: true
@@ -111,6 +119,7 @@ export type SprintProjectMinAggregateInputType = {
 export type SprintProjectMaxAggregateInputType = {
   id?: true
   sprintId?: true
+  projectId?: true
   name?: true
   points?: true
   assigneeId?: true
@@ -123,6 +132,7 @@ export type SprintProjectMaxAggregateInputType = {
 export type SprintProjectCountAggregateInputType = {
   id?: true
   sprintId?: true
+  projectId?: true
   name?: true
   points?: true
   assigneeId?: true
@@ -222,6 +232,7 @@ export type SprintProjectGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
 export type SprintProjectGroupByOutputType = {
   id: number
   sprintId: number
+  projectId: number | null
   name: string
   points: number
   assigneeId: number | null
@@ -257,6 +268,7 @@ export type SprintProjectWhereInput = {
   NOT?: Prisma.SprintProjectWhereInput | Prisma.SprintProjectWhereInput[]
   id?: Prisma.IntFilter<"SprintProject"> | number
   sprintId?: Prisma.IntFilter<"SprintProject"> | number
+  projectId?: Prisma.IntNullableFilter<"SprintProject"> | number | null
   name?: Prisma.StringFilter<"SprintProject"> | string
   points?: Prisma.IntFilter<"SprintProject"> | number
   assigneeId?: Prisma.IntNullableFilter<"SprintProject"> | number | null
@@ -265,6 +277,7 @@ export type SprintProjectWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"SprintProject"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SprintProject"> | Date | string
   sprint?: Prisma.XOR<Prisma.SprintScalarRelationFilter, Prisma.SprintWhereInput>
+  project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   assignee?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   workSessions?: Prisma.WorkSessionListRelationFilter
 }
@@ -272,6 +285,7 @@ export type SprintProjectWhereInput = {
 export type SprintProjectOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   sprintId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   points?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -280,6 +294,7 @@ export type SprintProjectOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   sprint?: Prisma.SprintOrderByWithRelationInput
+  project?: Prisma.ProjectOrderByWithRelationInput
   assignee?: Prisma.UserOrderByWithRelationInput
   workSessions?: Prisma.WorkSessionOrderByRelationAggregateInput
 }
@@ -290,6 +305,7 @@ export type SprintProjectWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.SprintProjectWhereInput[]
   NOT?: Prisma.SprintProjectWhereInput | Prisma.SprintProjectWhereInput[]
   sprintId?: Prisma.IntFilter<"SprintProject"> | number
+  projectId?: Prisma.IntNullableFilter<"SprintProject"> | number | null
   name?: Prisma.StringFilter<"SprintProject"> | string
   points?: Prisma.IntFilter<"SprintProject"> | number
   assigneeId?: Prisma.IntNullableFilter<"SprintProject"> | number | null
@@ -298,6 +314,7 @@ export type SprintProjectWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"SprintProject"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SprintProject"> | Date | string
   sprint?: Prisma.XOR<Prisma.SprintScalarRelationFilter, Prisma.SprintWhereInput>
+  project?: Prisma.XOR<Prisma.ProjectNullableScalarRelationFilter, Prisma.ProjectWhereInput> | null
   assignee?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   workSessions?: Prisma.WorkSessionListRelationFilter
 }, "id">
@@ -305,6 +322,7 @@ export type SprintProjectWhereUniqueInput = Prisma.AtLeast<{
 export type SprintProjectOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   sprintId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   points?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -325,6 +343,7 @@ export type SprintProjectScalarWhereWithAggregatesInput = {
   NOT?: Prisma.SprintProjectScalarWhereWithAggregatesInput | Prisma.SprintProjectScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"SprintProject"> | number
   sprintId?: Prisma.IntWithAggregatesFilter<"SprintProject"> | number
+  projectId?: Prisma.IntNullableWithAggregatesFilter<"SprintProject"> | number | null
   name?: Prisma.StringWithAggregatesFilter<"SprintProject"> | string
   points?: Prisma.IntWithAggregatesFilter<"SprintProject"> | number
   assigneeId?: Prisma.IntNullableWithAggregatesFilter<"SprintProject"> | number | null
@@ -342,6 +361,7 @@ export type SprintProjectCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   sprint: Prisma.SprintCreateNestedOneWithoutProjectsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutSprintProjectsInput
   assignee?: Prisma.UserCreateNestedOneWithoutAssignedSprintProjectsInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutSprintProjectInput
 }
@@ -349,6 +369,7 @@ export type SprintProjectCreateInput = {
 export type SprintProjectUncheckedCreateInput = {
   id?: number
   sprintId: number
+  projectId?: number | null
   name: string
   points?: number
   assigneeId?: number | null
@@ -367,6 +388,7 @@ export type SprintProjectUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sprint?: Prisma.SprintUpdateOneRequiredWithoutProjectsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutSprintProjectsNestedInput
   assignee?: Prisma.UserUpdateOneWithoutAssignedSprintProjectsNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutSprintProjectNestedInput
 }
@@ -374,6 +396,7 @@ export type SprintProjectUpdateInput = {
 export type SprintProjectUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   sprintId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
   assigneeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -387,6 +410,7 @@ export type SprintProjectUncheckedUpdateInput = {
 export type SprintProjectCreateManyInput = {
   id?: number
   sprintId: number
+  projectId?: number | null
   name: string
   points?: number
   assigneeId?: number | null
@@ -408,6 +432,7 @@ export type SprintProjectUpdateManyMutationInput = {
 export type SprintProjectUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   sprintId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
   assigneeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -430,6 +455,7 @@ export type SprintProjectOrderByRelationAggregateInput = {
 export type SprintProjectCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   sprintId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   points?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
@@ -442,6 +468,7 @@ export type SprintProjectCountOrderByAggregateInput = {
 export type SprintProjectAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   sprintId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrder
   points?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
@@ -450,6 +477,7 @@ export type SprintProjectAvgOrderByAggregateInput = {
 export type SprintProjectMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   sprintId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   points?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
@@ -462,6 +490,7 @@ export type SprintProjectMaxOrderByAggregateInput = {
 export type SprintProjectMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   sprintId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   points?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
@@ -474,6 +503,7 @@ export type SprintProjectMinOrderByAggregateInput = {
 export type SprintProjectSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   sprintId?: Prisma.SortOrder
+  projectId?: Prisma.SortOrder
   points?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
@@ -526,6 +556,48 @@ export type SprintProjectUncheckedUpdateManyWithoutAssigneeNestedInput = {
   deleteMany?: Prisma.SprintProjectScalarWhereInput | Prisma.SprintProjectScalarWhereInput[]
 }
 
+export type SprintProjectCreateNestedManyWithoutProjectInput = {
+  create?: Prisma.XOR<Prisma.SprintProjectCreateWithoutProjectInput, Prisma.SprintProjectUncheckedCreateWithoutProjectInput> | Prisma.SprintProjectCreateWithoutProjectInput[] | Prisma.SprintProjectUncheckedCreateWithoutProjectInput[]
+  connectOrCreate?: Prisma.SprintProjectCreateOrConnectWithoutProjectInput | Prisma.SprintProjectCreateOrConnectWithoutProjectInput[]
+  createMany?: Prisma.SprintProjectCreateManyProjectInputEnvelope
+  connect?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+}
+
+export type SprintProjectUncheckedCreateNestedManyWithoutProjectInput = {
+  create?: Prisma.XOR<Prisma.SprintProjectCreateWithoutProjectInput, Prisma.SprintProjectUncheckedCreateWithoutProjectInput> | Prisma.SprintProjectCreateWithoutProjectInput[] | Prisma.SprintProjectUncheckedCreateWithoutProjectInput[]
+  connectOrCreate?: Prisma.SprintProjectCreateOrConnectWithoutProjectInput | Prisma.SprintProjectCreateOrConnectWithoutProjectInput[]
+  createMany?: Prisma.SprintProjectCreateManyProjectInputEnvelope
+  connect?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+}
+
+export type SprintProjectUpdateManyWithoutProjectNestedInput = {
+  create?: Prisma.XOR<Prisma.SprintProjectCreateWithoutProjectInput, Prisma.SprintProjectUncheckedCreateWithoutProjectInput> | Prisma.SprintProjectCreateWithoutProjectInput[] | Prisma.SprintProjectUncheckedCreateWithoutProjectInput[]
+  connectOrCreate?: Prisma.SprintProjectCreateOrConnectWithoutProjectInput | Prisma.SprintProjectCreateOrConnectWithoutProjectInput[]
+  upsert?: Prisma.SprintProjectUpsertWithWhereUniqueWithoutProjectInput | Prisma.SprintProjectUpsertWithWhereUniqueWithoutProjectInput[]
+  createMany?: Prisma.SprintProjectCreateManyProjectInputEnvelope
+  set?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  disconnect?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  delete?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  connect?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  update?: Prisma.SprintProjectUpdateWithWhereUniqueWithoutProjectInput | Prisma.SprintProjectUpdateWithWhereUniqueWithoutProjectInput[]
+  updateMany?: Prisma.SprintProjectUpdateManyWithWhereWithoutProjectInput | Prisma.SprintProjectUpdateManyWithWhereWithoutProjectInput[]
+  deleteMany?: Prisma.SprintProjectScalarWhereInput | Prisma.SprintProjectScalarWhereInput[]
+}
+
+export type SprintProjectUncheckedUpdateManyWithoutProjectNestedInput = {
+  create?: Prisma.XOR<Prisma.SprintProjectCreateWithoutProjectInput, Prisma.SprintProjectUncheckedCreateWithoutProjectInput> | Prisma.SprintProjectCreateWithoutProjectInput[] | Prisma.SprintProjectUncheckedCreateWithoutProjectInput[]
+  connectOrCreate?: Prisma.SprintProjectCreateOrConnectWithoutProjectInput | Prisma.SprintProjectCreateOrConnectWithoutProjectInput[]
+  upsert?: Prisma.SprintProjectUpsertWithWhereUniqueWithoutProjectInput | Prisma.SprintProjectUpsertWithWhereUniqueWithoutProjectInput[]
+  createMany?: Prisma.SprintProjectCreateManyProjectInputEnvelope
+  set?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  disconnect?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  delete?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  connect?: Prisma.SprintProjectWhereUniqueInput | Prisma.SprintProjectWhereUniqueInput[]
+  update?: Prisma.SprintProjectUpdateWithWhereUniqueWithoutProjectInput | Prisma.SprintProjectUpdateWithWhereUniqueWithoutProjectInput[]
+  updateMany?: Prisma.SprintProjectUpdateManyWithWhereWithoutProjectInput | Prisma.SprintProjectUpdateManyWithWhereWithoutProjectInput[]
+  deleteMany?: Prisma.SprintProjectScalarWhereInput | Prisma.SprintProjectScalarWhereInput[]
+}
+
 export type SprintProjectCreateNestedManyWithoutSprintInput = {
   create?: Prisma.XOR<Prisma.SprintProjectCreateWithoutSprintInput, Prisma.SprintProjectUncheckedCreateWithoutSprintInput> | Prisma.SprintProjectCreateWithoutSprintInput[] | Prisma.SprintProjectUncheckedCreateWithoutSprintInput[]
   connectOrCreate?: Prisma.SprintProjectCreateOrConnectWithoutSprintInput | Prisma.SprintProjectCreateOrConnectWithoutSprintInput[]
@@ -572,14 +644,6 @@ export type EnumItemStatusFieldUpdateOperationsInput = {
   set?: $Enums.ItemStatus
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type SprintProjectCreateNestedOneWithoutWorkSessionsInput = {
   create?: Prisma.XOR<Prisma.SprintProjectCreateWithoutWorkSessionsInput, Prisma.SprintProjectUncheckedCreateWithoutWorkSessionsInput>
   connectOrCreate?: Prisma.SprintProjectCreateOrConnectWithoutWorkSessionsInput
@@ -604,12 +668,14 @@ export type SprintProjectCreateWithoutAssigneeInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   sprint: Prisma.SprintCreateNestedOneWithoutProjectsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutSprintProjectsInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutSprintProjectInput
 }
 
 export type SprintProjectUncheckedCreateWithoutAssigneeInput = {
   id?: number
   sprintId: number
+  projectId?: number | null
   name: string
   points?: number
   status?: $Enums.ItemStatus
@@ -651,6 +717,7 @@ export type SprintProjectScalarWhereInput = {
   NOT?: Prisma.SprintProjectScalarWhereInput | Prisma.SprintProjectScalarWhereInput[]
   id?: Prisma.IntFilter<"SprintProject"> | number
   sprintId?: Prisma.IntFilter<"SprintProject"> | number
+  projectId?: Prisma.IntNullableFilter<"SprintProject"> | number | null
   name?: Prisma.StringFilter<"SprintProject"> | string
   points?: Prisma.IntFilter<"SprintProject"> | number
   assigneeId?: Prisma.IntNullableFilter<"SprintProject"> | number | null
@@ -660,6 +727,57 @@ export type SprintProjectScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"SprintProject"> | Date | string
 }
 
+export type SprintProjectCreateWithoutProjectInput = {
+  name: string
+  points?: number
+  status?: $Enums.ItemStatus
+  sortOrder?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sprint: Prisma.SprintCreateNestedOneWithoutProjectsInput
+  assignee?: Prisma.UserCreateNestedOneWithoutAssignedSprintProjectsInput
+  workSessions?: Prisma.WorkSessionCreateNestedManyWithoutSprintProjectInput
+}
+
+export type SprintProjectUncheckedCreateWithoutProjectInput = {
+  id?: number
+  sprintId: number
+  name: string
+  points?: number
+  assigneeId?: number | null
+  status?: $Enums.ItemStatus
+  sortOrder?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workSessions?: Prisma.WorkSessionUncheckedCreateNestedManyWithoutSprintProjectInput
+}
+
+export type SprintProjectCreateOrConnectWithoutProjectInput = {
+  where: Prisma.SprintProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.SprintProjectCreateWithoutProjectInput, Prisma.SprintProjectUncheckedCreateWithoutProjectInput>
+}
+
+export type SprintProjectCreateManyProjectInputEnvelope = {
+  data: Prisma.SprintProjectCreateManyProjectInput | Prisma.SprintProjectCreateManyProjectInput[]
+  skipDuplicates?: boolean
+}
+
+export type SprintProjectUpsertWithWhereUniqueWithoutProjectInput = {
+  where: Prisma.SprintProjectWhereUniqueInput
+  update: Prisma.XOR<Prisma.SprintProjectUpdateWithoutProjectInput, Prisma.SprintProjectUncheckedUpdateWithoutProjectInput>
+  create: Prisma.XOR<Prisma.SprintProjectCreateWithoutProjectInput, Prisma.SprintProjectUncheckedCreateWithoutProjectInput>
+}
+
+export type SprintProjectUpdateWithWhereUniqueWithoutProjectInput = {
+  where: Prisma.SprintProjectWhereUniqueInput
+  data: Prisma.XOR<Prisma.SprintProjectUpdateWithoutProjectInput, Prisma.SprintProjectUncheckedUpdateWithoutProjectInput>
+}
+
+export type SprintProjectUpdateManyWithWhereWithoutProjectInput = {
+  where: Prisma.SprintProjectScalarWhereInput
+  data: Prisma.XOR<Prisma.SprintProjectUpdateManyMutationInput, Prisma.SprintProjectUncheckedUpdateManyWithoutProjectInput>
+}
+
 export type SprintProjectCreateWithoutSprintInput = {
   name: string
   points?: number
@@ -667,12 +785,14 @@ export type SprintProjectCreateWithoutSprintInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  project?: Prisma.ProjectCreateNestedOneWithoutSprintProjectsInput
   assignee?: Prisma.UserCreateNestedOneWithoutAssignedSprintProjectsInput
   workSessions?: Prisma.WorkSessionCreateNestedManyWithoutSprintProjectInput
 }
 
 export type SprintProjectUncheckedCreateWithoutSprintInput = {
   id?: number
+  projectId?: number | null
   name: string
   points?: number
   assigneeId?: number | null
@@ -717,12 +837,14 @@ export type SprintProjectCreateWithoutWorkSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   sprint: Prisma.SprintCreateNestedOneWithoutProjectsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutSprintProjectsInput
   assignee?: Prisma.UserCreateNestedOneWithoutAssignedSprintProjectsInput
 }
 
 export type SprintProjectUncheckedCreateWithoutWorkSessionsInput = {
   id?: number
   sprintId: number
+  projectId?: number | null
   name: string
   points?: number
   assigneeId?: number | null
@@ -756,12 +878,14 @@ export type SprintProjectUpdateWithoutWorkSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sprint?: Prisma.SprintUpdateOneRequiredWithoutProjectsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutSprintProjectsNestedInput
   assignee?: Prisma.UserUpdateOneWithoutAssignedSprintProjectsNestedInput
 }
 
 export type SprintProjectUncheckedUpdateWithoutWorkSessionsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   sprintId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
   assigneeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -774,6 +898,7 @@ export type SprintProjectUncheckedUpdateWithoutWorkSessionsInput = {
 export type SprintProjectCreateManyAssigneeInput = {
   id?: number
   sprintId: number
+  projectId?: number | null
   name: string
   points?: number
   status?: $Enums.ItemStatus
@@ -790,12 +915,14 @@ export type SprintProjectUpdateWithoutAssigneeInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sprint?: Prisma.SprintUpdateOneRequiredWithoutProjectsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutSprintProjectsNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutSprintProjectNestedInput
 }
 
 export type SprintProjectUncheckedUpdateWithoutAssigneeInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   sprintId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumItemStatusFieldUpdateOperationsInput | $Enums.ItemStatus
@@ -808,6 +935,7 @@ export type SprintProjectUncheckedUpdateWithoutAssigneeInput = {
 export type SprintProjectUncheckedUpdateManyWithoutAssigneeInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   sprintId?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumItemStatusFieldUpdateOperationsInput | $Enums.ItemStatus
@@ -816,8 +944,58 @@ export type SprintProjectUncheckedUpdateManyWithoutAssigneeInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type SprintProjectCreateManyProjectInput = {
+  id?: number
+  sprintId: number
+  name: string
+  points?: number
+  assigneeId?: number | null
+  status?: $Enums.ItemStatus
+  sortOrder?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type SprintProjectUpdateWithoutProjectInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  points?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumItemStatusFieldUpdateOperationsInput | $Enums.ItemStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sprint?: Prisma.SprintUpdateOneRequiredWithoutProjectsNestedInput
+  assignee?: Prisma.UserUpdateOneWithoutAssignedSprintProjectsNestedInput
+  workSessions?: Prisma.WorkSessionUpdateManyWithoutSprintProjectNestedInput
+}
+
+export type SprintProjectUncheckedUpdateWithoutProjectInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  points?: Prisma.IntFieldUpdateOperationsInput | number
+  assigneeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumItemStatusFieldUpdateOperationsInput | $Enums.ItemStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workSessions?: Prisma.WorkSessionUncheckedUpdateManyWithoutSprintProjectNestedInput
+}
+
+export type SprintProjectUncheckedUpdateManyWithoutProjectInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  sprintId?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  points?: Prisma.IntFieldUpdateOperationsInput | number
+  assigneeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumItemStatusFieldUpdateOperationsInput | $Enums.ItemStatus
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type SprintProjectCreateManySprintInput = {
   id?: number
+  projectId?: number | null
   name: string
   points?: number
   assigneeId?: number | null
@@ -834,12 +1012,14 @@ export type SprintProjectUpdateWithoutSprintInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  project?: Prisma.ProjectUpdateOneWithoutSprintProjectsNestedInput
   assignee?: Prisma.UserUpdateOneWithoutAssignedSprintProjectsNestedInput
   workSessions?: Prisma.WorkSessionUpdateManyWithoutSprintProjectNestedInput
 }
 
 export type SprintProjectUncheckedUpdateWithoutSprintInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
   assigneeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -852,6 +1032,7 @@ export type SprintProjectUncheckedUpdateWithoutSprintInput = {
 
 export type SprintProjectUncheckedUpdateManyWithoutSprintInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  projectId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
   assigneeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -895,6 +1076,7 @@ export type SprintProjectCountOutputTypeCountWorkSessionsArgs<ExtArgs extends ru
 export type SprintProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   sprintId?: boolean
+  projectId?: boolean
   name?: boolean
   points?: boolean
   assigneeId?: boolean
@@ -903,6 +1085,7 @@ export type SprintProjectSelect<ExtArgs extends runtime.Types.Extensions.Interna
   createdAt?: boolean
   updatedAt?: boolean
   sprint?: boolean | Prisma.SprintDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.SprintProject$projectArgs<ExtArgs>
   assignee?: boolean | Prisma.SprintProject$assigneeArgs<ExtArgs>
   workSessions?: boolean | Prisma.SprintProject$workSessionsArgs<ExtArgs>
   _count?: boolean | Prisma.SprintProjectCountOutputTypeDefaultArgs<ExtArgs>
@@ -911,6 +1094,7 @@ export type SprintProjectSelect<ExtArgs extends runtime.Types.Extensions.Interna
 export type SprintProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   sprintId?: boolean
+  projectId?: boolean
   name?: boolean
   points?: boolean
   assigneeId?: boolean
@@ -919,12 +1103,14 @@ export type SprintProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   createdAt?: boolean
   updatedAt?: boolean
   sprint?: boolean | Prisma.SprintDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.SprintProject$projectArgs<ExtArgs>
   assignee?: boolean | Prisma.SprintProject$assigneeArgs<ExtArgs>
 }, ExtArgs["result"]["sprintProject"]>
 
 export type SprintProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   sprintId?: boolean
+  projectId?: boolean
   name?: boolean
   points?: boolean
   assigneeId?: boolean
@@ -933,12 +1119,14 @@ export type SprintProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   createdAt?: boolean
   updatedAt?: boolean
   sprint?: boolean | Prisma.SprintDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.SprintProject$projectArgs<ExtArgs>
   assignee?: boolean | Prisma.SprintProject$assigneeArgs<ExtArgs>
 }, ExtArgs["result"]["sprintProject"]>
 
 export type SprintProjectSelectScalar = {
   id?: boolean
   sprintId?: boolean
+  projectId?: boolean
   name?: boolean
   points?: boolean
   assigneeId?: boolean
@@ -948,19 +1136,22 @@ export type SprintProjectSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SprintProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sprintId" | "name" | "points" | "assigneeId" | "status" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["sprintProject"]>
+export type SprintProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sprintId" | "projectId" | "name" | "points" | "assigneeId" | "status" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["sprintProject"]>
 export type SprintProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sprint?: boolean | Prisma.SprintDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.SprintProject$projectArgs<ExtArgs>
   assignee?: boolean | Prisma.SprintProject$assigneeArgs<ExtArgs>
   workSessions?: boolean | Prisma.SprintProject$workSessionsArgs<ExtArgs>
   _count?: boolean | Prisma.SprintProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SprintProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sprint?: boolean | Prisma.SprintDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.SprintProject$projectArgs<ExtArgs>
   assignee?: boolean | Prisma.SprintProject$assigneeArgs<ExtArgs>
 }
 export type SprintProjectIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sprint?: boolean | Prisma.SprintDefaultArgs<ExtArgs>
+  project?: boolean | Prisma.SprintProject$projectArgs<ExtArgs>
   assignee?: boolean | Prisma.SprintProject$assigneeArgs<ExtArgs>
 }
 
@@ -968,12 +1159,14 @@ export type $SprintProjectPayload<ExtArgs extends runtime.Types.Extensions.Inter
   name: "SprintProject"
   objects: {
     sprint: Prisma.$SprintPayload<ExtArgs>
+    project: Prisma.$ProjectPayload<ExtArgs> | null
     assignee: Prisma.$UserPayload<ExtArgs> | null
     workSessions: Prisma.$WorkSessionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     sprintId: number
+    projectId: number | null
     name: string
     points: number
     assigneeId: number | null
@@ -1376,6 +1569,7 @@ readonly fields: SprintProjectFieldRefs;
 export interface Prisma__SprintProjectClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   sprint<T extends Prisma.SprintDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SprintDefaultArgs<ExtArgs>>): Prisma.Prisma__SprintClient<runtime.Types.Result.GetResult<Prisma.$SprintPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  project<T extends Prisma.SprintProject$projectArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SprintProject$projectArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   assignee<T extends Prisma.SprintProject$assigneeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SprintProject$assigneeArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   workSessions<T extends Prisma.SprintProject$workSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SprintProject$workSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WorkSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1409,6 +1603,7 @@ export interface Prisma__SprintProjectClient<T, Null = never, ExtArgs extends ru
 export interface SprintProjectFieldRefs {
   readonly id: Prisma.FieldRef<"SprintProject", 'Int'>
   readonly sprintId: Prisma.FieldRef<"SprintProject", 'Int'>
+  readonly projectId: Prisma.FieldRef<"SprintProject", 'Int'>
   readonly name: Prisma.FieldRef<"SprintProject", 'String'>
   readonly points: Prisma.FieldRef<"SprintProject", 'Int'>
   readonly assigneeId: Prisma.FieldRef<"SprintProject", 'Int'>
@@ -1814,6 +2009,25 @@ export type SprintProjectDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many SprintProjects to delete.
    */
   limit?: number
+}
+
+/**
+ * SprintProject.project
+ */
+export type SprintProject$projectArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Project
+   */
+  select?: Prisma.ProjectSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Project
+   */
+  omit?: Prisma.ProjectOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ProjectInclude<ExtArgs> | null
+  where?: Prisma.ProjectWhereInput
 }
 
 /**

@@ -19,6 +19,7 @@ import {
   sprintRouter,
   sprintProjectRouter,
   workTargetsRouter,
+  scrumAdminRouter,
 } from "./Modules/Scrum/scrum.js";
 
 import swaggerUi from "swagger-ui-express";
@@ -132,6 +133,7 @@ app.use("/api/scrums", scrumRouter);
 app.use("/api/sprints", sprintRouter);
 app.use("/api/sprint-projects", sprintProjectRouter);
 app.use("/api/work-targets", workTargetsRouter);
+app.use("/api/scrum-admin", scrumAdminRouter);
 
 // 404 Route handler
 app.use((req, res, next) => {

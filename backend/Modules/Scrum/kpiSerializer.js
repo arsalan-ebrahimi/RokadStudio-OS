@@ -9,8 +9,8 @@ export const serializeKpiRow = (kpi, isAdmin = false) => {
   const minExpected = kpi.minExpected != null ? Number(kpi.minExpected) : null;
 
   let progressPercent = null;
-  if (target != null && actualValue != null && target !== 0) {
-    progressPercent = (actualValue / target) * 100;
+  if (target != null && actualValue != null && Number.isFinite(target) && Number.isFinite(actualValue) && target !== 0) {
+    progressPercent = Math.round((actualValue / target) * 10000) / 100;
   }
 
   let status = null;
@@ -54,4 +54,3 @@ export const serializeKpiRow = (kpi, isAdmin = false) => {
 export const serializeKpiRows = (rows, isAdmin = false) => {
   return rows.map((r) => serializeKpiRow(r, isAdmin));
 };
-

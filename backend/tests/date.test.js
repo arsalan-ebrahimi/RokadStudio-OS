@@ -9,6 +9,7 @@ import {
   minutesSinceMidnight,
   isIsoDateString,
   getTimezoneParts,
+  getTehranJalaliMonthRange,
 } from "../Utils/date.js";
 
 describe("Utils/date.js Tests", () => {
@@ -83,5 +84,24 @@ describe("Utils/date.js Tests", () => {
     assert.equal(isIsoDateString("2026-02-29"), false); // 2026 is not a leap year
     assert.equal(isIsoDateString("invalid"), false);
     assert.equal(isIsoDateString(null), false);
+  });
+
+  test("getTehranJalaliMonthRange computes Jalali month boundaries including leap Esfand and Tehran midnight", () => {
+    const aban = getTehranJalaliMonthRange(new Date("2026-11-10T11:00:00.000Z"), tehranTz);
+    assert.equal(formatDate(aban.from), "2026-10-23");
+    assert.equal(formatDate(aban.to), "2026-11-21");
+
+    const esfandLeap = getTehranJalaliMonthRange(new Date("2025-03-10T12:00:00.000Z"), tehranTz);
+    assert.equal(formatDate(esfandLeap.from), "2025-02-19");
+    assert.equal(formatDate(esfandLeap.to), "2025-03-20");
+
+    const esfandNonLeap = getTehranJalaliMonthRange(new Date("2026-03-10T12:00:00.000Z"), tehranTz);
+    assert.equal(formatDate(esfandNonLeap.from), "2026-02-20");
+    assert.equal(formatDate(esfandNonLeap.to), "2026-03-20");
+
+    // 2026-03-20 20:30 UTC is 2026-03-21 00:00 Tehran (1 Farvardin 1405)
+    const nowruzMidnight = getTehranJalaliMonthRange(new Date("2026-03-20T20:30:00.000Z"), tehranTz);
+    assert.equal(formatDate(nowruzMidnight.from), "2026-03-21");
+    assert.equal(formatDate(nowruzMidnight.to), "2026-04-20");
   });
 });

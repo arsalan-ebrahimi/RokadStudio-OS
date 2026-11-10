@@ -137,3 +137,51 @@ export const isIsoDateString = (str) => {
     return false;
   }
 };
+
+/**
+ * Extracts Jalali (Persian calendar) { year, month, day } integers for a UTC-midnight
+ * calendar date or instant.
+ */
+const getJalaliDateParts = (utcDate) => {
+  const formatter = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+  const parts = formatter.formatToParts(utcDate);
+  const map = {};
+  for (const part of parts) {
+    if (part.type === "year" || part.type === "month" || part.type === "day") {
+      map[part.type] = parseInt(part.value, 10);
+    }
+  }
+  return {
+    year: map.year,
+    month: map.month,
+    day: map.day,
+  };
+};
+
+/**
+ * Returns { from, to } (UTC midnight Date objects suitable for @db.Date filters)
+ * covering the current Jalali (Persian) calendar month in Asia/Tehran.
+ */
+export const getTehranJalaliMonthRange = (
+  now = new Date(),
+  timezone = DEFAULT_TIMEZONE
+) => {
+  const todayUtc = todayDate(now, timezone);
+  const cur = getJalaliDateParts(todayUtc);
+
+  const from = addDays(todayUtc, -(cur.day - 1));
+  const maxDaysInMonth = cur.month <= 6 ? 31 : 30;
+  let to = addDays(from, maxDaysInMonth - 1);
+
+  const checkEnd = getJalaliDateParts(to);
+  if (checkEnd.month !== cur.month || checkEnd.year !== cur.year) {
+    to = addDays(to, -1);
+  }
+
+  return { from, to };
+};

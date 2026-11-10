@@ -5,7 +5,27 @@ import {
   invalidateAllProjectsCache,
 } from "../../Utils/cache.js";
 
-export const createProjectWithMembers = async ({ name, description, memberIds = [] }, createdById) => {
+const resolveScrumForProjectLink = async (db, scrumId) => {
+  const scrum = await db.scrum.findUnique({
+    where: { id: scrumId },
+    select: { id: true, name: true, color: true, isActive: true },
+  });
+
+  if (!scrum) {
+    throw new HandleERROR("Scrum not found", 404);
+  }
+
+  if (!scrum.isActive) {
+    throw new HandleERROR("Cannot link project to an inactive Scrum", 422);
+  }
+
+  return scrum;
+};
+
+export const createProjectWithMembers = async (
+  { name, description, memberIds = [], scrumId },
+  createdById
+) => {
   const uniqueMemberIds = [...new Set(memberIds)];
 
   if (uniqueMemberIds.length > 0) {
@@ -26,11 +46,21 @@ export const createProjectWithMembers = async ({ name, description, memberIds = 
   }
 
   const project = await prisma.$transaction(async (tx) => {
+    if (scrumId !== undefined && scrumId !== null) {
+      await resolveScrumForProjectLink(tx, scrumId);
+    }
+
     const created = await tx.project.create({
       data: {
-        name,
+        name: name.trim(),
         description,
+        scrumId: scrumId ?? null,
         createdById,
+      },
+      include: {
+        scrum: {
+          select: { id: true, name: true, color: true },
+        },
       },
     });
 
@@ -43,15 +73,74 @@ export const createProjectWithMembers = async ({ name, description, memberIds = 
       });
     }
 
-    return created;
+    return {
+      ...created,
+      scrum: created.scrum || null,
+    };
   });
 
   // Invalidate project cache for members
-  for (const userId of uniqueMemberIds) {
-    await invalidateUserProjectsCache(userId);
-  }
+  await invalidateAllProjectsCache();
 
   return project;
+};
+
+export const updateProjectById = async (projectId, { name, description, isActive, scrumId }) => {
+  const updatedProject = await prisma.$transaction(async (tx) => {
+    const existing = await tx.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, scrumId: true },
+    });
+
+    if (!existing) {
+      throw new HandleERROR("Project not found", 404);
+    }
+
+    const data = {};
+    if (name !== undefined) data.name = name.trim();
+    if (description !== undefined) {
+      data.description = description === null ? null : description.trim();
+    }
+    if (isActive !== undefined) data.isActive = isActive;
+
+    if (scrumId !== undefined) {
+      if (scrumId === null) {
+        data.scrumId = null;
+      } else {
+        await resolveScrumForProjectLink(tx, scrumId);
+        data.scrumId = scrumId;
+      }
+
+      // If unlinking or moving to another scrum, clear SprintProject.projectId in previous scrum
+      if (existing.scrumId !== null && scrumId !== existing.scrumId) {
+        await tx.sprintProject.updateMany({
+          where: {
+            projectId,
+            sprint: { scrumId: existing.scrumId },
+          },
+          data: { projectId: null },
+        });
+      }
+    }
+
+    const updated = await tx.project.update({
+      where: { id: projectId },
+      data,
+      include: {
+        scrum: {
+          select: { id: true, name: true, color: true },
+        },
+      },
+    });
+
+    return {
+      ...updated,
+      scrum: updated.scrum || null,
+    };
+  });
+
+  await invalidateAllProjectsCache();
+  return updatedProject;
 };
 
 export const syncProjectMembers = async (projectId, userIds = []) => {

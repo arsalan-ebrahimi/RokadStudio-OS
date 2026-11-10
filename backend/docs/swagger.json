@@ -184,7 +184,7 @@
           "Users"
         ],
         "summary": "جستجوی سریع پرسنل فعال (جهت دراپ‌داون اعضای پروژه)",
-        "description": "جستجوی سریع حداکثر ۲۰ پرسنل فعال بر اساس نام جهت تخصیص به پروژه‌ها. کد پرسنلی برای حفظ محرمانگی هرگز برگردانده نمی‌شود.",
+        "description": "جستجوی سریع حداکثر ۲۰ پرسنل فعال بر اساس نام. برای SCRUM_ADMIN فقط id و name برگردانده می‌شود و کد پرسنلی هرگز افشا نمی‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -224,7 +224,80 @@
             }
           },
           "403": {
-            "description": "دسترسی غیرمجاز (فقط ADMIN و SUPER_ADMIN)",
+            "description": "دسترسی غیرمجاز (فقط ADMIN، SCRUM_ADMIN و SUPER_ADMIN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/scrum-admins": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "لیست ادمین‌های اسکرام فعال (فقط سوپرادمین)",
+        "description": "دریافت حداکثر ۵۰ کاربر فعال با نقش SCRUM_ADMIN جهت انتساب به اسکرام‌ها (بدون بازگرداندن کد پرسنلی).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "جستجوی متنی در نام کاربر",
+            "schema": {
+              "type": "string",
+              "example": "Scrum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "لیست ادمین‌های اسکرام فعال",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserBasicItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "عدم احراز هویت",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط SUPER_ADMIN دسترسی دارد",
             "content": {
               "application/json": {
                 "schema": {
@@ -685,7 +758,7 @@
           "Projects"
         ],
         "summary": "ایجاد پروژه جدید و انتساب اختیاری اعضا (سوپرادمین)",
-        "description": "ایجاد پروژه جدید. می‌توان همزمان شناسه‌های اعضا (`memberIds`) را ارسال کرد تا در یک تراکنش اتمیک اضافه شوند.",
+        "description": "ایجاد پروژه جدید و اتصال اختیاری به اسکرام فعال (`scrumId`) یا انتساب اعضا (`memberIds`) در یک تراکنش اتمیک.",
         "security": [
           {
             "bearerAuth": []
@@ -724,6 +797,26 @@
           },
           "403": {
             "description": "فقط SUPER_ADMIN دسترسی دارد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام انتخاب‌شده یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "امکان اتصال پروژه به اسکرام غیرفعال وجود ندارد",
             "content": {
               "application/json": {
                 "schema": {
@@ -787,7 +880,7 @@
           "Projects"
         ],
         "summary": "ویرایش مشخصات پروژه (سوپرادمین)",
-        "description": "ویرایش نام، توضیحات یا وضعیت فعال بودن پروژه. کش پروژه‌ها در ردیس فوراً بی‌اعتبار می‌شود.",
+        "description": "ویرایش مشخصات پروژه از جمله اتصال/قطع اتصال به اسکرام (`scrumId`). در صورت تغییر اسکرام، ارجاع SprintProject.projectId در اسکرام قبلی null می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -828,6 +921,16 @@
           },
           "404": {
             "description": "پروژه یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "اسکرام انتخاب‌شده غیرفعال است",
             "content": {
               "application/json": {
                 "schema": {
@@ -1631,7 +1734,7 @@
           "Scrum"
         ],
         "summary": "لیست اسکرام‌های کاربر",
-        "description": "اعضای عادی فقط اسکرام‌هایی که عضو آن هستند را می‌بینند؛ SCRUM_ADMIN اسکرام‌های تحت مالکیت خود و SUPER_ADMIN تمام اسکرام‌ها را دریافت می‌کند.",
+        "description": "اعضای عادی اسکرام‌هایی را می‌بینند که عضو آن هستند؛ SCRUM_ADMIN اجتماع اسکرام‌های تحت مدیریت یا عضویت خود و SUPER_ADMIN تمام اسکرام‌ها را می‌بیند. فیلد myRole نقش کاربر در هر اسکرام را مشخص می‌کند.",
         "security": [
           {
             "bearerAuth": []
@@ -1649,6 +1752,9 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -1659,6 +1765,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1666,8 +1782,8 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "ایجاد اسکرام جدید",
-        "description": "فقط توسط SCRUM_ADMIN یا SUPER_ADMIN قابل فراخوانی است.",
+        "summary": "ایجاد اسکرام جدید (فقط سوپرادمین)",
+        "description": "فقط توسط SUPER_ADMIN قابل فراخوانی است. می‌توان آرایه adminIds شامل شناسه‌های کاربران فعال با نقش SCRUM_ADMIN ارسال کرد.",
         "security": [
           {
             "bearerAuth": []
@@ -1689,14 +1805,22 @@
                   },
                   "description": {
                     "type": "string",
+                    "nullable": true,
                     "example": "تیم فنی"
                   },
                   "color": {
                     "$ref": "#/components/schemas/ScrumColor"
                   },
-                  "ownerId": {
-                    "type": "integer",
-                    "description": "فقط سوپرادمین می‌تواند مالک را مشخص کند"
+                  "adminIds": {
+                    "type": "array",
+                    "description": "شناسه‌های کاربران فعال با نقش SCRUM_ADMIN",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "example": [
+                      3
+                    ]
                   }
                 }
               }
@@ -1715,10 +1839,43 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "$ref": "#/components/schemas/ScrumResponse"
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر یا مالک نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط SUPER_ADMIN مجاز به ایجاد اسکرام است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "یک یا چند شناسه در adminIds کاربر فعال با نقش SCRUM_ADMIN نیستند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1732,7 +1889,7 @@
           "Scrum"
         ],
         "summary": "جلسات و ریتم‌های امروز کاربر در اسکرام‌ها",
-        "description": "رویدادهایی از اسکرام‌های فعال کاربر که امروز به وقت تهران برگزار می‌شوند.",
+        "description": "رویدادهایی از اسکرام‌های فعال کاربر که امروز به وقت تهران برگزار می‌شوند. نقش ADMIN دسترسی ندارد (403).",
         "security": [
           {
             "bearerAuth": []
@@ -1750,36 +1907,26 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "scrumId": {
-                            "type": "integer"
-                          },
-                          "scrumName": {
-                            "type": "string"
-                          },
-                          "scrumColor": {
-                            "$ref": "#/components/schemas/ScrumColor"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "startTime": {
-                            "type": "string"
-                          },
-                          "durationMinutes": {
-                            "type": "integer"
-                          }
-                        }
+                        "$ref": "#/components/schemas/TodayScrumEventItem"
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1793,6 +1940,7 @@
           "Scrum"
         ],
         "summary": "جزئیات اسکرام به همراه اعضا",
+        "description": "کاربران غیرمرتبط با اسکرام خطای 404 دریافت می‌کنند تا وجود اسکرام افشا نشود.",
         "security": [
           {
             "bearerAuth": []
@@ -1820,10 +1968,33 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "$ref": "#/components/schemas/ScrumResponse"
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد یا کاربر دسترسی ندارد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1834,7 +2005,7 @@
         "tags": [
           "Scrum"
         ],
-        "summary": "ویرایش اسکرام (مالک یا سوپرادمین)",
+        "summary": "ویرایش اسکرام (ادمین اسکرام یا سوپرادمین)",
         "security": [
           {
             "bearerAuth": []
@@ -1861,7 +2032,8 @@
                     "type": "string"
                   },
                   "description": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "color": {
                     "$ref": "#/components/schemas/ScrumColor"
@@ -1876,16 +2048,66 @@
         },
         "responses": {
           "200": {
-            "description": "اسکرام ویرایش شد"
+            "description": "اسکرام ویرایش شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "تغییر isActive توسط غیرسوپرادمین یا تلاش کاربر غیرمدیریتی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد یا کاربر غیرمرتبط است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "description": "تغییر نام، توضیحات و رنگ توسط ادمین اسکرام منتسب یا سوپرادمین مجاز است؛ تغییر وضعیت فعال/آرشیو (isActive) فقط توسط سوپرادمین انجام می‌شود (403 برای سایرین)."
       },
       "delete": {
         "tags": [
           "Scrum"
         ],
-        "summary": "حذف اسکرام",
-        "description": "در صورت وجود سشن کاری، با خطای 409 مسدود می‌شود و کاربر را به آرشیو راهنمایی می‌کند.",
+        "summary": "حذف اسکرام (فقط سوپرادمین)",
+        "description": "فقط توسط سوپرادمین قابل انجام است. در صورت وجود سشن کاری روی آیتم‌های اسپرینت، با 409 مسدود می‌شود.",
         "security": [
           {
             "bearerAuth": []
@@ -1903,10 +2125,44 @@
         ],
         "responses": {
           "200": {
-            "description": "اسکرام حذف شد"
+            "description": "اسکرام حذف شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessNullResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "409": {
-            "description": "دارای سشن کاری است و قابل حذف نیست"
+            "description": "دارای سشن کاری است و قابل حذف نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1917,7 +2173,7 @@
           "Scrum"
         ],
         "summary": "همگام‌سازی اعضای اسکرام (Set Diffing)",
-        "description": "تنظیم اعضای اسکرام. در صورت حذف عضوی که تسک منتسب داشته، تسک‌های وی بدون مسئول می‌شوند.",
+        "description": "تنظیم اعضای اسکرام (کاربران با نقش ADMIN و کاربران غیرفعال پذیرفته نمی‌شوند). در صورت حذف عضوی که تسک منتسب داشته، تسک‌های وی بدون مسئول می‌شوند.",
         "security": [
           {
             "bearerAuth": []
@@ -1957,6 +2213,7 @@
                         },
                         "label": {
                           "type": "string",
+                          "nullable": true,
                           "example": "طراح محصول"
                         }
                       }
@@ -1969,7 +2226,176 @@
         },
         "responses": {
           "200": {
-            "description": "اعضا بروزرسانی شدند"
+            "description": "اعضا بروزرسانی شدند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScrumMemberItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر، تکراری یا کاربر غیرمجاز/غیرفعال",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/admins": {
+      "put": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "تخصیص و همگام‌سازی ادمین‌های اسکرام (فقط سوپرادمین)",
+        "description": "تنظیم لیست کامل ادمین‌های اسکرام (Set Diffing). تمام شناسه‌ها باید کاربر فعال با نقش SCRUM_ADMIN باشند (در غیر این صورت 422).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userIds"
+                ],
+                "properties": {
+                  "userIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "example": [
+                      3,
+                      4
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "لیست بروزرسانی‌شده ادمین‌های اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserBasicItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط سوپرادمین مجاز است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "کاربر غیرفعال یا فاقد نقش SCRUM_ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2007,6 +2433,9 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -2014,6 +2443,26 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2049,18 +2498,22 @@
                 "properties": {
                   "title": {
                     "type": "string",
+                    "nullable": true,
                     "example": "اسپرینت ۱"
                   },
                   "description": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "startDate": {
                     "type": "string",
-                    "format": "date"
+                    "format": "date",
+                    "nullable": true
                   },
                   "endDate": {
                     "type": "string",
-                    "format": "date"
+                    "format": "date",
+                    "nullable": true
                   }
                 }
               }
@@ -2069,7 +2522,56 @@
         },
         "responses": {
           "201": {
-            "description": "اسپرینت ایجاد شد"
+            "description": "اسپرینت ایجاد شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SprintResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی یا ترتیب تاریخ نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2108,6 +2610,9 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -2125,6 +2630,26 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2133,7 +2658,7 @@
           "Scrum"
         ],
         "summary": "بروزرسانی دسته‌ای جدول KPI",
-        "description": "سطرهای خالی نادیده گرفته می‌شوند. سطرهای بدون id ایجاد، سطرهای با id بروزرسانی و سطرهای حذف‌شده از دیتابیس پاک می‌شوند.",
+        "description": "سطرهای خالی نادیده گرفته می‌شوند. سطرهای بدون id ایجاد، سطرهای با id متعلق به همین اسکرام بروزرسانی و سطرهای حذف‌شده از دیتابیس پاک می‌شوند.",
         "security": [
           {
             "bearerAuth": []
@@ -2172,7 +2697,59 @@
         },
         "responses": {
           "200": {
-            "description": "جدول KPI ذخیره شد"
+            "description": "جدول KPI ذخیره شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/KpiRowAdmin"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر یا شناسه متعلق به اسکرام دیگر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2210,6 +2787,9 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -2217,6 +2797,26 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2266,7 +2866,59 @@
         },
         "responses": {
           "200": {
-            "description": "جدول جلسات ذخیره شد"
+            "description": "جدول جلسات ذخیره شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScrumEventItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر یا شناسه متعلق به اسکرام دیگر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2277,7 +2929,7 @@
           "Scrum"
         ],
         "summary": "گزارش عملکرد اسکرام",
-        "description": "نمایش سشن‌ها، زمان صرف‌شده و زمان به ازای هر پوینت. اعضای عادی فقط سشن‌های شخصی خود را می‌بینند.",
+        "description": "نمایش سشن‌ها، زمان صرف‌شده و زمان به ازای هر پوینت. اعضای عادی فقط سشن‌ها و مجموع زمان/تعداد سشن شخصی خود را می‌بینند (در rows، sprintAggregates و total).",
         "security": [
           {
             "bearerAuth": []
@@ -2318,7 +2970,725 @@
         ],
         "responses": {
           "200": {
-            "description": "داده‌های آماری گزارش"
+            "description": "داده‌های آماری گزارش",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumReportResponseData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "فیلتر یا بازه تاریخ نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/projects": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "لیست پروژه‌های استودیو متصل به اسکرام",
+        "description": "تمام پروژه‌های متصل‌شده به این اسکرام را برمی‌گرداند. فیلد trackedSeconds فقط برای مدیران اسکرام و سوپرادمین ارسال می‌شود و برای اعضای عادی حذف می‌گردد.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "لیست پروژه‌های متصل به اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ScrumLinkedProjectItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "ایجاد پروژه جدید مستقیم داخل اسکرام (ادمین اسکرام / سوپرادمین)",
+        "description": "ایجاد پروژه استودیو با scrumId تنظیم‌شده و انتساب اختیاری اعضا (تمام شناسه‌های memberIds باید عضو فعال همین اسکرام باشند).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "memberIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "پروژه ایجاد و به اسکرام متصل شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumLinkedProjectItem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی ویرایش اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "اعضای انتخاب‌شده باید عضو فعال اسکرام باشند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/projects/available": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "لیست پروژه‌های آزاد قابل اتصال به اسکرام",
+        "description": "دریافت حداکثر ۵۰ پروژه فعال استودیو که هنوز به هیچ اسکرامی متصل نیستند (`scrumId IS NULL`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "پروژه‌های آزاد قابل اتصال",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AvailableScrumProjectItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی ویرایش اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/projects/link": {
+      "post": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "اتصال یک پروژه استودیوی موجود به اسکرام",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "پروژه به اسکرام متصل شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumLinkedProjectItem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی ویرایش اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا پروژه یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "پروژه هم‌اکنون به اسکرام دیگری متصل است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "پروژه غیرفعال است",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/projects/{projectId}/link": {
+      "delete": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "قطع اتصال پروژه از اسکرام",
+        "description": "اتصال پروژه به اسکرام را قطع کرده (`Project.scrumId = null`) و ارجاع `SprintProject.projectId` در اسپرینت‌های همین اسکرام را null می‌کند. سوابق سشن‌ها حفظ می‌شوند.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "اتصال قطع شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessNullResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی ویرایش اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا پروژه متصل یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/projects/{projectId}/members": {
+      "put": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "همگام‌سازی اعضای پروژه متصل درون اسکرام",
+        "description": "فقط بین اعضای اسکرام Set Diffing انجام می‌دهد؛ کاربرانی که عضو پروژه هستند اما عضو این اسکرام نیستند دست‌نخورده باقی می‌مانند. اعضای ارسال‌شده باید عضو فعال اسکرام باشند (422).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userIds"
+                ],
+                "properties": {
+                  "userIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "اعضای پروژه بروزرسانی شدند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserBasicItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی ویرایش اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا پروژه متصل یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "کاربران باید عضو فعال همین اسکرام باشند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrums/{id}/leaderboard": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "جدول برترین‌های اسکرام (فقط زمان‌های تاییدشده)",
+        "description": "تجمع تک-کوئری سشن‌های تاییدشده (APPROVED) در اسپرینت انتخابی/فعال، ماه جاری جلالی (MONTH به وقت تهران)، یا کل زمان (ALL). تمام اعضای اسکرام با رتبه‌بندی رقابتی (۱، ۲، ۲، ۴) نمایش داده می‌شوند و فیلد pendingSeconds فقط برای شخص کاربر در شیء me برگردانده می‌شود.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SPRINT",
+                "MONTH",
+                "ALL"
+              ],
+              "default": "SPRINT"
+            }
+          },
+          {
+            "name": "sprintId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "جدول برترین‌های اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumLeaderboardResponseData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "پارامتر جستجو نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسکرام یا اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2329,6 +3699,7 @@
           "Scrum"
         ],
         "summary": "جزئیات اسپرینت و پروژه‌های آن",
+        "description": "برای اعضای عادی، totalTrackedSeconds و sessionCount فقط شامل سشن‌های خود کاربر است.",
         "security": [
           {
             "bearerAuth": []
@@ -2356,10 +3727,33 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "$ref": "#/components/schemas/SprintResponse"
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی برای نقش ADMIN مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2387,6 +3781,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2396,15 +3791,18 @@
                     "type": "string"
                   },
                   "description": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "startDate": {
                     "type": "string",
-                    "format": "date"
+                    "format": "date",
+                    "nullable": true
                   },
                   "endDate": {
                     "type": "string",
-                    "format": "date"
+                    "format": "date",
+                    "nullable": true
                   }
                 }
               }
@@ -2413,7 +3811,56 @@
         },
         "responses": {
           "200": {
-            "description": "اسپرینت بروزرسانی شد"
+            "description": "اسپرینت بروزرسانی شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SprintResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی یا ترتیب تاریخ نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2440,10 +3887,44 @@
         ],
         "responses": {
           "200": {
-            "description": "اسپرینت حذف شد"
+            "description": "اسپرینت حذف شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessNullResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "409": {
-            "description": "دارای سشن کاری است و قابل حذف نیست"
+            "description": "دارای سشن کاری است و قابل حذف نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2490,10 +3971,66 @@
         },
         "responses": {
           "200": {
-            "description": "وضعیت تغییر یافت"
+            "description": "وضعیت تغییر یافت",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SprintResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "تغییر وضعیت نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "409": {
-            "description": "یک اسپرینت فعال دیگر وجود دارد"
+            "description": "یک اسپرینت فعال دیگر وجود دارد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2544,6 +4081,11 @@
                     "type": "integer",
                     "nullable": true,
                     "example": 3
+                  },
+                  "projectId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "شناسه اختیاری پروژه متصل‌شده به همین اسکرام"
                   }
                 }
               }
@@ -2552,7 +4094,66 @@
         },
         "responses": {
           "201": {
-            "description": "پروژه اسپرینت ایجاد شد"
+            "description": "پروژه اسپرینت ایجاد شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SprintProjectItem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی یا مسئول نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی مدیریت مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "پروژه انتخاب‌شده به این اسکرام متصل نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2563,7 +4164,7 @@
           "Scrum"
         ],
         "summary": "ویرایش پروژه/تسک اسپرینت",
-        "description": "مالک و ادمین می‌توانند تمام فیلدها را تغییر دهند. کاربر منتسب غیر مالک فقط و فقط می‌تواند status را تغییر دهد (ارسال فیلد دیگر منجر به 403 می‌شود).",
+        "description": "ادمین منتسب اسکرام یا سوپرادمین می‌توانند تمام فیلدها را تغییر دهند. کاربر منتسب غیر ادمین فقط می‌تواند status را تغییر دهد (ارسال سایر فیلدها 403 می‌دهد).",
         "security": [
           {
             "bearerAuth": []
@@ -2580,6 +4181,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -2602,6 +4204,11 @@
                   },
                   "sortOrder": {
                     "type": "integer"
+                  },
+                  "projectId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "شناسه اختیاری پروژه متصل‌شده به همین اسکرام (یا null برای قطع ارتباط)"
                   }
                 }
               }
@@ -2610,10 +4217,66 @@
         },
         "responses": {
           "200": {
-            "description": "پروژه اسپرینت بروزرسانی شد"
+            "description": "پروژه اسپرینت بروزرسانی شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SprintProjectItem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ورودی یا مسئول نامعتبر",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "دسترسی غیرمجاز برای تغییر سایر فیلدها توسط عضو عادی"
+            "description": "دسترسی غیرمجاز برای تغییر سایر فیلدها توسط عضو عادی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "پروژه اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "پروژه انتخاب‌شده به این اسکرام متصل نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -2640,10 +4303,44 @@
         ],
         "responses": {
           "200": {
-            "description": "پروژه اسپرینت حذف شد"
+            "description": "پروژه اسپرینت حذف شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessNullResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "دسترسی حذف مجاز نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "پروژه اسپرینت یافت نشد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "409": {
-            "description": "دارای سشن کاری است و قابل حذف نیست"
+            "description": "دارای سشن کاری است و قابل حذف نیست",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2654,7 +4351,7 @@
           "WorkSessions"
         ],
         "summary": "دریافت اهداف کاری کاربر برای تایم‌ترکر (Work Targets)",
-        "description": "شامل ۳ هدف اخیراً استفاده‌شده، تسک‌های اسپرینت فعال کاربر در اسکرام‌ها، و پروژه‌های استودیو.",
+        "description": "شامل حداکثر ۳ هدف اخیر معتبر، گروه‌های اسکرام کاربر (آیتم‌های اسپرینت فعال + پروژه‌های استودیو متصل‌شده به اسکرام که کاربر عضو پروژه است)، و سایر پروژه‌های استودیو.",
         "security": [
           {
             "bearerAuth": []
@@ -2672,21 +4369,91 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "message": {
+                      "type": "string"
+                    },
                     "data": {
                       "type": "object",
                       "properties": {
                         "recent": {
-                          "type": "array"
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
                         },
                         "scrums": {
-                          "type": "array"
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WorkTargetScrumGroup"
+                          }
                         },
                         "studioProjects": {
-                          "type": "array"
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
                         }
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scrum-admin/dashboard": {
+      "get": {
+        "tags": [
+          "Scrum"
+        ],
+        "summary": "داشبورد اختصاصی مدیریت اسکرام (SCRUM_ADMIN و SUPER_ADMIN)",
+        "description": "آمار تجمیعی اسکرام‌های فعال تحت مدیریت کاربر (یا همه اسکرام‌های فعال برای SUPER_ADMIN) شامل تعداد اعضای یکتا، وضعیت KPIها، وضعیت اسپرینت‌های فعال و جلسات امروز به وقت تهران.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "خلاصه داشبورد مدیریت اسکرام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrumAdminDashboardResponseData"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "عدم احراز هویت",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "فقط SCRUM_ADMIN و SUPER_ADMIN مجاز هستند",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3203,6 +4970,19 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-11-01T12:00:00.000Z"
+          },
+          "scrumId": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          },
+          "scrum": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScrumBrief"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -3277,6 +5057,19 @@
                 }
               }
             }
+          },
+          "scrumId": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          },
+          "scrum": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScrumBrief"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -3322,6 +5115,12 @@
               2,
               3
             ]
+          },
+          "scrumId": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "description": "شناسه اختیاری اسکرام فعال جهت اتصال پروژه"
           }
         }
       },
@@ -3357,6 +5156,12 @@
           "isActive": {
             "type": "boolean",
             "example": true
+          },
+          "scrumId": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "description": "شناسه اختیاری اسکرام فعال یا null برای قطع اتصال"
           }
         }
       },
@@ -4261,17 +6066,32 @@
             "type": "boolean",
             "example": true
           },
-          "ownerId": {
-            "type": "integer",
-            "example": 2
+          "admins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserBasicItem"
+            }
           },
           "memberCount": {
             "type": "integer",
             "example": 4
           },
+          "myRole": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "example": "ADMIN"
+          },
           "canEdit": {
             "type": "boolean",
-            "example": true
+            "example": true,
+            "description": "معادل permissions.canEditContent برای سازگاری قبلی"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ScrumPermissions"
           },
           "activeSprint": {
             "type": "object",
@@ -4333,6 +6153,14 @@
             "type": "integer",
             "example": 0
           },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "assignee": {
             "type": "object",
             "nullable": true,
@@ -4354,6 +6182,25 @@
           "sessionCount": {
             "type": "integer",
             "example": 2
+          },
+          "projectId": {
+            "type": "integer",
+            "nullable": true,
+            "example": 2
+          },
+          "project": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 2
+              },
+              "name": {
+                "type": "string",
+                "example": "Rokad Studio OS Platform"
+              }
+            }
           }
         }
       },
@@ -4398,6 +6245,14 @@
             "format": "date-time",
             "nullable": true
           },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "totalPoints": {
             "type": "integer",
             "example": 25
@@ -4412,10 +6267,12 @@
           },
           "totalTrackedSeconds": {
             "type": "integer",
-            "example": 9000
+            "example": 9000,
+            "description": "فقط در خروجی جزئیات اسپرینت (GET /api/sprints/{id}) بازگردانده می‌شود"
           },
           "projects": {
             "type": "array",
+            "description": "فقط در خروجی جزئیات اسپرینت (GET /api/sprints/{id}) بازگردانده می‌شود",
             "items": {
               "$ref": "#/components/schemas/SprintProjectItem"
             }
@@ -4474,6 +6331,608 @@
           "sortOrder": {
             "type": "integer",
             "example": 0
+          }
+        }
+      },
+      "TodayScrumEventItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "scrumId": {
+            "type": "integer",
+            "example": 1
+          },
+          "scrumName": {
+            "type": "string",
+            "example": "اسکرام توسعه پلتفرم"
+          },
+          "scrumColor": {
+            "$ref": "#/components/schemas/ScrumColor"
+          },
+          "name": {
+            "type": "string",
+            "example": "دیلی اسکرام"
+          },
+          "scheduleType": {
+            "$ref": "#/components/schemas/EventScheduleType"
+          },
+          "dayOfWeek": {
+            "type": "integer",
+            "nullable": true,
+            "example": 0,
+            "description": "0 = شنبه تا 6 = جمعه"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "startTime": {
+            "type": "string",
+            "nullable": true,
+            "example": "09:30"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "nullable": true,
+            "example": 15
+          },
+          "inputs": {
+            "type": "string",
+            "nullable": true
+          },
+          "outputs": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ScrumReportResponseData": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "SPRINT_ITEM",
+                    "PROJECT"
+                  ],
+                  "example": "SPRINT_ITEM"
+                },
+                "member": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 4
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Artin Amiri"
+                    }
+                  }
+                },
+                "item": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 101
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "طراحی رابط کاربری"
+                    },
+                    "points": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "status": {
+                      "$ref": "#/components/schemas/ItemStatus"
+                    },
+                    "sprint": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 12
+                        },
+                        "number": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "اسپرینت ۱"
+                        }
+                      }
+                    }
+                  },
+                  "nullable": true
+                },
+                "project": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Rokad Studio OS Platform"
+                    }
+                  }
+                },
+                "sessionCount": {
+                  "type": "integer",
+                  "example": 2
+                },
+                "totalSeconds": {
+                  "type": "integer",
+                  "example": 3600
+                },
+                "secondsPerPoint": {
+                  "type": "integer",
+                  "nullable": true,
+                  "example": 720
+                }
+              }
+            }
+          },
+          "sprintAggregates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sprintId": {
+                  "type": "integer",
+                  "example": 12
+                },
+                "sprintNumber": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "sprintTitle": {
+                  "type": "string",
+                  "example": "اسپرینت ۱"
+                },
+                "totalPoints": {
+                  "type": "integer",
+                  "example": 25
+                },
+                "donePoints": {
+                  "type": "integer",
+                  "example": 13
+                },
+                "totalSeconds": {
+                  "type": "integer",
+                  "example": 9000
+                },
+                "sessionCount": {
+                  "type": "integer",
+                  "example": 5
+                }
+              }
+            }
+          },
+          "total": {
+            "type": "object",
+            "properties": {
+              "totalPoints": {
+                "type": "integer",
+                "example": 25
+              },
+              "donePoints": {
+                "type": "integer",
+                "example": 13
+              },
+              "totalSeconds": {
+                "type": "integer",
+                "example": 9000
+              },
+              "sessionCount": {
+                "type": "integer",
+                "example": 5
+              }
+            }
+          }
+        }
+      },
+      "UserBasicItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 5
+          },
+          "name": {
+            "type": "string",
+            "example": "Artin Amiri"
+          }
+        }
+      },
+      "ScrumBrief": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "اسکرام توسعه پلتفرم"
+          },
+          "color": {
+            "$ref": "#/components/schemas/ScrumColor"
+          }
+        }
+      },
+      "ScrumPermissions": {
+        "type": "object",
+        "properties": {
+          "canEditContent": {
+            "type": "boolean",
+            "example": true
+          },
+          "canManageAdmins": {
+            "type": "boolean",
+            "example": false
+          },
+          "canArchive": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "ScrumLinkedProjectItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Rokad Studio OS Platform"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserBasicItem"
+            }
+          },
+          "trackedSeconds": {
+            "type": "object",
+            "description": "فقط برای ادمین منتسب اسکرام یا سوپرادمین ارسال می‌شود",
+            "properties": {
+              "approved": {
+                "type": "integer",
+                "example": 900
+              },
+              "pending": {
+                "type": "integer",
+                "example": 1500
+              }
+            }
+          }
+        }
+      },
+      "AvailableScrumProjectItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 2
+          },
+          "name": {
+            "type": "string",
+            "example": "Design System & Visual Identity"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "memberCount": {
+            "type": "integer",
+            "example": 4
+          }
+        }
+      },
+      "WorkTargetScrumGroup": {
+        "type": "object",
+        "properties": {
+          "scrum": {
+            "$ref": "#/components/schemas/ScrumBrief"
+          },
+          "sprint": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "number": {
+                "type": "integer"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "points": {
+                  "type": "integer"
+                },
+                "status": {
+                  "$ref": "#/components/schemas/ItemStatus"
+                }
+              }
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserBasicItem"
+            }
+          }
+        }
+      },
+      "ScrumLeaderboardResponseData": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "SPRINT",
+              "MONTH",
+              "ALL"
+            ],
+            "example": "SPRINT"
+          },
+          "range": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date",
+                "example": "2026-10-23"
+              },
+              "to": {
+                "type": "string",
+                "format": "date",
+                "example": "2026-11-21"
+              }
+            }
+          },
+          "sprint": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "number": {
+                "type": "integer",
+                "example": 1
+              },
+              "title": {
+                "type": "string",
+                "example": "اسپرینت ۱"
+              }
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rank": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "user": {
+                  "$ref": "#/components/schemas/UserBasicItem"
+                },
+                "approvedSeconds": {
+                  "type": "integer",
+                  "example": 2700
+                },
+                "sessionCount": {
+                  "type": "integer",
+                  "example": 2
+                },
+                "isMe": {
+                  "type": "boolean",
+                  "example": false
+                }
+              }
+            }
+          },
+          "me": {
+            "type": "object",
+            "properties": {
+              "rank": {
+                "type": "integer",
+                "nullable": true,
+                "example": 2
+              },
+              "approvedSeconds": {
+                "type": "integer",
+                "example": 1500
+              },
+              "pendingSeconds": {
+                "type": "integer",
+                "example": 900
+              }
+            }
+          }
+        }
+      },
+      "ScrumAdminDashboardResponseData": {
+        "type": "object",
+        "properties": {
+          "totals": {
+            "type": "object",
+            "properties": {
+              "scrums": {
+                "type": "integer",
+                "example": 2
+              },
+              "members": {
+                "type": "integer",
+                "example": 7
+              },
+              "activeSprints": {
+                "type": "integer",
+                "example": 2
+              },
+              "openItems": {
+                "type": "integer",
+                "example": 2
+              },
+              "donePoints": {
+                "type": "integer",
+                "example": 5
+              },
+              "totalPoints": {
+                "type": "integer",
+                "example": 18
+              }
+            }
+          },
+          "scrums": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "name": {
+                  "type": "string",
+                  "example": "اسکرام توسعه پلتفرم"
+                },
+                "color": {
+                  "$ref": "#/components/schemas/ScrumColor"
+                },
+                "memberCount": {
+                  "type": "integer",
+                  "example": 4
+                },
+                "linkedProjectCount": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "activeSprint": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "endDate": {
+                      "type": "string",
+                      "format": "date",
+                      "nullable": true
+                    },
+                    "totalPoints": {
+                      "type": "integer"
+                    },
+                    "donePoints": {
+                      "type": "integer"
+                    },
+                    "openItems": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "kpi": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "belowMin": {
+                      "type": "integer"
+                    },
+                    "inRange": {
+                      "type": "integer"
+                    },
+                    "onTarget": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "todayEvents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scrumId": {
+                  "type": "integer"
+                },
+                "scrumName": {
+                  "type": "string"
+                },
+                "color": {
+                  "$ref": "#/components/schemas/ScrumColor"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "startTime": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "durationMinutes": {
+                  "type": "integer",
+                  "nullable": true
+                }
+              }
+            }
           }
         }
       }

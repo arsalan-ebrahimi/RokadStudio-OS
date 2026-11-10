@@ -24,6 +24,14 @@ export const projectIdValidator = [
   handleValidation,
 ];
 
+const strictNullablePositiveInt = (val) => {
+  if (val === null || val === undefined) return true;
+  if (typeof val !== "number" || !Number.isInteger(val) || val < 1 || val > 2147483647) {
+    throw new Error("scrumId must be a positive integer or null");
+  }
+  return true;
+};
+
 export const createProjectValidator = [
   body("name")
     .trim()
@@ -32,8 +40,11 @@ export const createProjectValidator = [
     .isLength({ min: 2, max: 100 })
     .withMessage("Project name must be between 2 and 100 characters"),
   body("description")
-    .optional()
-    .trim(),
+    .optional({ nullable: true })
+    .customSanitizer((val) => (val === null ? null : typeof val === "string" ? val.trim() : val)),
+  body("scrumId")
+    .optional({ nullable: true })
+    .custom(strictNullablePositiveInt),
   body("memberIds")
     .optional()
     .isArray()
@@ -61,8 +72,11 @@ export const updateProjectValidator = [
     .isLength({ min: 2, max: 100 })
     .withMessage("Project name must be between 2 and 100 characters"),
   body("description")
-    .optional()
-    .trim(),
+    .optional({ nullable: true })
+    .customSanitizer((val) => (val === null ? null : typeof val === "string" ? val.trim() : val)),
+  body("scrumId")
+    .optional({ nullable: true })
+    .custom(strictNullablePositiveInt),
   body("isActive")
     .optional()
     .isBoolean()

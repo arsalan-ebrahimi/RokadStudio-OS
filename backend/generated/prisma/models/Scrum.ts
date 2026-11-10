@@ -28,12 +28,10 @@ export type AggregateScrum = {
 
 export type ScrumAvgAggregateOutputType = {
   id: number | null
-  ownerId: number | null
 }
 
 export type ScrumSumAggregateOutputType = {
   id: number | null
-  ownerId: number | null
 }
 
 export type ScrumMinAggregateOutputType = {
@@ -42,7 +40,6 @@ export type ScrumMinAggregateOutputType = {
   description: string | null
   color: $Enums.ScrumColor | null
   isActive: boolean | null
-  ownerId: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -53,7 +50,6 @@ export type ScrumMaxAggregateOutputType = {
   description: string | null
   color: $Enums.ScrumColor | null
   isActive: boolean | null
-  ownerId: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -64,7 +60,6 @@ export type ScrumCountAggregateOutputType = {
   description: number
   color: number
   isActive: number
-  ownerId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -73,12 +68,10 @@ export type ScrumCountAggregateOutputType = {
 
 export type ScrumAvgAggregateInputType = {
   id?: true
-  ownerId?: true
 }
 
 export type ScrumSumAggregateInputType = {
   id?: true
-  ownerId?: true
 }
 
 export type ScrumMinAggregateInputType = {
@@ -87,7 +80,6 @@ export type ScrumMinAggregateInputType = {
   description?: true
   color?: true
   isActive?: true
-  ownerId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -98,7 +90,6 @@ export type ScrumMaxAggregateInputType = {
   description?: true
   color?: true
   isActive?: true
-  ownerId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -109,7 +100,6 @@ export type ScrumCountAggregateInputType = {
   description?: true
   color?: true
   isActive?: true
-  ownerId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -207,7 +197,6 @@ export type ScrumGroupByOutputType = {
   description: string | null
   color: $Enums.ScrumColor
   isActive: boolean
-  ownerId: number
   createdAt: Date
   updatedAt: Date
   _count: ScrumCountAggregateOutputType | null
@@ -241,11 +230,11 @@ export type ScrumWhereInput = {
   description?: Prisma.StringNullableFilter<"Scrum"> | string | null
   color?: Prisma.EnumScrumColorFilter<"Scrum"> | $Enums.ScrumColor
   isActive?: Prisma.BoolFilter<"Scrum"> | boolean
-  ownerId?: Prisma.IntFilter<"Scrum"> | number
   createdAt?: Prisma.DateTimeFilter<"Scrum"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Scrum"> | Date | string
-  owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  admins?: Prisma.ScrumAdminListRelationFilter
   members?: Prisma.ScrumMemberListRelationFilter
+  projects?: Prisma.ProjectListRelationFilter
   sprints?: Prisma.SprintListRelationFilter
   kpis?: Prisma.ScrumKpiListRelationFilter
   events?: Prisma.ScrumEventListRelationFilter
@@ -257,11 +246,11 @@ export type ScrumOrderByWithRelationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
-  ownerId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  owner?: Prisma.UserOrderByWithRelationInput
+  admins?: Prisma.ScrumAdminOrderByRelationAggregateInput
   members?: Prisma.ScrumMemberOrderByRelationAggregateInput
+  projects?: Prisma.ProjectOrderByRelationAggregateInput
   sprints?: Prisma.SprintOrderByRelationAggregateInput
   kpis?: Prisma.ScrumKpiOrderByRelationAggregateInput
   events?: Prisma.ScrumEventOrderByRelationAggregateInput
@@ -276,11 +265,11 @@ export type ScrumWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"Scrum"> | string | null
   color?: Prisma.EnumScrumColorFilter<"Scrum"> | $Enums.ScrumColor
   isActive?: Prisma.BoolFilter<"Scrum"> | boolean
-  ownerId?: Prisma.IntFilter<"Scrum"> | number
   createdAt?: Prisma.DateTimeFilter<"Scrum"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Scrum"> | Date | string
-  owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  admins?: Prisma.ScrumAdminListRelationFilter
   members?: Prisma.ScrumMemberListRelationFilter
+  projects?: Prisma.ProjectListRelationFilter
   sprints?: Prisma.SprintListRelationFilter
   kpis?: Prisma.ScrumKpiListRelationFilter
   events?: Prisma.ScrumEventListRelationFilter
@@ -292,7 +281,6 @@ export type ScrumOrderByWithAggregationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
-  ownerId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ScrumCountOrderByAggregateInput
@@ -311,7 +299,6 @@ export type ScrumScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"Scrum"> | string | null
   color?: Prisma.EnumScrumColorWithAggregatesFilter<"Scrum"> | $Enums.ScrumColor
   isActive?: Prisma.BoolWithAggregatesFilter<"Scrum"> | boolean
-  ownerId?: Prisma.IntWithAggregatesFilter<"Scrum"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Scrum"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Scrum"> | Date | string
 }
@@ -323,8 +310,9 @@ export type ScrumCreateInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  owner: Prisma.UserCreateNestedOneWithoutOwnedScrumsInput
+  admins?: Prisma.ScrumAdminCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventCreateNestedManyWithoutScrumInput
@@ -336,10 +324,11 @@ export type ScrumUncheckedCreateInput = {
   description?: string | null
   color?: $Enums.ScrumColor
   isActive?: boolean
-  ownerId: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  admins?: Prisma.ScrumAdminUncheckedCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintUncheckedCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiUncheckedCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventUncheckedCreateNestedManyWithoutScrumInput
@@ -352,8 +341,9 @@ export type ScrumUpdateInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedScrumsNestedInput
+  admins?: Prisma.ScrumAdminUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUpdateManyWithoutScrumNestedInput
@@ -365,10 +355,11 @@ export type ScrumUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  ownerId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  admins?: Prisma.ScrumAdminUncheckedUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUncheckedUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUncheckedUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUncheckedUpdateManyWithoutScrumNestedInput
@@ -380,7 +371,6 @@ export type ScrumCreateManyInput = {
   description?: string | null
   color?: $Enums.ScrumColor
   isActive?: boolean
-  ownerId: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -400,19 +390,13 @@ export type ScrumUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  ownerId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type ScrumListRelationFilter = {
-  every?: Prisma.ScrumWhereInput
-  some?: Prisma.ScrumWhereInput
-  none?: Prisma.ScrumWhereInput
-}
-
-export type ScrumOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
+export type ScrumNullableScalarRelationFilter = {
+  is?: Prisma.ScrumWhereInput | null
+  isNot?: Prisma.ScrumWhereInput | null
 }
 
 export type ScrumCountOrderByAggregateInput = {
@@ -421,14 +405,12 @@ export type ScrumCountOrderByAggregateInput = {
   description?: Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
-  ownerId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type ScrumAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  ownerId?: Prisma.SortOrder
 }
 
 export type ScrumMaxOrderByAggregateInput = {
@@ -437,7 +419,6 @@ export type ScrumMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
-  ownerId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -448,14 +429,12 @@ export type ScrumMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
-  ownerId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type ScrumSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  ownerId?: Prisma.SortOrder
 }
 
 export type ScrumScalarRelationFilter = {
@@ -463,50 +442,38 @@ export type ScrumScalarRelationFilter = {
   isNot?: Prisma.ScrumWhereInput
 }
 
-export type ScrumCreateNestedManyWithoutOwnerInput = {
-  create?: Prisma.XOR<Prisma.ScrumCreateWithoutOwnerInput, Prisma.ScrumUncheckedCreateWithoutOwnerInput> | Prisma.ScrumCreateWithoutOwnerInput[] | Prisma.ScrumUncheckedCreateWithoutOwnerInput[]
-  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutOwnerInput | Prisma.ScrumCreateOrConnectWithoutOwnerInput[]
-  createMany?: Prisma.ScrumCreateManyOwnerInputEnvelope
-  connect?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
+export type ScrumCreateNestedOneWithoutProjectsInput = {
+  create?: Prisma.XOR<Prisma.ScrumCreateWithoutProjectsInput, Prisma.ScrumUncheckedCreateWithoutProjectsInput>
+  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutProjectsInput
+  connect?: Prisma.ScrumWhereUniqueInput
 }
 
-export type ScrumUncheckedCreateNestedManyWithoutOwnerInput = {
-  create?: Prisma.XOR<Prisma.ScrumCreateWithoutOwnerInput, Prisma.ScrumUncheckedCreateWithoutOwnerInput> | Prisma.ScrumCreateWithoutOwnerInput[] | Prisma.ScrumUncheckedCreateWithoutOwnerInput[]
-  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutOwnerInput | Prisma.ScrumCreateOrConnectWithoutOwnerInput[]
-  createMany?: Prisma.ScrumCreateManyOwnerInputEnvelope
-  connect?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-}
-
-export type ScrumUpdateManyWithoutOwnerNestedInput = {
-  create?: Prisma.XOR<Prisma.ScrumCreateWithoutOwnerInput, Prisma.ScrumUncheckedCreateWithoutOwnerInput> | Prisma.ScrumCreateWithoutOwnerInput[] | Prisma.ScrumUncheckedCreateWithoutOwnerInput[]
-  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutOwnerInput | Prisma.ScrumCreateOrConnectWithoutOwnerInput[]
-  upsert?: Prisma.ScrumUpsertWithWhereUniqueWithoutOwnerInput | Prisma.ScrumUpsertWithWhereUniqueWithoutOwnerInput[]
-  createMany?: Prisma.ScrumCreateManyOwnerInputEnvelope
-  set?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  disconnect?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  delete?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  connect?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  update?: Prisma.ScrumUpdateWithWhereUniqueWithoutOwnerInput | Prisma.ScrumUpdateWithWhereUniqueWithoutOwnerInput[]
-  updateMany?: Prisma.ScrumUpdateManyWithWhereWithoutOwnerInput | Prisma.ScrumUpdateManyWithWhereWithoutOwnerInput[]
-  deleteMany?: Prisma.ScrumScalarWhereInput | Prisma.ScrumScalarWhereInput[]
-}
-
-export type ScrumUncheckedUpdateManyWithoutOwnerNestedInput = {
-  create?: Prisma.XOR<Prisma.ScrumCreateWithoutOwnerInput, Prisma.ScrumUncheckedCreateWithoutOwnerInput> | Prisma.ScrumCreateWithoutOwnerInput[] | Prisma.ScrumUncheckedCreateWithoutOwnerInput[]
-  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutOwnerInput | Prisma.ScrumCreateOrConnectWithoutOwnerInput[]
-  upsert?: Prisma.ScrumUpsertWithWhereUniqueWithoutOwnerInput | Prisma.ScrumUpsertWithWhereUniqueWithoutOwnerInput[]
-  createMany?: Prisma.ScrumCreateManyOwnerInputEnvelope
-  set?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  disconnect?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  delete?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  connect?: Prisma.ScrumWhereUniqueInput | Prisma.ScrumWhereUniqueInput[]
-  update?: Prisma.ScrumUpdateWithWhereUniqueWithoutOwnerInput | Prisma.ScrumUpdateWithWhereUniqueWithoutOwnerInput[]
-  updateMany?: Prisma.ScrumUpdateManyWithWhereWithoutOwnerInput | Prisma.ScrumUpdateManyWithWhereWithoutOwnerInput[]
-  deleteMany?: Prisma.ScrumScalarWhereInput | Prisma.ScrumScalarWhereInput[]
+export type ScrumUpdateOneWithoutProjectsNestedInput = {
+  create?: Prisma.XOR<Prisma.ScrumCreateWithoutProjectsInput, Prisma.ScrumUncheckedCreateWithoutProjectsInput>
+  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutProjectsInput
+  upsert?: Prisma.ScrumUpsertWithoutProjectsInput
+  disconnect?: Prisma.ScrumWhereInput | boolean
+  delete?: Prisma.ScrumWhereInput | boolean
+  connect?: Prisma.ScrumWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ScrumUpdateToOneWithWhereWithoutProjectsInput, Prisma.ScrumUpdateWithoutProjectsInput>, Prisma.ScrumUncheckedUpdateWithoutProjectsInput>
 }
 
 export type EnumScrumColorFieldUpdateOperationsInput = {
   set?: $Enums.ScrumColor
+}
+
+export type ScrumCreateNestedOneWithoutAdminsInput = {
+  create?: Prisma.XOR<Prisma.ScrumCreateWithoutAdminsInput, Prisma.ScrumUncheckedCreateWithoutAdminsInput>
+  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutAdminsInput
+  connect?: Prisma.ScrumWhereUniqueInput
+}
+
+export type ScrumUpdateOneRequiredWithoutAdminsNestedInput = {
+  create?: Prisma.XOR<Prisma.ScrumCreateWithoutAdminsInput, Prisma.ScrumUncheckedCreateWithoutAdminsInput>
+  connectOrCreate?: Prisma.ScrumCreateOrConnectWithoutAdminsInput
+  upsert?: Prisma.ScrumUpsertWithoutAdminsInput
+  connect?: Prisma.ScrumWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ScrumUpdateToOneWithWhereWithoutAdminsInput, Prisma.ScrumUpdateWithoutAdminsInput>, Prisma.ScrumUncheckedUpdateWithoutAdminsInput>
 }
 
 export type ScrumCreateNestedOneWithoutMembersInput = {
@@ -565,7 +532,81 @@ export type ScrumUpdateOneRequiredWithoutEventsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ScrumUpdateToOneWithWhereWithoutEventsInput, Prisma.ScrumUpdateWithoutEventsInput>, Prisma.ScrumUncheckedUpdateWithoutEventsInput>
 }
 
-export type ScrumCreateWithoutOwnerInput = {
+export type ScrumCreateWithoutProjectsInput = {
+  name: string
+  description?: string | null
+  color?: $Enums.ScrumColor
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  admins?: Prisma.ScrumAdminCreateNestedManyWithoutScrumInput
+  members?: Prisma.ScrumMemberCreateNestedManyWithoutScrumInput
+  sprints?: Prisma.SprintCreateNestedManyWithoutScrumInput
+  kpis?: Prisma.ScrumKpiCreateNestedManyWithoutScrumInput
+  events?: Prisma.ScrumEventCreateNestedManyWithoutScrumInput
+}
+
+export type ScrumUncheckedCreateWithoutProjectsInput = {
+  id?: number
+  name: string
+  description?: string | null
+  color?: $Enums.ScrumColor
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  admins?: Prisma.ScrumAdminUncheckedCreateNestedManyWithoutScrumInput
+  members?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutScrumInput
+  sprints?: Prisma.SprintUncheckedCreateNestedManyWithoutScrumInput
+  kpis?: Prisma.ScrumKpiUncheckedCreateNestedManyWithoutScrumInput
+  events?: Prisma.ScrumEventUncheckedCreateNestedManyWithoutScrumInput
+}
+
+export type ScrumCreateOrConnectWithoutProjectsInput = {
+  where: Prisma.ScrumWhereUniqueInput
+  create: Prisma.XOR<Prisma.ScrumCreateWithoutProjectsInput, Prisma.ScrumUncheckedCreateWithoutProjectsInput>
+}
+
+export type ScrumUpsertWithoutProjectsInput = {
+  update: Prisma.XOR<Prisma.ScrumUpdateWithoutProjectsInput, Prisma.ScrumUncheckedUpdateWithoutProjectsInput>
+  create: Prisma.XOR<Prisma.ScrumCreateWithoutProjectsInput, Prisma.ScrumUncheckedCreateWithoutProjectsInput>
+  where?: Prisma.ScrumWhereInput
+}
+
+export type ScrumUpdateToOneWithWhereWithoutProjectsInput = {
+  where?: Prisma.ScrumWhereInput
+  data: Prisma.XOR<Prisma.ScrumUpdateWithoutProjectsInput, Prisma.ScrumUncheckedUpdateWithoutProjectsInput>
+}
+
+export type ScrumUpdateWithoutProjectsInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  admins?: Prisma.ScrumAdminUpdateManyWithoutScrumNestedInput
+  members?: Prisma.ScrumMemberUpdateManyWithoutScrumNestedInput
+  sprints?: Prisma.SprintUpdateManyWithoutScrumNestedInput
+  kpis?: Prisma.ScrumKpiUpdateManyWithoutScrumNestedInput
+  events?: Prisma.ScrumEventUpdateManyWithoutScrumNestedInput
+}
+
+export type ScrumUncheckedUpdateWithoutProjectsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  admins?: Prisma.ScrumAdminUncheckedUpdateManyWithoutScrumNestedInput
+  members?: Prisma.ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput
+  sprints?: Prisma.SprintUncheckedUpdateManyWithoutScrumNestedInput
+  kpis?: Prisma.ScrumKpiUncheckedUpdateManyWithoutScrumNestedInput
+  events?: Prisma.ScrumEventUncheckedUpdateManyWithoutScrumNestedInput
+}
+
+export type ScrumCreateWithoutAdminsInput = {
   name: string
   description?: string | null
   color?: $Enums.ScrumColor
@@ -573,12 +614,13 @@ export type ScrumCreateWithoutOwnerInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   members?: Prisma.ScrumMemberCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventCreateNestedManyWithoutScrumInput
 }
 
-export type ScrumUncheckedCreateWithoutOwnerInput = {
+export type ScrumUncheckedCreateWithoutAdminsInput = {
   id?: number
   name: string
   description?: string | null
@@ -587,49 +629,55 @@ export type ScrumUncheckedCreateWithoutOwnerInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   members?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintUncheckedCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiUncheckedCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventUncheckedCreateNestedManyWithoutScrumInput
 }
 
-export type ScrumCreateOrConnectWithoutOwnerInput = {
+export type ScrumCreateOrConnectWithoutAdminsInput = {
   where: Prisma.ScrumWhereUniqueInput
-  create: Prisma.XOR<Prisma.ScrumCreateWithoutOwnerInput, Prisma.ScrumUncheckedCreateWithoutOwnerInput>
+  create: Prisma.XOR<Prisma.ScrumCreateWithoutAdminsInput, Prisma.ScrumUncheckedCreateWithoutAdminsInput>
 }
 
-export type ScrumCreateManyOwnerInputEnvelope = {
-  data: Prisma.ScrumCreateManyOwnerInput | Prisma.ScrumCreateManyOwnerInput[]
-  skipDuplicates?: boolean
+export type ScrumUpsertWithoutAdminsInput = {
+  update: Prisma.XOR<Prisma.ScrumUpdateWithoutAdminsInput, Prisma.ScrumUncheckedUpdateWithoutAdminsInput>
+  create: Prisma.XOR<Prisma.ScrumCreateWithoutAdminsInput, Prisma.ScrumUncheckedCreateWithoutAdminsInput>
+  where?: Prisma.ScrumWhereInput
 }
 
-export type ScrumUpsertWithWhereUniqueWithoutOwnerInput = {
-  where: Prisma.ScrumWhereUniqueInput
-  update: Prisma.XOR<Prisma.ScrumUpdateWithoutOwnerInput, Prisma.ScrumUncheckedUpdateWithoutOwnerInput>
-  create: Prisma.XOR<Prisma.ScrumCreateWithoutOwnerInput, Prisma.ScrumUncheckedCreateWithoutOwnerInput>
+export type ScrumUpdateToOneWithWhereWithoutAdminsInput = {
+  where?: Prisma.ScrumWhereInput
+  data: Prisma.XOR<Prisma.ScrumUpdateWithoutAdminsInput, Prisma.ScrumUncheckedUpdateWithoutAdminsInput>
 }
 
-export type ScrumUpdateWithWhereUniqueWithoutOwnerInput = {
-  where: Prisma.ScrumWhereUniqueInput
-  data: Prisma.XOR<Prisma.ScrumUpdateWithoutOwnerInput, Prisma.ScrumUncheckedUpdateWithoutOwnerInput>
+export type ScrumUpdateWithoutAdminsInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.ScrumMemberUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutScrumNestedInput
+  sprints?: Prisma.SprintUpdateManyWithoutScrumNestedInput
+  kpis?: Prisma.ScrumKpiUpdateManyWithoutScrumNestedInput
+  events?: Prisma.ScrumEventUpdateManyWithoutScrumNestedInput
 }
 
-export type ScrumUpdateManyWithWhereWithoutOwnerInput = {
-  where: Prisma.ScrumScalarWhereInput
-  data: Prisma.XOR<Prisma.ScrumUpdateManyMutationInput, Prisma.ScrumUncheckedUpdateManyWithoutOwnerInput>
-}
-
-export type ScrumScalarWhereInput = {
-  AND?: Prisma.ScrumScalarWhereInput | Prisma.ScrumScalarWhereInput[]
-  OR?: Prisma.ScrumScalarWhereInput[]
-  NOT?: Prisma.ScrumScalarWhereInput | Prisma.ScrumScalarWhereInput[]
-  id?: Prisma.IntFilter<"Scrum"> | number
-  name?: Prisma.StringFilter<"Scrum"> | string
-  description?: Prisma.StringNullableFilter<"Scrum"> | string | null
-  color?: Prisma.EnumScrumColorFilter<"Scrum"> | $Enums.ScrumColor
-  isActive?: Prisma.BoolFilter<"Scrum"> | boolean
-  ownerId?: Prisma.IntFilter<"Scrum"> | number
-  createdAt?: Prisma.DateTimeFilter<"Scrum"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"Scrum"> | Date | string
+export type ScrumUncheckedUpdateWithoutAdminsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutScrumNestedInput
+  sprints?: Prisma.SprintUncheckedUpdateManyWithoutScrumNestedInput
+  kpis?: Prisma.ScrumKpiUncheckedUpdateManyWithoutScrumNestedInput
+  events?: Prisma.ScrumEventUncheckedUpdateManyWithoutScrumNestedInput
 }
 
 export type ScrumCreateWithoutMembersInput = {
@@ -639,7 +687,8 @@ export type ScrumCreateWithoutMembersInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  owner: Prisma.UserCreateNestedOneWithoutOwnedScrumsInput
+  admins?: Prisma.ScrumAdminCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventCreateNestedManyWithoutScrumInput
@@ -651,9 +700,10 @@ export type ScrumUncheckedCreateWithoutMembersInput = {
   description?: string | null
   color?: $Enums.ScrumColor
   isActive?: boolean
-  ownerId: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  admins?: Prisma.ScrumAdminUncheckedCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintUncheckedCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiUncheckedCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventUncheckedCreateNestedManyWithoutScrumInput
@@ -682,7 +732,8 @@ export type ScrumUpdateWithoutMembersInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedScrumsNestedInput
+  admins?: Prisma.ScrumAdminUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUpdateManyWithoutScrumNestedInput
@@ -694,9 +745,10 @@ export type ScrumUncheckedUpdateWithoutMembersInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  ownerId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  admins?: Prisma.ScrumAdminUncheckedUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUncheckedUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUncheckedUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUncheckedUpdateManyWithoutScrumNestedInput
@@ -709,8 +761,9 @@ export type ScrumCreateWithoutSprintsInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  owner: Prisma.UserCreateNestedOneWithoutOwnedScrumsInput
+  admins?: Prisma.ScrumAdminCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventCreateNestedManyWithoutScrumInput
 }
@@ -721,10 +774,11 @@ export type ScrumUncheckedCreateWithoutSprintsInput = {
   description?: string | null
   color?: $Enums.ScrumColor
   isActive?: boolean
-  ownerId: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  admins?: Prisma.ScrumAdminUncheckedCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiUncheckedCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventUncheckedCreateNestedManyWithoutScrumInput
 }
@@ -752,8 +806,9 @@ export type ScrumUpdateWithoutSprintsInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedScrumsNestedInput
+  admins?: Prisma.ScrumAdminUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUpdateManyWithoutScrumNestedInput
 }
@@ -764,10 +819,11 @@ export type ScrumUncheckedUpdateWithoutSprintsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  ownerId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  admins?: Prisma.ScrumAdminUncheckedUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUncheckedUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUncheckedUpdateManyWithoutScrumNestedInput
 }
@@ -779,8 +835,9 @@ export type ScrumCreateWithoutKpisInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  owner: Prisma.UserCreateNestedOneWithoutOwnedScrumsInput
+  admins?: Prisma.ScrumAdminCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventCreateNestedManyWithoutScrumInput
 }
@@ -791,10 +848,11 @@ export type ScrumUncheckedCreateWithoutKpisInput = {
   description?: string | null
   color?: $Enums.ScrumColor
   isActive?: boolean
-  ownerId: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  admins?: Prisma.ScrumAdminUncheckedCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintUncheckedCreateNestedManyWithoutScrumInput
   events?: Prisma.ScrumEventUncheckedCreateNestedManyWithoutScrumInput
 }
@@ -822,8 +880,9 @@ export type ScrumUpdateWithoutKpisInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedScrumsNestedInput
+  admins?: Prisma.ScrumAdminUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUpdateManyWithoutScrumNestedInput
 }
@@ -834,10 +893,11 @@ export type ScrumUncheckedUpdateWithoutKpisInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  ownerId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  admins?: Prisma.ScrumAdminUncheckedUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUncheckedUpdateManyWithoutScrumNestedInput
   events?: Prisma.ScrumEventUncheckedUpdateManyWithoutScrumNestedInput
 }
@@ -849,8 +909,9 @@ export type ScrumCreateWithoutEventsInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  owner: Prisma.UserCreateNestedOneWithoutOwnedScrumsInput
+  admins?: Prisma.ScrumAdminCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiCreateNestedManyWithoutScrumInput
 }
@@ -861,10 +922,11 @@ export type ScrumUncheckedCreateWithoutEventsInput = {
   description?: string | null
   color?: $Enums.ScrumColor
   isActive?: boolean
-  ownerId: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  admins?: Prisma.ScrumAdminUncheckedCreateNestedManyWithoutScrumInput
   members?: Prisma.ScrumMemberUncheckedCreateNestedManyWithoutScrumInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutScrumInput
   sprints?: Prisma.SprintUncheckedCreateNestedManyWithoutScrumInput
   kpis?: Prisma.ScrumKpiUncheckedCreateNestedManyWithoutScrumInput
 }
@@ -892,8 +954,9 @@ export type ScrumUpdateWithoutEventsInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedScrumsNestedInput
+  admins?: Prisma.ScrumAdminUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUpdateManyWithoutScrumNestedInput
 }
@@ -904,59 +967,13 @@ export type ScrumUncheckedUpdateWithoutEventsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  ownerId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  admins?: Prisma.ScrumAdminUncheckedUpdateManyWithoutScrumNestedInput
   members?: Prisma.ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutScrumNestedInput
   sprints?: Prisma.SprintUncheckedUpdateManyWithoutScrumNestedInput
   kpis?: Prisma.ScrumKpiUncheckedUpdateManyWithoutScrumNestedInput
-}
-
-export type ScrumCreateManyOwnerInput = {
-  id?: number
-  name: string
-  description?: string | null
-  color?: $Enums.ScrumColor
-  isActive?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type ScrumUpdateWithoutOwnerInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  members?: Prisma.ScrumMemberUpdateManyWithoutScrumNestedInput
-  sprints?: Prisma.SprintUpdateManyWithoutScrumNestedInput
-  kpis?: Prisma.ScrumKpiUpdateManyWithoutScrumNestedInput
-  events?: Prisma.ScrumEventUpdateManyWithoutScrumNestedInput
-}
-
-export type ScrumUncheckedUpdateWithoutOwnerInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  members?: Prisma.ScrumMemberUncheckedUpdateManyWithoutScrumNestedInput
-  sprints?: Prisma.SprintUncheckedUpdateManyWithoutScrumNestedInput
-  kpis?: Prisma.ScrumKpiUncheckedUpdateManyWithoutScrumNestedInput
-  events?: Prisma.ScrumEventUncheckedUpdateManyWithoutScrumNestedInput
-}
-
-export type ScrumUncheckedUpdateManyWithoutOwnerInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  color?: Prisma.EnumScrumColorFieldUpdateOperationsInput | $Enums.ScrumColor
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -965,14 +982,18 @@ export type ScrumUncheckedUpdateManyWithoutOwnerInput = {
  */
 
 export type ScrumCountOutputType = {
+  admins: number
   members: number
+  projects: number
   sprints: number
   kpis: number
   events: number
 }
 
 export type ScrumCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  admins?: boolean | ScrumCountOutputTypeCountAdminsArgs
   members?: boolean | ScrumCountOutputTypeCountMembersArgs
+  projects?: boolean | ScrumCountOutputTypeCountProjectsArgs
   sprints?: boolean | ScrumCountOutputTypeCountSprintsArgs
   kpis?: boolean | ScrumCountOutputTypeCountKpisArgs
   events?: boolean | ScrumCountOutputTypeCountEventsArgs
@@ -991,8 +1012,22 @@ export type ScrumCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extens
 /**
  * ScrumCountOutputType without action
  */
+export type ScrumCountOutputTypeCountAdminsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ScrumAdminWhereInput
+}
+
+/**
+ * ScrumCountOutputType without action
+ */
 export type ScrumCountOutputTypeCountMembersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ScrumMemberWhereInput
+}
+
+/**
+ * ScrumCountOutputType without action
+ */
+export type ScrumCountOutputTypeCountProjectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ProjectWhereInput
 }
 
 /**
@@ -1023,11 +1058,11 @@ export type ScrumSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   description?: boolean
   color?: boolean
   isActive?: boolean
-  ownerId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  admins?: boolean | Prisma.Scrum$adminsArgs<ExtArgs>
   members?: boolean | Prisma.Scrum$membersArgs<ExtArgs>
+  projects?: boolean | Prisma.Scrum$projectsArgs<ExtArgs>
   sprints?: boolean | Prisma.Scrum$sprintsArgs<ExtArgs>
   kpis?: boolean | Prisma.Scrum$kpisArgs<ExtArgs>
   events?: boolean | Prisma.Scrum$eventsArgs<ExtArgs>
@@ -1040,10 +1075,8 @@ export type ScrumSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   description?: boolean
   color?: boolean
   isActive?: boolean
-  ownerId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["scrum"]>
 
 export type ScrumSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1052,10 +1085,8 @@ export type ScrumSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   description?: boolean
   color?: boolean
   isActive?: boolean
-  ownerId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["scrum"]>
 
 export type ScrumSelectScalar = {
@@ -1064,32 +1095,29 @@ export type ScrumSelectScalar = {
   description?: boolean
   color?: boolean
   isActive?: boolean
-  ownerId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ScrumOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "color" | "isActive" | "ownerId" | "createdAt" | "updatedAt", ExtArgs["result"]["scrum"]>
+export type ScrumOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "color" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["scrum"]>
 export type ScrumInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  admins?: boolean | Prisma.Scrum$adminsArgs<ExtArgs>
   members?: boolean | Prisma.Scrum$membersArgs<ExtArgs>
+  projects?: boolean | Prisma.Scrum$projectsArgs<ExtArgs>
   sprints?: boolean | Prisma.Scrum$sprintsArgs<ExtArgs>
   kpis?: boolean | Prisma.Scrum$kpisArgs<ExtArgs>
   events?: boolean | Prisma.Scrum$eventsArgs<ExtArgs>
   _count?: boolean | Prisma.ScrumCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type ScrumIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}
-export type ScrumIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-}
+export type ScrumIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type ScrumIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $ScrumPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Scrum"
   objects: {
-    owner: Prisma.$UserPayload<ExtArgs>
+    admins: Prisma.$ScrumAdminPayload<ExtArgs>[]
     members: Prisma.$ScrumMemberPayload<ExtArgs>[]
+    projects: Prisma.$ProjectPayload<ExtArgs>[]
     sprints: Prisma.$SprintPayload<ExtArgs>[]
     kpis: Prisma.$ScrumKpiPayload<ExtArgs>[]
     events: Prisma.$ScrumEventPayload<ExtArgs>[]
@@ -1100,7 +1128,6 @@ export type $ScrumPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     description: string | null
     color: $Enums.ScrumColor
     isActive: boolean
-    ownerId: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["scrum"]>
@@ -1497,8 +1524,9 @@ readonly fields: ScrumFieldRefs;
  */
 export interface Prisma__ScrumClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  owner<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  admins<T extends Prisma.Scrum$adminsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scrum$adminsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScrumAdminPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   members<T extends Prisma.Scrum$membersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scrum$membersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScrumMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  projects<T extends Prisma.Scrum$projectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scrum$projectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sprints<T extends Prisma.Scrum$sprintsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scrum$sprintsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SprintPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kpis<T extends Prisma.Scrum$kpisArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scrum$kpisArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScrumKpiPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   events<T extends Prisma.Scrum$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scrum$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScrumEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1536,7 +1564,6 @@ export interface ScrumFieldRefs {
   readonly description: Prisma.FieldRef<"Scrum", 'String'>
   readonly color: Prisma.FieldRef<"Scrum", 'ScrumColor'>
   readonly isActive: Prisma.FieldRef<"Scrum", 'Boolean'>
-  readonly ownerId: Prisma.FieldRef<"Scrum", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Scrum", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Scrum", 'DateTime'>
 }
@@ -1793,10 +1820,6 @@ export type ScrumCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    */
   data: Prisma.ScrumCreateManyInput | Prisma.ScrumCreateManyInput[]
   skipDuplicates?: boolean
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ScrumIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1867,10 +1890,6 @@ export type ScrumUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * Limit how many Scrums to update.
    */
   limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ScrumIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1940,6 +1959,30 @@ export type ScrumDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
+ * Scrum.admins
+ */
+export type Scrum$adminsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ScrumAdmin
+   */
+  select?: Prisma.ScrumAdminSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ScrumAdmin
+   */
+  omit?: Prisma.ScrumAdminOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ScrumAdminInclude<ExtArgs> | null
+  where?: Prisma.ScrumAdminWhereInput
+  orderBy?: Prisma.ScrumAdminOrderByWithRelationInput | Prisma.ScrumAdminOrderByWithRelationInput[]
+  cursor?: Prisma.ScrumAdminWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ScrumAdminScalarFieldEnum | Prisma.ScrumAdminScalarFieldEnum[]
+}
+
+/**
  * Scrum.members
  */
 export type Scrum$membersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1961,6 +2004,30 @@ export type Scrum$membersArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.ScrumMemberScalarFieldEnum | Prisma.ScrumMemberScalarFieldEnum[]
+}
+
+/**
+ * Scrum.projects
+ */
+export type Scrum$projectsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Project
+   */
+  select?: Prisma.ProjectSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Project
+   */
+  omit?: Prisma.ProjectOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ProjectInclude<ExtArgs> | null
+  where?: Prisma.ProjectWhereInput
+  orderBy?: Prisma.ProjectOrderByWithRelationInput | Prisma.ProjectOrderByWithRelationInput[]
+  cursor?: Prisma.ProjectWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ProjectScalarFieldEnum | Prisma.ProjectScalarFieldEnum[]
 }
 
 /**

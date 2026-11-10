@@ -1,9 +1,10 @@
 import { catchAsync, HandleERROR } from "vanta-api";
 import prisma from "../../config/prisma.js";
-import { cacheGet, cacheSet, invalidateAllProjectsCache } from "../../Utils/cache.js";
+import { cacheGet, cacheSet } from "../../Utils/cache.js";
 import { getPagination, formatPaginationMeta } from "../../Utils/pagination.js";
 import {
   createProjectWithMembers,
+  updateProjectById,
   syncProjectMembers,
   deleteProjectSafe,
 } from "./projectService.js";
@@ -77,8 +78,16 @@ export const getAllProjects = catchAsync(async (req, res, next) => {
         description: true,
         isActive: true,
         createdById: true,
+        scrumId: true,
         createdAt: true,
         updatedAt: true,
+        scrum: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
         _count: {
           select: { members: true },
         },
@@ -93,6 +102,8 @@ export const getAllProjects = catchAsync(async (req, res, next) => {
     description: p.description,
     isActive: p.isActive,
     createdById: p.createdById,
+    scrumId: p.scrumId,
+    scrum: p.scrum || null,
     memberCount: p._count.members,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
@@ -112,6 +123,13 @@ export const getProjectById = catchAsync(async (req, res, next) => {
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
+      scrum: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+        },
+      },
       members: {
         select: {
           user: {
@@ -135,6 +153,8 @@ export const getProjectById = catchAsync(async (req, res, next) => {
     description: project.description,
     isActive: project.isActive,
     createdById: project.createdById,
+    scrumId: project.scrumId,
+    scrum: project.scrum || null,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     members: project.members.map((m) => ({
@@ -167,28 +187,9 @@ export const createProject = catchAsync(async (req, res, next) => {
 
 export const updateProject = catchAsync(async (req, res, next) => {
   const id = Number(req.params.id);
-  const { name, description, isActive } = req.body;
-
-  const project = await prisma.project.findUnique({
-    where: { id },
-  });
-
-  if (!project) {
-    return next(new HandleERROR("Project not found", 404));
-  }
-
-  const data = {};
-  if (name !== undefined) data.name = name.trim();
-  if (description !== undefined) data.description = description.trim();
-  if (isActive !== undefined) data.isActive = isActive;
 
   try {
-    const updated = await prisma.project.update({
-      where: { id },
-      data,
-    });
-
-    await invalidateAllProjectsCache();
+    const updated = await updateProjectById(id, req.body);
 
     return res.status(200).json({
       success: true,

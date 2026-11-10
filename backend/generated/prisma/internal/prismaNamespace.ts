@@ -401,6 +401,7 @@ export const ModelName = {
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   Scrum: 'Scrum',
+  ScrumAdmin: 'ScrumAdmin',
   ScrumMember: 'ScrumMember',
   Sprint: 'Sprint',
   SprintProject: 'SprintProject',
@@ -423,7 +424,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "project" | "projectMember" | "scrum" | "scrumMember" | "sprint" | "sprintProject" | "scrumKpi" | "scrumEvent" | "attendance" | "workSession"
+    modelProps: "user" | "project" | "projectMember" | "scrum" | "scrumAdmin" | "scrumMember" | "sprint" | "sprintProject" | "scrumKpi" | "scrumEvent" | "attendance" | "workSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -720,6 +721,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ScrumCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ScrumCountAggregateOutputType> | number
+        }
+      }
+    }
+    ScrumAdmin: {
+      payload: Prisma.$ScrumAdminPayload<ExtArgs>
+      fields: Prisma.ScrumAdminFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ScrumAdminFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ScrumAdminFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>
+        }
+        findFirst: {
+          args: Prisma.ScrumAdminFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ScrumAdminFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>
+        }
+        findMany: {
+          args: Prisma.ScrumAdminFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>[]
+        }
+        create: {
+          args: Prisma.ScrumAdminCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>
+        }
+        createMany: {
+          args: Prisma.ScrumAdminCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ScrumAdminCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>[]
+        }
+        delete: {
+          args: Prisma.ScrumAdminDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>
+        }
+        update: {
+          args: Prisma.ScrumAdminUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>
+        }
+        deleteMany: {
+          args: Prisma.ScrumAdminDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ScrumAdminUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ScrumAdminUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>[]
+        }
+        upsert: {
+          args: Prisma.ScrumAdminUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScrumAdminPayload>
+        }
+        aggregate: {
+          args: Prisma.ScrumAdminAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateScrumAdmin>
+        }
+        groupBy: {
+          args: Prisma.ScrumAdminGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumAdminGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ScrumAdminCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScrumAdminCountAggregateOutputType> | number
         }
       }
     }
@@ -1299,6 +1374,7 @@ export const ProjectScalarFieldEnum = {
   description: 'description',
   isActive: 'isActive',
   createdById: 'createdById',
+  scrumId: 'scrumId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1322,12 +1398,21 @@ export const ScrumScalarFieldEnum = {
   description: 'description',
   color: 'color',
   isActive: 'isActive',
-  ownerId: 'ownerId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ScrumScalarFieldEnum = (typeof ScrumScalarFieldEnum)[keyof typeof ScrumScalarFieldEnum]
+
+
+export const ScrumAdminScalarFieldEnum = {
+  scrumId: 'scrumId',
+  userId: 'userId',
+  assignedAt: 'assignedAt',
+  assignedById: 'assignedById'
+} as const
+
+export type ScrumAdminScalarFieldEnum = (typeof ScrumAdminScalarFieldEnum)[keyof typeof ScrumAdminScalarFieldEnum]
 
 
 export const ScrumMemberScalarFieldEnum = {
@@ -1359,6 +1444,7 @@ export type SprintScalarFieldEnum = (typeof SprintScalarFieldEnum)[keyof typeof 
 export const SprintProjectScalarFieldEnum = {
   id: 'id',
   sprintId: 'sprintId',
+  projectId: 'projectId',
   name: 'name',
   points: 'points',
   assigneeId: 'assigneeId',
@@ -1816,6 +1902,7 @@ export type GlobalOmitConfig = {
   project?: Prisma.ProjectOmit
   projectMember?: Prisma.ProjectMemberOmit
   scrum?: Prisma.ScrumOmit
+  scrumAdmin?: Prisma.ScrumAdminOmit
   scrumMember?: Prisma.ScrumMemberOmit
   sprint?: Prisma.SprintOmit
   sprintProject?: Prisma.SprintProjectOmit

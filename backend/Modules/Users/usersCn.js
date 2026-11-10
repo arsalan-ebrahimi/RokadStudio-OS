@@ -79,13 +79,20 @@ export const searchUsers = catchAsync(async (req, res, next) => {
     where.name = { contains: q, mode: "insensitive" };
   }
 
+  const isScrumAdminCaller = req.user?.role === "SCRUM_ADMIN";
+
   const users = await prisma.user.findMany({
     where,
-    select: {
-      id: true,
-      name: true,
-      role: true,
-    },
+    select: isScrumAdminCaller
+      ? {
+          id: true,
+          name: true,
+        }
+      : {
+          id: true,
+          name: true,
+          role: true,
+        },
     take: 20,
     orderBy: { name: "asc" },
   });
@@ -94,6 +101,35 @@ export const searchUsers = catchAsync(async (req, res, next) => {
     success: true,
     message: "Users searched successfully",
     data: users,
+  });
+});
+
+export const getScrumAdmins = catchAsync(async (req, res, next) => {
+  const q = req.query.q ? req.query.q.trim() : "";
+
+  const where = {
+    isActive: true,
+    role: "SCRUM_ADMIN",
+  };
+
+  if (q) {
+    where.name = { contains: q, mode: "insensitive" };
+  }
+
+  const admins = await prisma.user.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+    },
+    take: 50,
+    orderBy: { name: "asc" },
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Scrum admins fetched successfully",
+    data: admins,
   });
 });
 
@@ -162,10 +198,23 @@ export const updateUser = catchAsync(async (req, res, next) => {
   if (role !== undefined) data.role = role;
   if (isActive !== undefined) data.isActive = isActive;
 
+  const shouldRemoveScrumAdmin =
+    (role !== undefined && role !== "SCRUM_ADMIN") || isActive === false;
+
   try {
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data,
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id },
+        data,
+      });
+
+      if (shouldRemoveScrumAdmin) {
+        await tx.scrumAdmin.deleteMany({
+          where: { userId: id },
+        });
+      }
+
+      return updated;
     });
 
     // Invalidate auth cache so role/active changes take effect immediately
