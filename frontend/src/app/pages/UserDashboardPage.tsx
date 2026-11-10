@@ -14,12 +14,32 @@ import {
   Trash2,
   Layers,
   ListChecks,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  MessageSquareText,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth';
-import { useTodayAttendance, useMidnightWatcher, AttendanceBadge, AttendanceModal } from '@/features/attendance';
+import {
+  useTodayAttendance,
+  useMidnightWatcher,
+  useSaveTodayWorkNote,
+  attendanceKeys,
+  fetchTodayAttendance,
+  AttendanceBadge,
+  AttendanceModal,
+  WorkNoteModal,
+} from '@/features/attendance';
 import { WorkTargetSelect } from '@/features/projects';
 import { TodayScrumEventsCard, useWorkTargetsMine } from '@/features/scrum';
+import {
+  ActivityCalendar,
+  AttendanceTotalsPills,
+  MemberDayPanel,
+  useMemberCalendar,
+  useMemberDay,
+} from '@/features/members';
 import {
   useTimer,
   TimerDisplay,
@@ -29,13 +49,26 @@ import {
   deleteWorkSession,
   SessionBadge,
   DeleteSessionDialog,
+  type MySessionsResponse,
   type TimerTarget,
 } from '@/features/timer';
 import { ScreenPet, PetSelectorModal } from '@/features/pet';
 import { Card, Button, Modal, toast } from '@/shared/ui';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
-import { formatToJalali, getTehranTodayString } from '@/shared/lib/date';
+import {
+  addJalaliMonths,
+  formatTehranTime,
+  formatToJalali,
+  getJalaliMonthCalendarInfo,
+  getTehranTodayString,
+  isoToJalali,
+} from '@/shared/lib/date';
 import { useTheme } from '@/shared/lib/theme';
+import type { Attendance } from '@/shared/types/models';
+
+function getCalendarCollapsedKey(userId: number | string | undefined): string {
+  return `rokad_my_calendar_collapsed_${userId ?? 'guest'}`;
+}
 
 const UserDashboardPage: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -47,6 +80,7 @@ const UserDashboardPage: React.FC = () => {
     isSubmitting: attSubmitting,
   } = useTodayAttendance();
   useMidnightWatcher();
+  const saveWorkNoteMut = useSaveTodayWorkNote();
 
   const {
     data: workTargets,
@@ -54,17 +88,108 @@ const UserDashboardPage: React.FC = () => {
     isError: targetsError,
   } = useWorkTargetsMine();
 
+  const todayIso = getTehranTodayString();
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
   const [isConfirmComeOpen, setIsConfirmComeOpen] = useState(false);
   const [hasInitiallyChecked, setHasInitiallyChecked] = useState(false);
   const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
+  const [workNoteModal, setWorkNoteModal] = useState<{
+    open: boolean;
+    mode: 'prompt' | 'edit';
+  }>({ open: false, mode: 'prompt' });
+
+  // Collapsible My Calendar card state
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(getCalendarCollapsedKey(user?.id));
+      return saved === null ? true : saved === 'true';
+    } catch {
+      return true;
+    }
+  });
+  const [calendarMonth, setCalendarMonth] = useState<{ jy: number; jm: number }>(() => {
+    const j = isoToJalali(todayIso);
+    return { jy: j.jy, jm: j.jm };
+  });
+  const [selectedDayModal, setSelectedDayModal] = useState<string | null>(null);
+
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(getCalendarCollapsedKey(user?.id));
+      setIsCalendarCollapsed(saved === null ? true : saved === 'true');
+    } catch {
+      setIsCalendarCollapsed(true);
+    }
+  }, [user?.id]);
+
+  const toggleCalendarCollapsed = () => {
+    setIsCalendarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(getCalendarCollapsedKey(user?.id), String(next));
+      } catch {
+        // Ignore storage error
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!attLoading) {
       setHasInitiallyChecked(true);
     }
   }, [attLoading]);
+
+  const firePromptWorkNote = useCallback(
+    function submitWorkNote(payload: { text: string } | { skipped: true }) {
+      saveWorkNoteMut.mutate(payload, {
+        onSuccess: () => {
+          if ('text' in payload) {
+            toast.success('یادداشت پایان کار ثبت شد');
+          }
+        },
+        onError: (err: Error) => {
+          toast.error(err.message || 'خطا در ثبت یادداشت پایان کار', {
+            action: {
+              label: 'تلاش مجدد',
+              onClick: () => submitWorkNote(payload),
+            },
+          });
+        },
+      });
+    },
+    [saveWorkNoteMut]
+  );
+
+  const handleFinishSessionSuccess = useCallback(async () => {
+    try {
+      const latest = await queryClient.fetchQuery({
+        queryKey: attendanceKeys.today(),
+        queryFn: fetchTodayAttendance,
+        staleTime: 0,
+      });
+      if (
+        latest &&
+        latest.status === 'PRESENT' &&
+        latest.approval !== 'REJECTED' &&
+        !latest.workNotePrompted
+      ) {
+        setWorkNoteModal({ open: true, mode: 'prompt' });
+      }
+    } catch {
+      const cached = queryClient.getQueryData<Attendance | null>(attendanceKeys.today());
+      if (
+        cached &&
+        cached.status === 'PRESENT' &&
+        cached.approval !== 'REJECTED' &&
+        !cached.workNotePrompted
+      ) {
+        setWorkNoteModal({ open: true, mode: 'prompt' });
+      }
+    }
+  }, [queryClient]);
 
   const activeTargetsMap = useMemo(() => {
     if (!workTargets) return null;
@@ -100,6 +225,7 @@ const UserDashboardPage: React.FC = () => {
 
   const timer = useTimer(null, {
     isTargetAvailable: checkTargetAvailable,
+    onFinishSessionSuccess: handleFinishSessionSuccess,
   });
   const {
     target: timerTarget,
@@ -160,18 +286,50 @@ const UserDashboardPage: React.FC = () => {
   // Default is 0; exactly 1 round for each 25 minutes (1500 seconds)
   const sessionsCount = Math.floor(totalSeconds / 1500);
 
+  const calendarInfo = useMemo(
+    () => getJalaliMonthCalendarInfo(calendarMonth.jy, calendarMonth.jm),
+    [calendarMonth.jy, calendarMonth.jm]
+  );
+
+  const {
+    data: myCalendarData,
+    isLoading: isMyCalendarLoading,
+    isError: isMyCalendarError,
+    error: myCalendarError,
+    refetch: refetchMyCalendar,
+  } = useMemberCalendar(
+    'me',
+    {
+      from: calendarInfo.gridFromIso,
+      to: calendarInfo.gridToIso,
+    },
+    { enabled: Boolean(user) }
+  );
+
+  const {
+    data: myDayModalData,
+    isLoading: isMyDayModalLoading,
+    isError: isMyDayModalError,
+    error: myDayModalError,
+    refetch: refetchMyDayModal,
+  } = useMemberDay(
+    'me',
+    { date: selectedDayModal || todayIso },
+    { enabled: Boolean(user) && Boolean(selectedDayModal) }
+  );
+
   const deleteSessionMut = useMutation({
     mutationFn: (id: number) => deleteWorkSession(id),
     onMutate: async (deletedId: number) => {
       setDeletingSession(null);
       // Optimistically remove session from local cache immediately
-      queryClient.setQueryData(['my-sessions-today'], (old: any) => {
+      queryClient.setQueryData<MySessionsResponse>(['my-sessions-today'], (old) => {
         if (!old?.sessions) return old;
-        const remaining = old.sessions.filter((s: any) => s.id !== deletedId);
-        const validRemaining = remaining.filter((s: any) => s.approval !== 'REJECTED');
+        const remaining = old.sessions.filter((s) => s.id !== deletedId);
+        const validRemaining = remaining.filter((s) => s.approval !== 'REJECTED');
         return {
           ...old,
-          totalSeconds: validRemaining.reduce((acc: number, s: any) => acc + (s.durationSeconds || 0), 0),
+          totalSeconds: validRemaining.reduce((acc, s) => acc + (s.durationSeconds || 0), 0),
           sessions: remaining,
         };
       });
@@ -187,6 +345,9 @@ const UserDashboardPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-day'] });
+      queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['member-work'] });
     },
     onError: (err: Error) => {
       queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
@@ -235,6 +396,16 @@ const UserDashboardPage: React.FC = () => {
     );
   }
 
+  const panelBackPath =
+    user?.role === 'SCRUM_ADMIN'
+      ? '/scrum-admin'
+      : user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+        ? '/panel/attendance'
+        : null;
+  const hasScrumMemberships = Boolean(
+    user && ((user.memberScrumCount ?? 0) > 0 || (workTargets?.scrums?.length ?? 0) > 0)
+  );
+
   // Dedicated Absence Screen if user declared ABSENT today
   if (isAbsentToday) {
     return (
@@ -259,6 +430,17 @@ const UserDashboardPage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 shrink-0 max-w-full">
+            {panelBackPath && (
+              <Link
+                to={panelBackPath}
+                className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-primary/50 bg-ecosystem-light dark:bg-ecosystem-darker/60 text-sec dark:text-ecosystem-light hover:border-primary shadow-hard-sm transition-all text-xs font-black shrink-0 cursor-pointer"
+                title="بازگشت به پنل"
+                aria-label="بازگشت به پنل"
+              >
+                <ArrowRight className="w-4 h-4 text-primary shrink-0" />
+                <span className="hidden sm:inline whitespace-nowrap">بازگشت به پنل</span>
+              </Link>
+            )}
             <button
               type="button"
               onClick={toggleTheme}
@@ -414,6 +596,17 @@ const UserDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 shrink-0 max-w-full">
+          {panelBackPath && (
+            <Link
+              to={panelBackPath}
+              className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-primary/50 bg-ecosystem-light dark:bg-ecosystem-darker/60 text-sec dark:text-ecosystem-light hover:border-primary shadow-hard-sm transition-all text-xs font-black shrink-0 cursor-pointer"
+              title="بازگشت به پنل"
+              aria-label="بازگشت به پنل"
+            >
+              <ArrowRight className="w-4 h-4 text-primary shrink-0" />
+              <span className="hidden md:inline whitespace-nowrap">بازگشت به پنل</span>
+            </Link>
+          )}
           <Link
             to="/my-projects"
             className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
@@ -423,7 +616,7 @@ const UserDashboardPage: React.FC = () => {
             <FolderKanban className="w-4 h-4 text-primary shrink-0" />
             <span className="hidden md:inline whitespace-nowrap">پروژه‌های من</span>
           </Link>
-          {user?.role !== 'ADMIN' && (
+          {hasScrumMemberships && (
             <>
               <Link
                 to="/my-scrum-tasks"
@@ -571,6 +764,40 @@ const UserDashboardPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Today's End-of-Work Note (same-day edit trigger) */}
+            {attendance?.status === 'PRESENT' && attendance.approval !== 'REJECTED' && (
+              <div className="pt-3 border-t border-sec/10 dark:border-gray-800 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sec/70 dark:text-gray-300">
+                    <MessageSquareText className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span>یادداشت امروز</span>
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setWorkNoteModal({ open: true, mode: 'edit' })}
+                    className="min-h-[32px] px-2.5 text-[11px] font-bold"
+                  >
+                    {attendance.workNote ? 'ویرایش یادداشت' : 'ثبت یادداشت'}
+                  </Button>
+                </div>
+
+                {attendance.workNote && (
+                  <div className="p-2.5 rounded-2xl bg-amber-50/75 dark:bg-amber-950/25 border border-college-normal/35 space-y-1">
+                    <p className="text-xs text-sec dark:text-gray-200 leading-relaxed line-clamp-2 whitespace-pre-line">
+                      {attendance.workNote}
+                    </p>
+                    {attendance.workNoteAt && (
+                      <span className="block text-[10px] font-bold text-[#704A0D]/75 dark:text-amber-300/80 tabular-nums">
+                        ثبت‌شده در ساعت {toPersianDigits(formatTehranTime(attendance.workNoteAt))}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Today's Logged Sessions */}
             {mySessions.length > 0 && (
               <div className="pt-3 border-t border-sec/10 dark:border-gray-800 space-y-2.5">
@@ -659,6 +886,72 @@ const UserDashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Collapsible Personal Activity Calendar ("تقویم من") */}
+      <Card className="p-4 sm:p-5 rounded-3xl border-[1.5px] border-sec/20 dark:border-primary/25 space-y-4">
+        <button
+          type="button"
+          onClick={toggleCalendarCollapsed}
+          aria-expanded={!isCalendarCollapsed}
+          className="w-full flex flex-wrap items-center justify-between gap-3 text-start cursor-pointer group"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-ecosystem-light dark:bg-ecosystem-darker/50 border border-primary/35 flex items-center justify-center shrink-0">
+              <Calendar className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm sm:text-base font-black text-sec dark:text-white group-hover:text-primary transition-colors">
+                تقویم من
+              </h2>
+              <p className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400 tabular-nums">
+                {calendarInfo.monthName} {toPersianDigits(calendarInfo.jy)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {myCalendarData?.totals && (
+              <AttendanceTotalsPills totals={myCalendarData.totals} compact />
+            )}
+            <span className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-[#182030] border border-sec/15 dark:border-gray-700 flex items-center justify-center text-sec dark:text-gray-300 shrink-0">
+              {isCalendarCollapsed ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronUp className="w-4 h-4" />
+              )}
+            </span>
+          </div>
+        </button>
+
+        {!isCalendarCollapsed && (
+          <div className="pt-3 border-t border-sec/10 dark:border-gray-800">
+            <ActivityCalendar
+              calendarInfo={calendarInfo}
+              days={myCalendarData?.days}
+              totals={myCalendarData?.totals}
+              todayIso={todayIso}
+              selectedDate={selectedDayModal}
+              onSelect={(iso) => setSelectedDayModal(iso)}
+              onPrevMonth={() =>
+                setCalendarMonth((prev) => addJalaliMonths(prev.jy, prev.jm, -1))
+              }
+              onNextMonth={() =>
+                setCalendarMonth((prev) => addJalaliMonths(prev.jy, prev.jm, 1))
+              }
+              onToday={() => {
+                const jNow = isoToJalali(todayIso);
+                setCalendarMonth({ jy: jNow.jy, jm: jNow.jm });
+                setSelectedDayModal(todayIso);
+              }}
+              activePreset={selectedDayModal === todayIso ? 'TODAY' : null}
+              isLoading={isMyCalendarLoading}
+              isError={isMyCalendarError}
+              error={myCalendarError}
+              onRetry={() => refetchMyCalendar()}
+            />
+          </div>
+        )}
+      </Card>
+
       {/* Mandatory Modals */}
       <AttendanceModal
         isOpen={hasInitiallyChecked && !hasDeclaredToday}
@@ -709,6 +1002,43 @@ const UserDashboardPage: React.FC = () => {
         onConfirm={() => deletingSession && deleteSessionMut.mutate(deletingSession.id)}
         onCancel={() => setDeletingSession(null)}
       />
+
+      {/* End-of-Work Note Modal */}
+      <WorkNoteModal
+        isOpen={workNoteModal.open}
+        mode={workNoteModal.mode}
+        initialText={workNoteModal.mode === 'edit' ? attendance?.workNote : null}
+        isSaving={saveWorkNoteMut.isPending}
+        onClose={() => setWorkNoteModal((prev) => ({ ...prev, open: false }))}
+        onPromptSave={(text) => firePromptWorkNote({ text })}
+        onPromptSkip={() => firePromptWorkNote({ skipped: true })}
+        onEditSave={async (text) => {
+          await saveWorkNoteMut.mutateAsync({ text });
+          toast.success('یادداشت امروز ذخیره شد');
+        }}
+      />
+
+      {/* Compact Day Detail Modal from My Calendar */}
+      <Modal
+        isOpen={Boolean(selectedDayModal)}
+        onClose={() => setSelectedDayModal(null)}
+        title={selectedDayModal ? `عملکرد ${formatToJalali(selectedDayModal, true)}` : 'جزئیات روز'}
+        className="max-w-lg"
+      >
+        {selectedDayModal && (
+          <div className="max-h-[75vh] overflow-y-auto pe-1">
+            <MemberDayPanel
+              date={selectedDayModal}
+              dayData={myDayModalData}
+              isLoading={isMyDayModalLoading}
+              isError={isMyDayModalError}
+              error={myDayModalError}
+              onRetry={() => refetchMyDayModal()}
+              canViewProjects
+            />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

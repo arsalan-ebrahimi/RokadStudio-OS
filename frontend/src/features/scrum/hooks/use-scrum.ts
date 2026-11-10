@@ -5,7 +5,10 @@ import {
   fetchScrumById,
   updateScrum,
   deleteScrum,
-  syncScrumAdmins,
+  addScrumAdmin,
+  removeScrumAdmin,
+  updateScrumAdminMembership,
+  updateScrumMemberPerformance,
   syncScrumMembers,
   fetchScrumTasks,
   fetchMyScrumTasks,
@@ -30,8 +33,11 @@ import {
   fetchScrumAdminDashboard,
 } from '../services/scrum-api';
 import { fetchScrumAdmins } from '@/features/users/api/users-api';
+import { useAuthStore } from '@/features/auth';
+import type { PerformanceLevel } from '@/shared/types/models';
 import type {
   Scrum,
+  ScrumAdminInput,
   Sprint,
   ScrumKpi,
   ScrumEvent,
@@ -41,6 +47,13 @@ import type {
   MyScrumTasksQuery,
 } from '../types/scrum-types';
 import { toast } from '@/shared/ui';
+
+function refreshAuthIfAffected(userIds: number[]) {
+  const currentId = useAuthStore.getState().user?.id;
+  if (currentId && userIds.includes(currentId)) {
+    void useAuthStore.getState().init();
+  }
+}
 
 export function useScrums(options?: { enabled?: boolean }) {
   return useQuery({
@@ -85,11 +98,16 @@ export function useCreateScrum() {
       name: string;
       description?: string | null;
       color?: ScrumColor;
-      adminIds?: number[];
+      admins?: ScrumAdminInput[];
     }) => createScrum(payload),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['scrums'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['scrums', 'today-events'] });
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
+      refreshAuthIfAffected((variables.admins || []).map((a) => a.userId));
       toast.success('اسکرام جدید با موفقیت ایجاد شد');
     },
     onError: (err: Error) => {
@@ -116,6 +134,7 @@ export function useUpdateScrum(scrumId: number) {
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
       queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
       toast.success('تغییرات اسکرام ذخیره شد');
     },
     onError: (err: Error) => {
@@ -134,6 +153,8 @@ export function useDeleteScrum() {
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
       queryClient.invalidateQueries({ queryKey: ['work-session-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
+      void useAuthStore.getState().init();
       toast.success('اسکرام با موفقیت حذف شد');
     },
     onError: (err: Error) => {
@@ -142,21 +163,107 @@ export function useDeleteScrum() {
   });
 }
 
-export function useSyncScrumAdmins(scrumId: number) {
+export function useAddScrumAdmin(scrumId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userIds: number[]) => syncScrumAdmins(scrumId, userIds),
-    onSuccess: (admins) => {
-      queryClient.setQueryData(['scrum', scrumId], (old: Scrum | undefined) =>
-        old ? { ...old, admins } : old
-      );
+    mutationFn: (payload: ScrumAdminInput) => addScrumAdmin(scrumId, payload),
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
       queryClient.invalidateQueries({ queryKey: ['scrums'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
-      toast.success('ادمین‌های اسکرام بروزرسانی شدند');
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums', 'today-events'] });
+      refreshAuthIfAffected([res.userId]);
+      toast.success(`«${res.name}» به عنوان ادمین اسکرام اضافه شد`);
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'خطا در بروزرسانی ادمین‌های اسکرام');
+      toast.error(err.message || 'خطا در افزودن ادمین اسکرام');
+    },
+  });
+}
+
+export function useRemoveScrumAdmin(scrumId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, keepMembership }: { userId: number; keepMembership?: boolean }) =>
+      removeScrumAdmin(scrumId, userId, keepMembership),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums', 'today-events'] });
+      refreshAuthIfAffected([res.userId]);
+      toast.success(
+        res.removedMembership
+          ? 'ادمین و عضویت ایشان در اسکرام حذف شد'
+          : 'نقش ادمین اسکرام حذف شد'
+      );
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'خطا در حذف ادمین اسکرام');
+    },
+  });
+}
+
+export function useUpdateScrumAdminMembership(scrumId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, isMember }: { userId: number; isMember: boolean }) =>
+      updateScrumAdminMembership(scrumId, userId, isMember),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums', 'today-events'] });
+      refreshAuthIfAffected([res.userId]);
+      toast.success(
+        res.isMember
+          ? 'عضویت ادمین در اسکرام فعال شد'
+          : 'عضویت ادمین در اسکرام غیرفعال شد'
+      );
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'خطا در تغییر عضویت ادمین');
+    },
+  });
+}
+
+export function useUpdateScrumMemberPerformance(scrumId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      level,
+      note,
+    }: {
+      userId: number;
+      level: PerformanceLevel | null;
+      note?: string | null;
+    }) => updateScrumMemberPerformance(scrumId, userId, { level, note }),
+    onSuccess: (_res, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
+      toast.success(
+        variables.level ? 'وضعیت عملکرد در اسکرام ذخیره شد' : 'وضعیت عملکرد در اسکرام پاک شد'
+      );
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'خطا در ثبت وضعیت عملکرد');
     },
   });
 }
@@ -171,7 +278,12 @@ export function useSyncScrumMembers(scrumId: number) {
       queryClient.invalidateQueries({ queryKey: ['scrums'] });
       queryClient.invalidateQueries({ queryKey: ['scrum', scrumId, 'leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+      queryClient.invalidateQueries({ queryKey: ['scrum-tasks', scrumId] });
+      queryClient.invalidateQueries({ queryKey: ['scrums', 'today-events'] });
+      queryClient.invalidateQueries({ queryKey: ['member-profile'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      void useAuthStore.getState().init();
       toast.success('اعضای اسکرام با موفقیت بروزرسانی شدند');
     },
     onError: (err: Error) => {

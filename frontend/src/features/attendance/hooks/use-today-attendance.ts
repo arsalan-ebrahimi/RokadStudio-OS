@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTodayAttendance, submitTodayAttendance } from '../api/attendance-api';
+import {
+  fetchTodayAttendance,
+  saveTodayWorkNote,
+  submitTodayAttendance,
+} from '../api/attendance-api';
+import type { Attendance } from '@/shared/types/models';
 import { toast } from '@/shared/ui';
 
 export const attendanceKeys = {
@@ -55,5 +60,28 @@ export function useTodayAttendance() {
     markAbsent: (reason?: string) => mutation.mutate({ status: 'ABSENT', reason }),
     isSubmitting: mutation.isPending,
   };
+}
+
+export function useSaveTodayWorkNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { text: string } | { skipped: true }) => saveTodayWorkNote(payload),
+    onSuccess: (res) => {
+      queryClient.setQueryData<Attendance | null>(attendanceKeys.today(), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          workNote: res.workNote,
+          workNoteAt: res.workNoteAt,
+          workNotePrompted: res.workNotePrompted,
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.today() });
+      queryClient.invalidateQueries({ queryKey: ['member-day'] });
+      queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
+    },
+  });
 }
 

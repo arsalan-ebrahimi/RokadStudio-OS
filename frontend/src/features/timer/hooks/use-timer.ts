@@ -128,6 +128,7 @@ export interface UseTimerOptions {
    * - null: active targets are still loading or unavailable (unknown)
    */
   isTargetAvailable?: (target: TimerTarget) => boolean | null;
+  onFinishSessionSuccess?: () => void;
 }
 
 export function useTimer(
@@ -141,6 +142,13 @@ export function useTimer(
   useEffect(() => {
     isTargetAvailableRef.current = options?.isTargetAvailable;
   }, [options?.isTargetAvailable]);
+
+  const onFinishSessionSuccessRef = useRef<UseTimerOptions['onFinishSessionSuccess']>(
+    options?.onFinishSessionSuccess
+  );
+  useEffect(() => {
+    onFinishSessionSuccessRef.current = options?.onFinishSessionSuccess;
+  }, [options?.onFinishSessionSuccess]);
 
   const normalizedInitial: TimerTarget | null = useMemo(() => {
     if (typeof initialTargetOrProjectId === 'number') {
@@ -633,13 +641,20 @@ export function useTimer(
         setSubmissionError(null);
         queryClient.invalidateQueries({ queryKey: ['attendance', 'today'] });
         queryClient.invalidateQueries({ queryKey: ['my-sessions-today'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-attendance'] });
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
         queryClient.invalidateQueries({ queryKey: ['scrum'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-tasks'] });
         queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
         queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['member-day'] });
+        queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+        queryClient.invalidateQueries({ queryKey: ['member-work'] });
         toast.success('زمان هدف کاری ثبت و تغییر یافت');
+        if (mode === 'finish') {
+          onFinishSessionSuccessRef.current?.();
+        }
       } catch (err: unknown) {
         const mapped = mapWorkSessionError(err, current.target.kind, current.target.label);
         if (mapped.canDiscardTarget) {
@@ -781,7 +796,13 @@ export function useTimer(
         queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
         queryClient.invalidateQueries({ queryKey: ['work-target-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['member-day'] });
+        queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+        queryClient.invalidateQueries({ queryKey: ['member-work'] });
         toast.success('زمان کار با موفقیت ثبت شد');
+        if (mode === 'finish') {
+          onFinishSessionSuccessRef.current?.();
+        }
       } catch (err: unknown) {
         const mapped = mapWorkSessionError(err, current.target.kind, current.target.label);
         if (mapped.canDiscardTarget) {

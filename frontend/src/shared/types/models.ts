@@ -6,6 +6,25 @@ export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export type DecisionSource = 'USER' | 'ADMIN' | 'SYSTEM';
 
+export type PerformanceLevel =
+  | 'EXCELLENT'
+  | 'STRONG'
+  | 'AVERAGE'
+  | 'WEAK'
+  | 'NEEDS_ATTENTION';
+
+export interface StudioPerformanceInfo {
+  level: PerformanceLevel;
+  note: string | null;
+  updatedAt: string;
+}
+
+export interface AttendanceTotals {
+  present: number;
+  pending: number;
+  absent: number;
+}
+
 export interface User {
   id: number;
   code?: string;
@@ -13,6 +32,10 @@ export interface User {
   role: Role;
   isActive?: boolean;
   createdAt?: string;
+  administeredScrumCount?: number;
+  memberScrumCount?: number;
+  studioPerformance?: StudioPerformanceInfo | null;
+  attendanceTotals?: AttendanceTotals;
 }
 
 export type ScrumColor = 'ECOSYSTEM' | 'MALE' | 'FEMALE' | 'COLLEGE' | 'CLUB';
@@ -61,10 +84,22 @@ export interface Attendance {
   decidedById?: number | null;
   decidedAt?: string | null;
   reason?: string | null;
+  workNote?: string | null;
+  workNoteAt?: string | null;
+  workNotePrompted?: boolean;
+  scrums?: ScrumBrief[];
   sessionsCount?: number;
   totalSeconds?: number;
   canDecide?: boolean;
   user?: { id: number; name: string; role?: Role };
+}
+
+export interface AttendanceImpact {
+  sessionCount: number;
+  totalSeconds?: number;
+  taskSessionCount: number;
+  projectSessionCount: number;
+  alreadyRejected?: boolean;
 }
 
 export interface WorkSession {

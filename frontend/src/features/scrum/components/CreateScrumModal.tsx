@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Modal, Input, Button } from '@/shared/ui';
-import { SCRUM_COLOR_MAP, type ScrumColor } from '../types/scrum-types';
+import { SCRUM_COLOR_MAP, type ScrumAdminInput, type ScrumColor } from '../types/scrum-types';
 import { useCreateScrum } from '../hooks/use-scrum';
-import { ScrumAdminsSelector } from './ScrumAdminsSelector';
+import { ScrumAdminsSelector, type ScrumAdminSelection } from './ScrumAdminsSelector';
 import { cn } from '@/shared/lib/utils';
 
 interface CreateScrumModalProps {
@@ -16,9 +16,11 @@ export const CreateScrumModal: React.FC<CreateScrumModalProps> = ({ isOpen, onCl
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState<ScrumColor>('ECOSYSTEM');
-  const [adminIds, setAdminIds] = useState<number[]>([]);
+  const [adminSelections, setAdminSelections] = useState<ScrumAdminSelection[]>([]);
 
   const createMut = useCreateScrum();
+
+  const hasIncompleteAdminChoice = adminSelections.some((s) => s.alsoMember === null);
 
   const handleClose = () => {
     if (createMut.isPending) return;
@@ -27,19 +29,23 @@ export const CreateScrumModal: React.FC<CreateScrumModalProps> = ({ isOpen, onCl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || createMut.isPending) return;
+    if (!name.trim() || createMut.isPending || hasIncompleteAdminChoice) return;
+
+    const adminsPayload: ScrumAdminInput[] = adminSelections
+      .filter((s): s is { userId: number; alsoMember: boolean } => s.alsoMember !== null)
+      .map((s) => ({ userId: s.userId, alsoMember: s.alsoMember }));
 
     await createMut.mutateAsync({
       name: name.trim(),
       description: description.trim() || undefined,
       color,
-      adminIds: adminIds.length > 0 ? adminIds : undefined,
+      admins: adminsPayload.length > 0 ? adminsPayload : undefined,
     });
 
     setName('');
     setDescription('');
     setColor('ECOSYSTEM');
-    setAdminIds([]);
+    setAdminSelections([]);
     onClose();
   };
 
@@ -111,13 +117,19 @@ export const CreateScrumModal: React.FC<CreateScrumModalProps> = ({ isOpen, onCl
           </p>
         </div>
 
-        {/* Scrum Admins Multi-Select */}
+        {/* Scrum Admins Multi-Select with explicit membership choice */}
         <ScrumAdminsSelector
-          selectedIds={adminIds}
-          onChange={setAdminIds}
+          selections={adminSelections}
+          onChange={setAdminSelections}
           enabled={isOpen}
           label="ادمین‌های اسکرام (اختیاری)"
         />
+
+        {hasIncompleteAdminChoice && (
+          <p className="text-[11px] font-bold text-[#704A0D] dark:text-amber-300">
+            لطفاً برای همه ادمین‌های انتخاب‌شده وضعیت عضویت در اسکرام را مشخص کنید.
+          </p>
+        )}
 
         <div className="flex items-center gap-2 pt-2">
           <Button
@@ -134,7 +146,7 @@ export const CreateScrumModal: React.FC<CreateScrumModalProps> = ({ isOpen, onCl
             variant="primary"
             className="flex-[2] font-extrabold shadow-hard"
             isLoading={createMut.isPending}
-            disabled={!name.trim() || createMut.isPending}
+            disabled={!name.trim() || createMut.isPending || hasIncompleteAdminChoice}
           >
             ایجاد اسکرام
           </Button>

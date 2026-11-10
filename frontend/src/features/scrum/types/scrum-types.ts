@@ -1,3 +1,5 @@
+import type { AttendanceTotals, PerformanceLevel, Role } from '@/shared/types/models';
+
 export type ScrumColor = 'ECOSYSTEM' | 'MALE' | 'FEMALE' | 'COLLEGE' | 'CLUB';
 
 export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED';
@@ -91,8 +93,23 @@ export interface ScrumUserRef {
   name: string;
 }
 
+export interface ScrumAdminRef extends ScrumUserRef {
+  role?: Role;
+  isMember?: boolean;
+}
+
+export interface ScrumAdminInput {
+  userId: number;
+  alsoMember: boolean;
+}
+
 export interface ScrumMember extends ScrumUserRef {
   label?: string | null;
+  isAdmin?: boolean;
+  performance?: PerformanceLevel | null;
+  performanceNote?: string | null;
+  performanceUpdatedAt?: string | null;
+  attendanceTotals?: AttendanceTotals;
 }
 
 export interface ScrumPermissions {
@@ -107,7 +124,7 @@ export interface Scrum {
   description?: string | null;
   color: ScrumColor;
   isActive: boolean;
-  admins: ScrumUserRef[];
+  admins: ScrumAdminRef[];
   memberCount?: number;
   taskCount?: number;
   myRole?: ScrumRole;
@@ -291,6 +308,11 @@ export interface ScrumLeaderboardRow {
   approvedSeconds: number;
   sessionCount: number;
   isMe: boolean;
+  isAdmin?: boolean;
+  performance?: PerformanceLevel | null;
+  performanceNote?: string | null;
+  performanceUpdatedAt?: string | null;
+  attendanceTotals?: AttendanceTotals;
 }
 
 export interface ScrumLeaderboardData {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { UserPlus, Trash2, Edit3, Check, Shield } from 'lucide-react';
+import { UserPlus, Trash2, Edit3, Check, Shield, Eye } from 'lucide-react';
 import {
   Button,
   Input,
@@ -11,6 +11,12 @@ import {
   EmptyState,
   ErrorState,
 } from '@/shared/ui';
+import { useAuthStore } from '@/features/auth';
+import {
+  AttendanceTotalsPills,
+  MemberDetailDrawer,
+  PerformanceBadge,
+} from '@/features/members';
 import { searchActiveUsers } from '@/features/users/api/users-api';
 import { useSyncScrumMembers } from '../hooks/use-scrum';
 import { SCRUM_COLOR_MAP, type Scrum } from '../types/scrum-types';
@@ -23,12 +29,19 @@ interface MembersTabProps {
 }
 
 export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
+  const currentUser = useAuthStore((s) => s.user);
   const colorMeta = SCRUM_COLOR_MAP[scrum.color] || SCRUM_COLOR_MAP.ECOSYSTEM;
   const admins = scrum.admins || [];
   const members = scrum.members || [];
   const adminIdSet = new Set(admins.map((a) => a.id));
   const syncMut = useSyncScrumMembers(scrum.id);
 
+  const canInspectMembers =
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'ADMIN' ||
+    (currentUser?.role === 'SCRUM_ADMIN' && canEdit);
+
+  const [drawerUserId, setDrawerUserId] = useState<number | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<{ id: number; name: string } | null>(null);
@@ -49,9 +62,11 @@ export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
     enabled: isAddModalOpen,
   });
 
-  // Filter out existing members from search results
+  // Filter out existing members and studio ADMIN role (ADMIN joins only via admin assignment)
   const existingMemberIds = new Set(members.map((m) => m.id));
-  const availableUsers = searchResults.filter((u) => !existingMemberIds.has(u.id));
+  const availableUsers = searchResults.filter(
+    (u) => !existingMemberIds.has(u.id) && u.role !== 'ADMIN'
+  );
 
   const handleAddMember = async () => {
     if (!selectedUserToAdd) return;
@@ -185,8 +200,11 @@ export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {members.map((member) => {
-            const isScrumAdmin = adminIdSet.has(member.id);
+            const isScrumAdmin = Boolean(member.isAdmin) || adminIdSet.has(member.id);
             const isEditingThis = editingMember?.userId === member.id;
+            const canInspectRow = canInspectMembers || member.id === currentUser?.id;
+            const showPerformanceBadge =
+              'performance' in member && member.id !== currentUser?.id;
 
             return (
               <Card
@@ -206,9 +224,20 @@ export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <h4 className="text-sm font-black text-sec dark:text-white truncate">
-                          {member.name}
-                        </h4>
+                        {canInspectRow ? (
+                          <button
+                            type="button"
+                            onClick={() => setDrawerUserId(member.id)}
+                            className="text-sm font-black text-sec dark:text-white truncate hover:text-primary dark:hover:text-primary transition-colors cursor-pointer text-start"
+                            title="مشاهده جزئیات عضو"
+                          >
+                            {member.name}
+                          </button>
+                        ) : (
+                          <h4 className="text-sm font-black text-sec dark:text-white truncate">
+                            {member.name}
+                          </h4>
+                        )}
                         {isScrumAdmin && (
                           <span className="p-0.5 rounded text-sec dark:text-primary shrink-0" title="ادمین اسکرام">
                             <Shield className="w-3.5 h-3.5" />
@@ -246,36 +275,77 @@ export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
                     </div>
                   </div>
 
-                  {canEdit && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      {!isEditingThis && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEditingMember({
-                              userId: member.id,
-                              label: member.label || '',
-                            })
-                          }
-                          className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-sec dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                          title="ویرایش برچسب نقش"
-                          aria-label={`ویرایش برچسب ${member.name}`}
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                      )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {canInspectRow && (
                       <button
                         type="button"
-                        onClick={() => setRemovingMember({ userId: member.id, name: member.name })}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        title="حذف از اسکرام"
-                        aria-label={`حذف ${member.name}`}
+                        onClick={() => setDrawerUserId(member.id)}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-sec dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        title="مشاهده جزئیات"
+                        aria-label={`مشاهده جزئیات ${member.name}`}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Eye className="w-4 h-4" />
                       </button>
-                    </div>
-                  )}
+                    )}
+
+                    {canEdit && (
+                      <>
+                        {!isEditingThis && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingMember({
+                                userId: member.id,
+                                label: member.label || '',
+                              })
+                            }
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-sec dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                            title="ویرایش برچسب نقش"
+                            aria-label={`ویرایش برچسب ${member.name}`}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={isScrumAdmin}
+                          onClick={() => {
+                            if (!isScrumAdmin) {
+                              setRemovingMember({ userId: member.id, name: member.name });
+                            }
+                          }}
+                          className={cn(
+                            'w-9 h-9 rounded-xl flex items-center justify-center transition-colors',
+                            isScrumAdmin
+                              ? 'text-gray-300 dark:text-gray-600 opacity-50 cursor-not-allowed'
+                              : 'text-gray-400 hover:text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer'
+                          )}
+                          title={
+                            isScrumAdmin
+                              ? 'از بخش مدیریت ادمین‌ها تغییر می‌کند'
+                              : 'حذف از اسکرام'
+                          }
+                          aria-label={
+                            isScrumAdmin
+                              ? `${member.name} ادمین است و از بخش مدیریت ادمین‌ها تغییر می‌کند`
+                              : `حذف ${member.name}`
+                          }
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                {(member.attendanceTotals || showPerformanceBadge) && (
+                  <div className="pt-2.5 border-t border-sec/10 dark:border-gray-800 flex items-center justify-between gap-2 flex-wrap">
+                    <AttendanceTotalsPills totals={member.attendanceTotals} compact />
+                    {showPerformanceBadge && (
+                      <PerformanceBadge level={member.performance} showEmpty />
+                    )}
+                  </div>
+                )}
               </Card>
             );
           })}
@@ -375,6 +445,12 @@ export const MembersTab: React.FC<MembersTabProps> = ({ scrum, canEdit }) => {
         isLoading={syncMut.isPending}
         onConfirm={handleRemoveMember}
         onCancel={() => setRemovingMember(null)}
+      />
+
+      <MemberDetailDrawer
+        userId={drawerUserId}
+        scrumId={scrum.id}
+        onClose={() => setDrawerUserId(null)}
       />
     </div>
   );

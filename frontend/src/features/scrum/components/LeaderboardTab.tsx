@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Trophy, Medal, Info, Clock, ArrowUp } from 'lucide-react';
+import { Trophy, Medal, Info, Clock, ArrowUp, Eye } from 'lucide-react';
 import {
+  Badge,
   Card,
   Select,
   Skeleton,
@@ -9,6 +10,12 @@ import {
   ProgressBar,
   SegmentedControl,
 } from '@/shared/ui';
+import { useAuthStore } from '@/features/auth';
+import {
+  AttendanceTotalsPills,
+  MemberDetailDrawer,
+  PerformanceBadge,
+} from '@/features/members';
 import { cn } from '@/shared/lib/utils';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { formatToJalali } from '@/shared/lib/date';
@@ -26,10 +33,23 @@ const PERIOD_OPTIONS: { value: LeaderboardPeriod; label: string }[] = [
 ];
 
 export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ scrum }) => {
+  const currentUser = useAuthStore((s) => s.user);
   const colorMeta = SCRUM_COLOR_MAP[scrum.color] || SCRUM_COLOR_MAP.ECOSYSTEM;
   const [period, setPeriod] = useState<LeaderboardPeriod>('SPRINT');
   const [selectedSprintId, setSelectedSprintId] = useState<number | undefined>(undefined);
   const [isOwnRowVisible, setIsOwnRowVisible] = useState(true);
+  const [drawerUserId, setDrawerUserId] = useState<number | null>(null);
+
+  const adminIdSet = useMemo(
+    () => new Set((scrum.admins || []).map((a) => a.id)),
+    [scrum.admins]
+  );
+
+  const canInspectMembers =
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'ADMIN' ||
+    (currentUser?.role === 'SCRUM_ADMIN' &&
+      Boolean(scrum.permissions?.canEditContent ?? scrum.canEdit));
 
   const ownRowRef = useRef<HTMLDivElement>(null);
 
@@ -248,13 +268,30 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ scrum }) => {
                       {entry.user.name.trim().slice(0, 1) || 'ک'}
                     </div>
 
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-black text-sec dark:text-white truncate flex items-center justify-center gap-1.5">
-                        <span className="truncate">{entry.user.name}</span>
+                    <div className="space-y-1.5">
+                      <h4 className="text-sm font-black text-sec dark:text-white flex items-center justify-center gap-1.5 flex-wrap">
+                        {canInspectMembers || entry.user.id === currentUser?.id ? (
+                          <button
+                            type="button"
+                            onClick={() => setDrawerUserId(entry.user.id)}
+                            className="inline-flex items-center gap-1 hover:text-primary dark:hover:text-primary transition-colors cursor-pointer truncate"
+                            title="مشاهده جزئیات عضو"
+                          >
+                            <span className="truncate">{entry.user.name}</span>
+                            <Eye className="w-3.5 h-3.5 text-sec/50 dark:text-gray-400 shrink-0" />
+                          </button>
+                        ) : (
+                          <span className="truncate">{entry.user.name}</span>
+                        )}
                         {entry.isMe && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary text-sec border border-sec/25 shrink-0">
                             شما
                           </span>
+                        )}
+                        {(entry.isAdmin || adminIdSet.has(entry.user.id)) && (
+                          <Badge variant="club" className="text-[10px] py-0 px-2 shrink-0">
+                            ادمین
+                          </Badge>
                         )}
                       </h4>
                       <p className="text-sm font-black text-sec dark:text-primary tabular-nums">
@@ -263,6 +300,16 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ scrum }) => {
                       <p className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400 tabular-nums">
                         {toPersianDigits(entry.sessionCount)} سشن تأییدشده
                       </p>
+                      {(entry.performance || entry.attendanceTotals) && (
+                        <div className="pt-1.5 flex flex-col items-center gap-1.5">
+                          {entry.performance && entry.user.id !== currentUser?.id && (
+                            <PerformanceBadge level={entry.performance} />
+                          )}
+                          {entry.attendanceTotals && (
+                            <AttendanceTotalsPills totals={entry.attendanceTotals} compact />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </Card>
                 );
@@ -274,6 +321,8 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ scrum }) => {
           <Card className="p-4 sm:p-5 rounded-3xl border-[1.5px] border-sec/20 dark:border-primary/25 shadow-hard-sm space-y-3">
             {rows.map((row) => {
               const isHighlighted = row.isMe;
+              const isRowAdmin = Boolean(row.isAdmin) || adminIdSet.has(row.user.id);
+              const canInspectRow = canInspectMembers || row.user.id === currentUser?.id;
               return (
                 <div
                   key={row.user.id}
@@ -316,13 +365,36 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ scrum }) => {
                     {/* Name + Progress relative to leader */}
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs sm:text-sm font-black text-sec dark:text-white truncate">
-                          {row.user.name}
-                        </span>
+                        {canInspectRow ? (
+                          <button
+                            type="button"
+                            onClick={() => setDrawerUserId(row.user.id)}
+                            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-sec dark:text-white hover:text-primary dark:hover:text-primary transition-colors cursor-pointer group"
+                            title="مشاهده جزئیات عضو"
+                          >
+                            <span className="truncate">{row.user.name}</span>
+                            <Eye className="w-3.5 h-3.5 text-sec/50 dark:text-gray-400 group-hover:text-primary shrink-0" />
+                          </button>
+                        ) : (
+                          <span className="text-xs sm:text-sm font-black text-sec dark:text-white truncate">
+                            {row.user.name}
+                          </span>
+                        )}
                         {isHighlighted && (
                           <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary text-sec border border-sec/25">
                             شما
                           </span>
+                        )}
+                        {isRowAdmin && (
+                          <Badge variant="club" className="text-[10px] py-0 px-2">
+                            ادمین
+                          </Badge>
+                        )}
+                        {'performance' in row && row.user.id !== currentUser?.id && row.performance && (
+                          <PerformanceBadge level={row.performance} />
+                        )}
+                        {row.attendanceTotals && (
+                          <AttendanceTotalsPills totals={row.attendanceTotals} compact />
                         )}
                         {isHighlighted && me && me.pendingSeconds > 0 && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-college-light dark:bg-amber-950/60 text-[#704A0D] dark:text-amber-200 border border-college-normal/45 tabular-nums">
@@ -391,6 +463,12 @@ export const LeaderboardTab: React.FC<LeaderboardTabProps> = ({ scrum }) => {
           )}
         </>
       )}
+
+      <MemberDetailDrawer
+        userId={drawerUserId}
+        scrumId={scrum.id}
+        onClose={() => setDrawerUserId(null)}
+      />
     </div>
   );
 };

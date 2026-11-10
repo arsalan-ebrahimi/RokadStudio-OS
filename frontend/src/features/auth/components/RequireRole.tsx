@@ -1,15 +1,28 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import type { Role } from '@/shared/types/models';
+import type { Role, User } from '@/shared/types/models';
 import { useAuthStore } from '../hooks/use-auth-store';
 import { Skeleton } from '@/shared/ui';
 
 interface RequireRoleProps {
   roles: Role[];
+  allowWhen?: (user: User) => boolean;
+  redirectTo?: string | ((user: User) => string);
   children: React.ReactNode;
 }
 
-export const RequireRole: React.FC<RequireRoleProps> = ({ roles, children }) => {
+export function getDefaultHomeForUser(user: User): string {
+  if (user.role === 'USER') return '/';
+  if (user.role === 'SCRUM_ADMIN') return '/scrum-admin';
+  return '/panel/attendance';
+}
+
+export const RequireRole: React.FC<RequireRoleProps> = ({
+  roles,
+  allowWhen,
+  redirectTo,
+  children,
+}) => {
   const { user, token, isLoading } = useAuthStore();
   const location = useLocation();
 
@@ -27,8 +40,11 @@ export const RequireRole: React.FC<RequireRoleProps> = ({ roles, children }) => 
     return <Navigate to={target} state={{ from: location }} replace />;
   }
 
-  if (!roles.includes(user.role)) {
-    const target = user.role === 'USER' ? '/' : user.role === 'SCRUM_ADMIN' ? '/scrum-admin' : '/panel/attendance';
+  if (!roles.includes(user.role) || (allowWhen && !allowWhen(user))) {
+    const target =
+      typeof redirectTo === 'function'
+        ? redirectTo(user)
+        : redirectTo || getDefaultHomeForUser(user);
     return <Navigate to={target} replace />;
   }
 

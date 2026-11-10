@@ -617,7 +617,7 @@ export const UserScrumTasksPage: React.FC = () => {
         initialRangeFrom={rangeFrom}
         initialRangeTo={rangeTo}
         initialUserId={
-          user && (user.role === 'SCRUM_ADMIN' || user.role === 'SUPER_ADMIN')
+          user && user.role !== 'USER'
             ? user.id
             : undefined
         }

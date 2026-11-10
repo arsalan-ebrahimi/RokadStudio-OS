@@ -9,12 +9,12 @@ import { SCRUM_COLOR_MAP } from '../types/scrum-types';
 
 export const TodayScrumEventsCard: React.FC = () => {
   const { user } = useAuthStore();
-  const isNonAdmin = Boolean(user) && user?.role !== 'ADMIN';
+  const hasMemberships = Boolean(user && (user.memberScrumCount ?? 0) > 0);
   const { data: events = [], isLoading, isError } = useTodayScrumEvents({
-    enabled: isNonAdmin,
+    enabled: hasMemberships,
   });
 
-  if (!isNonAdmin || isLoading || isError || events.length === 0) {
+  if (!hasMemberships || isLoading || isError || events.length === 0) {
     return null;
   }
 

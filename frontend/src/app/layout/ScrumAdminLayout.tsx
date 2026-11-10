@@ -14,8 +14,10 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
+import { Badge } from '@/shared/ui';
 import { cn } from '@/shared/lib/utils';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
+import { toPersianDigits } from '@/shared/lib/formatters';
 import { useTheme } from '@/shared/lib/theme';
 
 export const ScrumAdminLayout: React.FC = () => {
@@ -25,6 +27,8 @@ export const ScrumAdminLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isStudioAdmin = user?.role === 'ADMIN';
+  const adminScrumCount = user?.administeredScrumCount ?? 0;
 
   const currentLabel = location.pathname.startsWith('/scrum-admin/scrums')
     ? 'اسکرام‌های من'
@@ -106,50 +110,72 @@ export const ScrumAdminLayout: React.FC = () => {
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                  'flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
                   isActive
                     ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
                     : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 )
               }
             >
-              <Layers className="w-4 h-4 text-primary shrink-0" />
-              <span>اسکرام‌های من</span>
+              <span className="flex items-center gap-3 min-w-0">
+                <Layers className="w-4 h-4 text-primary shrink-0" />
+                <span className="truncate">اسکرام‌های من</span>
+              </span>
+              {adminScrumCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-primary/20 text-sec dark:text-primary border border-primary/40 text-[11px] font-black tabular-nums shrink-0">
+                  {toPersianDigits(adminScrumCount)}
+                </span>
+              )}
             </NavLink>
 
-            <NavLink
-              to="/scrum-admin/attendance"
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
-                  isActive
-                    ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
-                    : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                )
-              }
-            >
-              <CheckSquare className="w-4 h-4 text-primary shrink-0" />
-              <span>حضور و غیاب</span>
-            </NavLink>
+            {!isStudioAdmin && (
+              <>
+                <NavLink
+                  to="/scrum-admin/attendance"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                      isActive
+                        ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
+                        : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    )
+                  }
+                >
+                  <CheckSquare className="w-4 h-4 text-primary shrink-0" />
+                  <span>حضور و غیاب</span>
+                </NavLink>
 
-            <NavLink
-              to="/scrum-admin/reports"
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
-                  isActive
-                    ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
-                    : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                )
-              }
-            >
-              <BarChart3 className="w-4 h-4 text-primary shrink-0" />
-              <span>گزارش عملکرد</span>
-            </NavLink>
+                <NavLink
+                  to="/scrum-admin/reports"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                      isActive
+                        ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
+                        : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    )
+                  }
+                >
+                  <BarChart3 className="w-4 h-4 text-primary shrink-0" />
+                  <span>گزارش عملکرد</span>
+                </NavLink>
+              </>
+            )}
 
             <div className="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-1.5">
+              {isStudioAdmin && (
+                <Link
+                  to="/panel/attendance"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-ink-normal/75 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                >
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                  <span>بازگشت به پنل مدیریت</span>
+                </Link>
+              )}
+
               <Link
                 to="/app"
                 onClick={() => setMobileOpen(false)}
@@ -175,7 +201,11 @@ export const ScrumAdminLayout: React.FC = () => {
 
         <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
           <div className="px-3 py-2 rounded-xl bg-gray-50 dark:bg-[#182030] border border-gray-200 dark:border-gray-700 text-[11px] font-bold text-ink-normal/65 dark:text-gray-400">
-            {isSuperAdmin ? 'نمای مدیر ارشد در محیط اسکرام' : 'محیط کاری مدیر اسکرام'}
+            {isSuperAdmin
+              ? 'نمای مدیر ارشد در محیط اسکرام'
+              : isStudioAdmin
+                ? 'نمای ادمین اسکرام'
+                : 'محیط کاری مدیر اسکرام'}
           </div>
         </div>
       </aside>
@@ -220,6 +250,11 @@ export const ScrumAdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {isStudioAdmin && (
+              <Badge variant="club" dot className="text-[11px] font-black">
+                ادمین اسکرام
+              </Badge>
+            )}
             <span className="hidden min-[480px]:flex text-[11px] sm:text-xs font-bold text-sec dark:text-gray-200 bg-gray-100 dark:bg-[#182030] px-3 h-10 items-center rounded-2xl border-[1.5px] border-sec/15 dark:border-gray-700 whitespace-nowrap shrink-0 tabular-nums">
               <span className="hidden lg:inline">امروز:&nbsp;</span>
               <span>{formatToJalali(getTehranTodayString(), false)}</span>

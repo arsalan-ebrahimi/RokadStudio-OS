@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { FileSpreadsheet, RotateCcw } from 'lucide-react';
+import { FileSpreadsheet, RotateCcw, Eye } from 'lucide-react';
 import {
   Button,
   Card,
@@ -12,6 +12,8 @@ import {
   UnitChip,
   type DataTableColumn,
 } from '@/shared/ui';
+import { useAuthStore } from '@/features/auth';
+import { MemberDetailDrawer } from '@/features/members';
 import { toPersianDigits, formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { useScrumReport, useScrumTasks, useSprints } from '../hooks/use-scrum';
 import type { Scrum, ScrumReportRow } from '../types/scrum-types';
@@ -65,10 +67,17 @@ function exportScrumReportCsv(rows: ScrumReportRow[], scrumName: string): void {
   URL.revokeObjectURL(url);
 }
 
-export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
+export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum, canEdit }) => {
+  const currentUser = useAuthStore((s) => s.user);
+  const canInspectMembers =
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'ADMIN' ||
+    (currentUser?.role === 'SCRUM_ADMIN' && canEdit);
+
   const { data: sprints = [] } = useSprints(scrum.id);
   const { data: tasks = [] } = useScrumTasks(scrum.id);
 
+  const [drawerUserId, setDrawerUserId] = useState<number | null>(null);
   const [selectedSprintId, setSelectedSprintId] = useState<number | undefined>(undefined);
   const [selectedTaskId, setSelectedTaskId] = useState<number | undefined>(undefined);
   const [dateFrom, setDateFrom] = useState('');
@@ -126,7 +135,21 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
         minWidth: '150px',
         cell: (row) =>
           row.member?.name ? (
-            <span className="font-bold text-sec dark:text-white">{row.member.name}</span>
+            canInspectMembers || row.member.id === currentUser?.id ? (
+              <button
+                type="button"
+                onClick={() => setDrawerUserId(row.member!.id)}
+                className="inline-flex items-center gap-1.5 font-bold text-sec dark:text-white hover:text-primary dark:hover:text-primary transition-colors cursor-pointer group"
+                title="مشاهده جزئیات کارکرد عضو"
+              >
+                <span className="underline decoration-dotted underline-offset-4 decoration-sec/30 dark:decoration-primary/40">
+                  {row.member.name}
+                </span>
+                <Eye className="w-3.5 h-3.5 text-sec/55 dark:text-gray-400 group-hover:text-primary shrink-0" />
+              </button>
+            ) : (
+              <span className="font-bold text-sec dark:text-white">{row.member.name}</span>
+            )
           ) : (
             <span className="text-sec/55 dark:text-gray-400 font-bold">
               {row.assignedMembersCount > 0 ? 'سایر اعضا' : 'تجمیعی تسک'}
@@ -194,7 +217,7 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
           ),
       },
     ],
-    []
+    [canInspectMembers, currentUser?.id]
   );
 
   return (
@@ -354,6 +377,13 @@ export const ScrumReportTab: React.FC<ScrumReportTabProps> = ({ scrum }) => {
           />
         </>
       )}
+
+      <MemberDetailDrawer
+        userId={drawerUserId}
+        scrumId={scrum.id}
+        initialTab="work"
+        onClose={() => setDrawerUserId(null)}
+      />
     </div>
   );
 };

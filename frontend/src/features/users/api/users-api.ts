@@ -7,6 +7,10 @@ export interface UserBasic {
   name: string;
 }
 
+export interface ScrumAdminCandidate extends UserBasic {
+  role: 'SCRUM_ADMIN' | 'ADMIN';
+}
+
 export interface CreateUserPayload {
   code: string;
   name: string;
@@ -20,7 +24,14 @@ export interface UpdateUserPayload {
   isActive?: boolean;
 }
 
-export async function fetchUsers(params?: { page?: number; limit?: number; role?: Role; isActive?: boolean; search?: string }): Promise<ApiResponse<User[]>> {
+export async function fetchUsers(params?: {
+  page?: number;
+  limit?: number;
+  role?: Role;
+  isActive?: boolean;
+  search?: string;
+  include?: 'attendanceTotals';
+}): Promise<ApiResponse<User[]>> {
   return apiClient<User[]>('/api/users', { params });
 }
 
@@ -57,8 +68,8 @@ export async function searchActiveUsers(
   return res.data;
 }
 
-export async function fetchScrumAdmins(q?: string): Promise<UserBasic[]> {
-  const res = await apiClient<UserBasic[]>('/api/users/scrum-admins', {
+export async function fetchScrumAdmins(q?: string): Promise<ScrumAdminCandidate[]> {
+  const res = await apiClient<ScrumAdminCandidate[]>('/api/users/scrum-admins', {
     params: q && q.trim() ? { q: q.trim() } : undefined,
   });
   return res.data;

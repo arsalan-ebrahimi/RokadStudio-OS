@@ -1,11 +1,14 @@
 import { apiClient } from '@/shared/lib/api-client';
 import type { PaginationMeta } from '@/shared/types/api';
 import type {
+  PerformanceLevel,
   WorkTargetSessionsData,
   WorkTargetSessionsQuery,
 } from '@/shared/types/models';
 import type {
   Scrum,
+  ScrumAdminInput,
+  ScrumAdminRef,
   ScrumMember,
   ScrumUserRef,
   Sprint,
@@ -33,7 +36,7 @@ export async function createScrum(payload: {
   name: string;
   description?: string | null;
   color?: ScrumColor;
-  adminIds?: number[];
+  admins?: ScrumAdminInput[];
 }): Promise<Scrum> {
   const res = await apiClient<Scrum>('/api/scrums', {
     method: 'POST',
@@ -42,8 +45,16 @@ export async function createScrum(payload: {
   return res.data;
 }
 
-export async function fetchScrumById(id: number): Promise<Scrum> {
-  const res = await apiClient<Scrum>(`/api/scrums/${id}`);
+export async function fetchScrumById(
+  id: number,
+  options?: { includeAttendanceTotals?: boolean }
+): Promise<Scrum> {
+  const res = await apiClient<Scrum>(`/api/scrums/${id}`, {
+    params:
+      options?.includeAttendanceTotals === false
+        ? undefined
+        : { include: 'attendanceTotals' },
+  });
   return res.data;
 }
 
@@ -64,11 +75,81 @@ export async function deleteScrum(id: number): Promise<void> {
   });
 }
 
-export async function syncScrumAdmins(id: number, userIds: number[]): Promise<ScrumUserRef[]> {
-  const res = await apiClient<ScrumUserRef[]>(`/api/scrums/${id}/admins`, {
-    method: 'PUT',
-    body: JSON.stringify({ userIds }),
+export async function addScrumAdmin(
+  id: number,
+  payload: ScrumAdminInput
+): Promise<{
+  scrumId: number;
+  userId: number;
+  name: string;
+  role: ScrumAdminRef['role'];
+  isMember: boolean;
+}> {
+  const res = await apiClient<{
+    scrumId: number;
+    userId: number;
+    name: string;
+    role: ScrumAdminRef['role'];
+    isMember: boolean;
+  }>(`/api/scrums/${id}/admins`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
+  return res.data;
+}
+
+export async function removeScrumAdmin(
+  id: number,
+  userId: number,
+  keepMembership?: boolean
+): Promise<{
+  scrumId: number;
+  userId: number;
+  removedMembership: boolean;
+  isMember: boolean;
+}> {
+  const res = await apiClient<{
+    scrumId: number;
+    userId: number;
+    removedMembership: boolean;
+    isMember: boolean;
+  }>(`/api/scrums/${id}/admins/${userId}`, {
+    method: 'DELETE',
+    params:
+      typeof keepMembership === 'boolean'
+        ? { keepMembership: keepMembership ? 'true' : 'false' }
+        : undefined,
+  });
+  return res.data;
+}
+
+export async function updateScrumAdminMembership(
+  id: number,
+  userId: number,
+  isMember: boolean
+): Promise<{ scrumId: number; userId: number; isMember: boolean }> {
+  const res = await apiClient<{ scrumId: number; userId: number; isMember: boolean }>(
+    `/api/scrums/${id}/admins/${userId}/membership`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ isMember }),
+    }
+  );
+  return res.data;
+}
+
+export async function updateScrumMemberPerformance(
+  scrumId: number,
+  userId: number,
+  payload: { level: PerformanceLevel | null; note?: string | null }
+): Promise<ScrumMember> {
+  const res = await apiClient<ScrumMember>(
+    `/api/scrums/${scrumId}/members/${userId}/performance`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }
+  );
   return res.data;
 }
 
@@ -301,6 +382,7 @@ export async function fetchScrumLeaderboard(
     params: {
       period: params?.period,
       sprintId: params?.period === 'SPRINT' && params?.sprintId ? params.sprintId : undefined,
+      include: 'attendanceTotals',
     },
   });
   return res.data;

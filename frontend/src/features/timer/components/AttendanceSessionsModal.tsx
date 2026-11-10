@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X, Trash2, Clock, FolderKanban } from 'lucide-react';
-import { Modal, Button, Skeleton, EmptyState, toast } from '@/shared/ui';
+import { Modal, Button, Skeleton, EmptyState, ErrorState, toast } from '@/shared/ui';
 import { useAuthStore } from '@/features/auth';
 import { SessionBadge } from './SessionBadge';
 import { SessionDecisionDialog } from './SessionDecisionDialog';
 import { DeleteSessionDialog } from './DeleteSessionDialog';
-import { fetchAdminWorkSessions, decideWorkSession, deleteWorkSession } from '../api/timer-api';
+import {
+  fetchAdminWorkSessions,
+  decideWorkSession,
+  deleteWorkSession,
+  type AdminSessionsResponse,
+} from '../api/timer-api';
 import { formatDurationToHoursMins } from '@/shared/lib/formatters';
 import { formatToJalali } from '@/shared/lib/date';
+import type { PaginationMeta } from '@/shared/types/api';
 import type { WorkSession } from '@/shared/types/models';
+
+interface AdminSessionsCache {
+  data: AdminSessionsResponse;
+  meta?: PaginationMeta;
+}
 
 interface AttendanceSessionsModalProps {
   isOpen: boolean;
@@ -31,7 +42,7 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
   const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; info: string } | null>(null);
   const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-work-sessions', user?.id, user?.role, userId, date],
     queryFn: () => fetchAdminWorkSessions({ userId: userId || undefined, date }),
     enabled: isOpen && Boolean(userId) && Boolean(date),
@@ -42,13 +53,13 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
       decideWorkSession(id, decision),
     onMutate: async ({ id, decision }) => {
       setActiveDecision(null);
-      queryClient.setQueriesData({ queryKey: ['admin-work-sessions'] }, (old: any) => {
+      queryClient.setQueriesData<AdminSessionsCache>({ queryKey: ['admin-work-sessions'] }, (old) => {
         if (!old?.data?.sessions) return old;
         return {
           ...old,
           data: {
             ...old.data,
-            sessions: old.data.sessions.map((s: WorkSession) =>
+            sessions: old.data.sessions.map((s) =>
               s.id === id ? { ...s, approval: decision } : s
             ),
           },
@@ -64,6 +75,9 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
       queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-day'] });
+      queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['member-work'] });
       toast.success('وضعیت سشن با موفقیت تغییر کرد');
     },
     onError: (err: Error) => {
@@ -76,15 +90,15 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
     mutationFn: (id: number) => deleteWorkSession(id),
     onMutate: async (deletedId: number) => {
       setDeletingSession(null);
-      queryClient.setQueriesData({ queryKey: ['admin-work-sessions'] }, (old: any) => {
+      queryClient.setQueriesData<AdminSessionsCache>({ queryKey: ['admin-work-sessions'] }, (old) => {
         if (!old?.data?.sessions) return old;
-        const remaining = old.data.sessions.filter((s: WorkSession) => s.id !== deletedId);
-        const validRemaining = remaining.filter((s: WorkSession) => s.approval !== 'REJECTED');
+        const remaining = old.data.sessions.filter((s) => s.id !== deletedId);
+        const validRemaining = remaining.filter((s) => s.approval !== 'REJECTED');
         return {
           ...old,
           data: {
             ...old.data,
-            totalSeconds: validRemaining.reduce((acc: number, s: WorkSession) => acc + s.durationSeconds, 0),
+            totalSeconds: validRemaining.reduce((acc, s) => acc + s.durationSeconds, 0),
             sessions: remaining,
           },
         };
@@ -100,6 +114,9 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
       queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-day'] });
+      queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['member-work'] });
     },
     onError: (err: Error) => {
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
@@ -122,6 +139,13 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
             <div className="space-y-2.5">
               {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
             </div>
+          ) : isError ? (
+            <ErrorState
+              compact
+              title="خطا در دریافت سشن‌ها"
+              message={error instanceof Error ? error.message : 'دریافت سشن‌های این روز ناموفق بود.'}
+              onRetry={() => refetch()}
+            />
           ) : sessions.length === 0 ? (
             <EmptyState title="هیچ سشن کاری برای این تاریخ ثبت نشده است" />
           ) : (

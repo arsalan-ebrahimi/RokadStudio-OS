@@ -7,6 +7,8 @@ export interface LoginResponseData {
     id: number;
     name: string;
     role: User['role'];
+    administeredScrumCount?: number;
+    memberScrumCount?: number;
   };
 }
 

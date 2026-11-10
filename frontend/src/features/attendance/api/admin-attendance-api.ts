@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/lib/api-client';
-import type { Attendance } from '@/shared/types/models';
+import type { Attendance, AttendanceImpact } from '@/shared/types/models';
 import type { ApiResponse } from '@/shared/types/api';
 
 export interface AdminAttendanceParams {
@@ -15,6 +15,11 @@ export interface AdminAttendanceParams {
 
 export async function fetchAdminAttendance(params: AdminAttendanceParams = {}): Promise<ApiResponse<Attendance[]>> {
   return apiClient<Attendance[]>('/api/attendance/admin', { params: params as Record<string, string | number> });
+}
+
+export async function fetchAttendanceImpact(id: number): Promise<AttendanceImpact> {
+  const res = await apiClient<AttendanceImpact>(`/api/attendance/admin/${id}/impact`);
+  return res.data;
 }
 
 export async function decideAttendance(id: number, decision: 'APPROVED' | 'REJECTED'): Promise<Attendance> {

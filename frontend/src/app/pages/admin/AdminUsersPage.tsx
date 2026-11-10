@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Copy, Check, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, Copy, Check, Search, Eye } from 'lucide-react';
 import {
   Card,
   Button,
@@ -17,6 +17,11 @@ import {
 import { fetchUsers, createUser, updateUser, deleteUser } from '@/features/users/api/users-api';
 import { suggestNextUserCode } from '@/features/users/lib/code-generator';
 import { useAuthStore } from '@/features/auth';
+import {
+  AttendanceTotalsPills,
+  MemberDetailDrawer,
+  PerformanceBadge,
+} from '@/features/members';
 import type { User, Role } from '@/shared/types/models';
 
 interface UsersListCache {
@@ -28,6 +33,7 @@ export const AdminUsersPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [drawerUserId, setDrawerUserId] = useState<number | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -49,7 +55,11 @@ export const AdminUsersPage: React.FC = () => {
     refetch,
   } = useQuery({
     queryKey: ['admin-users', searchTerm],
-    queryFn: () => fetchUsers({ search: searchTerm || undefined }),
+    queryFn: () =>
+      fetchUsers({
+        search: searchTerm || undefined,
+        include: 'attendanceTotals',
+      }),
     staleTime: 30_000,
   });
 
@@ -202,12 +212,15 @@ export const AdminUsersPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2 min-w-0">
-                    <p
-                      className="text-sm sm:text-base font-black text-sec dark:text-white truncate"
-                      title={u.name}
+                    <button
+                      type="button"
+                      onClick={() => setDrawerUserId(u.id)}
+                      className="inline-flex items-center gap-1.5 text-sm sm:text-base font-black text-sec dark:text-white hover:text-primary dark:hover:text-primary transition-colors truncate cursor-pointer group"
+                      title={`مشاهده جزئیات ${u.name}`}
                     >
-                      {u.name}
-                    </p>
+                      <span className="truncate">{u.name}</span>
+                      <Eye className="w-3.5 h-3.5 text-sec/45 dark:text-gray-400 group-hover:text-primary shrink-0" />
+                    </button>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {renderRoleBadge(u.role)}
                       {!u.isActive && <Badge variant="neutral">غیرفعال</Badge>}
@@ -225,9 +238,29 @@ export const AdminUsersPage: React.FC = () => {
                       {u.code}
                     </span>
                   </div>
+
+                  {(u.attendanceTotals || (!isSelf && u.studioPerformance?.level)) && (
+                    <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                      <AttendanceTotalsPills totals={u.attendanceTotals} compact />
+                      {!isSelf && u.studioPerformance?.level && (
+                        <PerformanceBadge level={u.studioPerformance.level} />
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="pt-3 border-t border-sec/10 dark:border-gray-800 flex items-center justify-end">
+                <div className="pt-3 border-t border-sec/10 dark:border-gray-800 flex items-center justify-between gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDrawerUserId(u.id)}
+                    className="text-xs font-bold gap-1.5"
+                    aria-label={`جزئیات ${u.name}`}
+                  >
+                    <Eye className="w-3.5 h-3.5 text-primary" />
+                    <span>جزئیات</span>
+                  </Button>
+
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
@@ -372,6 +405,11 @@ export const AdminUsersPage: React.FC = () => {
         isLoading={deleteMut.isPending}
         onConfirm={() => deletingId && deleteMut.mutate(deletingId)}
         onCancel={() => setDeletingId(null)}
+      />
+
+      <MemberDetailDrawer
+        userId={drawerUserId}
+        onClose={() => setDrawerUserId(null)}
       />
     </div>
   );

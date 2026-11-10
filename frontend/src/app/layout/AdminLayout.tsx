@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { CheckSquare, BarChart3, Users, FolderKanban, LogOut, Sun, Moon, Menu, X, Layers } from 'lucide-react';
+import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { CheckSquare, BarChart3, Users, FolderKanban, LogOut, Sun, Moon, Menu, X, Layers, Timer } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { cn } from '@/shared/lib/utils';
 import { getTehranTodayString, formatToJalali } from '@/shared/lib/date';
+import { toPersianDigits } from '@/shared/lib/formatters';
 import { useTheme } from '@/shared/lib/theme';
 
 export const AdminLayout: React.FC = () => {
@@ -13,13 +14,23 @@ export const AdminLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const adminScrumCount = user?.administeredScrumCount ?? 0;
+  const showMyScrums = user?.role === 'ADMIN' && adminScrumCount > 0;
 
-  const navItems = [
+  const navItems: {
+    to: string;
+    label: string;
+    icon: React.ElementType;
+    badgeCount?: number;
+  }[] = [
     { to: '/panel/attendance', label: 'حضور و غیاب', icon: CheckSquare },
     { to: '/panel/reports', label: 'گزارش عملکرد', icon: BarChart3 },
     ...(isSuperAdmin ? [{ to: '/panel/users', label: 'کاربران', icon: Users }] : []),
     { to: '/panel/projects', label: 'پروژه‌ها', icon: FolderKanban },
     ...(isSuperAdmin ? [{ to: '/panel/scrums', label: 'اسکرام‌ها', icon: Layers }] : []),
+    ...(showMyScrums
+      ? [{ to: '/scrum-admin/scrums', label: 'اسکرام‌های من', icon: Layers, badgeCount: adminScrumCount }]
+      : []),
   ];
 
   const currentNav = navItems.find((item) => location.pathname.startsWith(item.to));
@@ -72,17 +83,35 @@ export const AdminLayout: React.FC = () => {
                   to={item.to}
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) => cn(
-                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
+                    'flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all',
                     isActive
                       ? 'bg-ecosystem-light dark:bg-ecosystem-darker/60 text-ecosystem-darker dark:text-ecosystem-light border border-primary/40 shadow-[2px_2px_0_#59BBAF]'
                       : 'text-ink-normal/70 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   )}
                 >
-                  <Icon className="w-4 h-4 text-primary" />
-                  <span>{item.label}</span>
+                  <span className="flex items-center gap-3 min-w-0">
+                    <Icon className="w-4 h-4 text-primary shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </span>
+                  {item.badgeCount !== undefined && item.badgeCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-primary/20 text-sec dark:text-primary border border-primary/40 text-[11px] font-black tabular-nums shrink-0">
+                      {toPersianDigits(item.badgeCount)}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
+
+            <div className="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-1.5">
+              <Link
+                to="/app"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-ink-normal/75 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              >
+                <Timer className="w-4 h-4 text-third shrink-0" />
+                <span>پیشخوان تایمر من</span>
+              </Link>
+            </div>
           </nav>
         </div>
       </aside>

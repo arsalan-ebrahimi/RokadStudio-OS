@@ -87,18 +87,22 @@ export const ScrumAdminDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <Link to="/scrum-admin/attendance">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
-              <CheckSquare className="w-4 h-4 text-primary" />
-              <span>حضور و غیاب</span>
-            </Button>
-          </Link>
-          <Link to="/scrum-admin/reports">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              <span>گزارش عملکرد</span>
-            </Button>
-          </Link>
+          {user?.role !== 'ADMIN' && (
+            <>
+              <Link to="/scrum-admin/attendance">
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
+                  <CheckSquare className="w-4 h-4 text-primary" />
+                  <span>حضور و غیاب</span>
+                </Button>
+              </Link>
+              <Link to="/scrum-admin/reports">
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  <span>گزارش عملکرد</span>
+                </Button>
+              </Link>
+            </>
+          )}
           <Link to="/scrum-admin/scrums">
             <Button variant="outline" size="sm" className="gap-1.5 text-xs font-extrabold">
               <Layers className="w-4 h-4 text-primary" />

@@ -9,6 +9,7 @@ import {
   FolderKanban,
   ArrowLeft,
   ListChecks,
+  Eye,
 } from 'lucide-react';
 import {
   Badge,
@@ -16,6 +17,7 @@ import {
   Card,
   DataTable,
   EmptyState,
+  ErrorState,
   PersianDatePicker,
   SegmentedControl,
   Select,
@@ -32,8 +34,10 @@ import {
   fetchWorkSessionTargets,
   decideWorkSession,
   deleteWorkSession,
+  type AdminSessionsResponse,
 } from '@/features/timer/api/timer-api';
 import { SCRUM_COLOR_MAP } from '@/features/scrum';
+import { MemberDetailDrawer } from '@/features/members';
 import { SessionBadge } from '@/features/timer/components/SessionBadge';
 import { SessionDecisionDialog } from '@/features/timer/components/SessionDecisionDialog';
 import { DeleteSessionDialog } from '@/features/timer/components/DeleteSessionDialog';
@@ -41,7 +45,13 @@ import { toPersianDigits, formatDurationToHoursMins, calculateCompletedRounds } 
 import { getTehranTodayString, getJalaliWeekRange, getJalaliMonthRange, formatToJalali } from '@/shared/lib/date';
 import { cn } from '@/shared/lib/utils';
 import { useAuthStore } from '@/features/auth';
+import type { PaginationMeta } from '@/shared/types/api';
 import type { WorkSession, WorkSessionSummaryRow } from '@/shared/types/models';
+
+interface AdminSessionsCache {
+  data: AdminSessionsResponse;
+  meta?: PaginationMeta;
+}
 
 export const AdminReportsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -58,6 +68,7 @@ export const AdminReportsPage: React.FC = () => {
   const [groupBy, setGroupBy] = useState<'user' | 'project' | 'user_project'>('user_project');
   const [sessionStatusFilter, setSessionStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
 
+  const [drawerUserId, setDrawerUserId] = useState<number | null>(null);
   const [activeDecision, setActiveDecision] = useState<{ id: number; decision: 'APPROVED' | 'REJECTED'; info: string } | null>(null);
   const [deletingSession, setDeletingSession] = useState<{ id: number; info: string } | null>(null);
 
@@ -83,7 +94,13 @@ export const AdminReportsPage: React.FC = () => {
   const effectiveProjectId = isScrumAdmin ? undefined : projectId;
 
   // Summary aggregation query (always loaded for instant KPI overview and fast tab switching)
-  const { data: rows = [], isLoading: isSummaryLoading } = useQuery({
+  const {
+    data: rows = [],
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    error: summaryError,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ['reports-summary', user?.id, user?.role, dateFrom, dateTo, groupBy, effectiveTargetType, effectiveProjectId, taskId, userId],
     queryFn: () =>
       fetchWorkSessionsSummary({
@@ -100,7 +117,13 @@ export const AdminReportsPage: React.FC = () => {
   });
 
   // Individual work sessions query
-  const { data: sessionsRes, isLoading: isSessionsLoading } = useQuery({
+  const {
+    data: sessionsRes,
+    isLoading: isSessionsLoading,
+    isError: isSessionsError,
+    error: sessionsError,
+    refetch: refetchSessions,
+  } = useQuery({
     queryKey: ['admin-work-sessions', user?.id, user?.role, dateFrom, dateTo, effectiveTargetType, effectiveProjectId, taskId, userId, sessionStatusFilter],
     queryFn: () =>
       fetchAdminWorkSessions({
@@ -125,13 +148,13 @@ export const AdminReportsPage: React.FC = () => {
       decideWorkSession(id, decision),
     onMutate: async ({ id, decision }) => {
       setActiveDecision(null);
-      queryClient.setQueriesData({ queryKey: ['admin-work-sessions'] }, (old: any) => {
+      queryClient.setQueriesData<AdminSessionsCache>({ queryKey: ['admin-work-sessions'] }, (old) => {
         if (!old?.data?.sessions) return old;
         return {
           ...old,
           data: {
             ...old.data,
-            sessions: old.data.sessions.map((s: WorkSession) =>
+            sessions: old.data.sessions.map((s) =>
               s.id === id ? { ...s, approval: decision } : s
             ),
           },
@@ -147,6 +170,9 @@ export const AdminReportsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-day'] });
+      queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['member-work'] });
       toast.success('وضعیت سشن با موفقیت تغییر کرد');
     },
     onError: (err: Error) => {
@@ -160,15 +186,15 @@ export const AdminReportsPage: React.FC = () => {
     onMutate: async (deletedId: number) => {
       setDeletingSession(null);
       // Immediately evict session from all admin-work-sessions caches
-      queryClient.setQueriesData({ queryKey: ['admin-work-sessions'] }, (old: any) => {
+      queryClient.setQueriesData<AdminSessionsCache>({ queryKey: ['admin-work-sessions'] }, (old) => {
         if (!old?.data?.sessions) return old;
-        const remaining = old.data.sessions.filter((s: WorkSession) => s.id !== deletedId);
-        const validRemaining = remaining.filter((s: WorkSession) => s.approval !== 'REJECTED');
+        const remaining = old.data.sessions.filter((s) => s.id !== deletedId);
+        const validRemaining = remaining.filter((s) => s.approval !== 'REJECTED');
         return {
           ...old,
           data: {
             ...old.data,
-            totalSeconds: validRemaining.reduce((acc: number, s: WorkSession) => acc + s.durationSeconds, 0),
+            totalSeconds: validRemaining.reduce((acc, s) => acc + s.durationSeconds, 0),
             sessions: remaining,
           },
         };
@@ -184,6 +210,9 @@ export const AdminReportsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['my-scrum-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['scrum'] });
       queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['member-day'] });
+      queryClient.invalidateQueries({ queryKey: ['member-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['member-work'] });
     },
     onError: (err: Error) => {
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
@@ -246,7 +275,19 @@ export const AdminReportsPage: React.FC = () => {
           const label = formatSummaryRowLabel(row);
           return (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-sec dark:text-white">{label}</span>
+              {row.user?.id ? (
+                <button
+                  type="button"
+                  onClick={() => setDrawerUserId(row.user!.id)}
+                  className="inline-flex items-center gap-1.5 font-bold text-sec dark:text-white hover:text-primary dark:hover:text-primary transition-colors cursor-pointer group text-start"
+                  title={`مشاهده جزئیات ${row.user.name}`}
+                >
+                  <span>{label}</span>
+                  <Eye className="w-3.5 h-3.5 text-sec/45 dark:text-gray-400 group-hover:text-primary shrink-0" />
+                </button>
+              ) : (
+                <span className="font-bold text-sec dark:text-white">{label}</span>
+              )}
               {row.task && (
                 <Badge variant="college" className="text-[10px]">
                   تسک اسکرام
@@ -675,6 +716,16 @@ export const AdminReportsPage: React.FC = () => {
                   <Skeleton key={i} className="h-24 w-full rounded-3xl" />
                 ))}
             </div>
+          ) : isSessionsError ? (
+            <ErrorState
+              title="خطا در دریافت سشن‌های کاری"
+              message={
+                sessionsError instanceof Error
+                  ? sessionsError.message
+                  : 'دریافت فهرست سشن‌ها ناموفق بود.'
+              }
+              onRetry={() => refetchSessions()}
+            />
           ) : sessions.length === 0 ? (
             <EmptyState title="هیچ سشن کاری با مشخصات انتخابی یافت نشد" />
           ) : (
@@ -710,9 +761,21 @@ export const AdminReportsPage: React.FC = () => {
                       </div>
                       <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm sm:text-base font-black text-sec dark:text-white truncate" title={userName}>
-                            {userName}
-                          </p>
+                          {s.user?.id ? (
+                            <button
+                              type="button"
+                              onClick={() => setDrawerUserId(s.user!.id)}
+                              className="inline-flex items-center gap-1.5 text-sm sm:text-base font-black text-sec dark:text-white hover:text-primary dark:hover:text-primary transition-colors truncate cursor-pointer group"
+                              title={`مشاهده جزئیات ${userName}`}
+                            >
+                              <span className="truncate">{userName}</span>
+                              <Eye className="w-3.5 h-3.5 text-sec/45 dark:text-gray-400 group-hover:text-primary shrink-0" />
+                            </button>
+                          ) : (
+                            <p className="text-sm sm:text-base font-black text-sec dark:text-white truncate" title={userName}>
+                              {userName}
+                            </p>
+                          )}
                           {isTask && s.task ? (
                             <span className="inline-flex items-center gap-1.5 max-w-full flex-wrap">
                               {s.task.scrum && scrumMeta && (
@@ -850,37 +913,49 @@ export const AdminReportsPage: React.FC = () => {
             </Card>
           )}
 
-          <DataTable<WorkSessionSummaryRow>
-            columns={summaryColumns}
-            data={rows}
-            getRowKey={(row, idx) =>
-              `summary_${row.user?.id ?? 'u'}_${row.project?.id ?? (row.task?.id ? `t${row.task.id}` : 'p')}_${idx}`
-            }
-            showIndex={false}
-            isLoading={isSummaryLoading}
-            emptyTitle="داده‌ای در این بازه زمانی ثبت نشده است"
-            tableClassName="executive-table"
-            renderRowActions={(row) => (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => inspectSummaryRow(row)}
-                className="text-xs font-bold gap-1.5"
-                title={isScrumAdmin ? 'بررسی، تایید یا رد سشن‌ها' : 'بررسی، تایید، رد یا حذف سشن‌ها'}
-              >
-                <span>بررسی سشن‌ها</span>
-                <ArrowLeft className="w-3.5 h-3.5 text-primary" />
-              </Button>
-            )}
-            mobileActions={(row) => [
-              {
-                label: 'بررسی سشن‌ها',
-                icon: <ArrowLeft className="w-3.5 h-3.5 text-primary" />,
-                onClick: () => inspectSummaryRow(row),
-              },
-            ]}
-          />
+          {isSummaryError ? (
+            <ErrorState
+              title="خطا در دریافت گزارش تجمیعی"
+              message={
+                summaryError instanceof Error
+                  ? summaryError.message
+                  : 'بارگذاری جدول تجمیعی با مشکل مواجه شد.'
+              }
+              onRetry={() => refetchSummary()}
+            />
+          ) : (
+            <DataTable<WorkSessionSummaryRow>
+              columns={summaryColumns}
+              data={rows}
+              getRowKey={(row, idx) =>
+                `summary_${row.user?.id ?? 'u'}_${row.project?.id ?? (row.task?.id ? `t${row.task.id}` : 'p')}_${idx}`
+              }
+              showIndex={false}
+              isLoading={isSummaryLoading}
+              emptyTitle="داده‌ای در این بازه زمانی ثبت نشده است"
+              tableClassName="executive-table"
+              renderRowActions={(row) => (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => inspectSummaryRow(row)}
+                  className="text-xs font-bold gap-1.5"
+                  title={isScrumAdmin ? 'بررسی، تایید یا رد سشن‌ها' : 'بررسی، تایید، رد یا حذف سشن‌ها'}
+                >
+                  <span>بررسی سشن‌ها</span>
+                  <ArrowLeft className="w-3.5 h-3.5 text-primary" />
+                </Button>
+              )}
+              mobileActions={(row) => [
+                {
+                  label: 'بررسی سشن‌ها',
+                  icon: <ArrowLeft className="w-3.5 h-3.5 text-primary" />,
+                  onClick: () => inspectSummaryRow(row),
+                },
+              ]}
+            />
+          )}
         </div>
       )}
 
@@ -900,6 +975,12 @@ export const AdminReportsPage: React.FC = () => {
         isLoading={deleteMut.isPending}
         onConfirm={() => deletingSession && deleteMut.mutate(deletingSession.id)}
         onCancel={() => setDeletingSession(null)}
+      />
+
+      <MemberDetailDrawer
+        userId={drawerUserId}
+        initialTab="work"
+        onClose={() => setDrawerUserId(null)}
       />
     </div>
   );

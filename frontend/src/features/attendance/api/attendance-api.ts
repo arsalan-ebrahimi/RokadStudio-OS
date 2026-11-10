@@ -17,6 +17,25 @@ export async function submitTodayAttendance(
   return res.data;
 }
 
+export interface SaveWorkNoteResponse {
+  id: number;
+  userId: number;
+  date: string;
+  workNote: string | null;
+  workNoteAt: string | null;
+  workNotePrompted: boolean;
+}
+
+export async function saveTodayWorkNote(
+  payload: { text: string } | { skipped: true }
+): Promise<SaveWorkNoteResponse> {
+  const res = await apiClient<SaveWorkNoteResponse>('/api/attendance/today/work-note', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
 export async function fetchMyAttendance(params?: { page?: number; limit?: number; dateFrom?: string; dateTo?: string }) {
   const res = await apiClient<Attendance[]>('/api/attendance/me', { params });
   return res;

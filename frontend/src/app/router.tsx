@@ -55,7 +55,12 @@ export const router = createBrowserRouter([
   {
     path: '/my-scrum-tasks',
     element: (
-      <RequireRole roles={['USER', 'SCRUM_ADMIN', 'SUPER_ADMIN']}>
+      <RequireRole
+        roles={['USER', 'SCRUM_ADMIN', 'ADMIN', 'SUPER_ADMIN']}
+        allowWhen={(u) =>
+          u.role === 'USER' || u.role === 'SCRUM_ADMIN' || (u.memberScrumCount ?? 0) > 0
+        }
+      >
         <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B0F17] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           <UserScrumTasksPage />
         </div>
@@ -65,7 +70,12 @@ export const router = createBrowserRouter([
   {
     path: '/my-scrums',
     element: (
-      <RequireRole roles={['USER', 'ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}>
+      <RequireRole
+        roles={['USER', 'ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}
+        allowWhen={(u) =>
+          u.role === 'USER' || u.role === 'SCRUM_ADMIN' || (u.memberScrumCount ?? 0) > 0
+        }
+      >
         <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B0F17] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           <ScrumListPage />
         </div>
@@ -75,7 +85,12 @@ export const router = createBrowserRouter([
   {
     path: '/my-scrums/:id',
     element: (
-      <RequireRole roles={['USER', 'ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}>
+      <RequireRole
+        roles={['USER', 'ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}
+        allowWhen={(u) =>
+          u.role === 'USER' || u.role === 'SCRUM_ADMIN' || (u.memberScrumCount ?? 0) > 0
+        }
+      >
         <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B0F17] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           <ScrumDetailPage />
         </div>
@@ -85,7 +100,14 @@ export const router = createBrowserRouter([
   {
     path: '/scrum-admin',
     element: (
-      <RequireRole roles={['SCRUM_ADMIN', 'SUPER_ADMIN']}>
+      <RequireRole
+        roles={['SCRUM_ADMIN', 'SUPER_ADMIN', 'ADMIN']}
+        allowWhen={(u) =>
+          u.role === 'SCRUM_ADMIN' ||
+          u.role === 'SUPER_ADMIN' ||
+          (u.administeredScrumCount ?? 0) > 0
+        }
+      >
         <ScrumAdminLayout />
       </RequireRole>
     ),
@@ -104,11 +126,25 @@ export const router = createBrowserRouter([
       },
       {
         path: 'attendance',
-        element: <AdminAttendancePage />,
+        element: (
+          <RequireRole
+            roles={['SCRUM_ADMIN', 'SUPER_ADMIN']}
+            redirectTo={(u) => (u.role === 'ADMIN' ? '/panel/attendance' : '/')}
+          >
+            <AdminAttendancePage />
+          </RequireRole>
+        ),
       },
       {
         path: 'reports',
-        element: <AdminReportsPage />,
+        element: (
+          <RequireRole
+            roles={['SCRUM_ADMIN', 'SUPER_ADMIN']}
+            redirectTo={(u) => (u.role === 'ADMIN' ? '/panel/reports' : '/')}
+          >
+            <AdminReportsPage />
+          </RequireRole>
+        ),
       },
     ],
   },

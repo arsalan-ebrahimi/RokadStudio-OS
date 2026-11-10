@@ -223,6 +223,8 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
     );
   }, [targetsData?.scrums]);
 
+  const hasScrumMemberships = (user?.memberScrumCount ?? 0) > 0 || totalScrumTargets > 0;
+
   const handleSelect = (target: TimerTarget) => {
     onSelect(target);
     setIsOpen(false);
@@ -403,110 +405,118 @@ export const WorkTargetSelect: React.FC<WorkTargetSelectProps> = ({
               </div>
             )}
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5 px-2 text-[11px] font-black text-sec/60 dark:text-gray-400">
-                <Zap className="w-3.5 h-3.5 text-college-normal" />
-                <span>تسک‌های اسکرام من</span>
-              </div>
-
-              {totalScrumTargets === 0 ? (
-                <div className="px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-sec/10 dark:border-gray-800 text-center">
-                  <p className="text-[11px] text-sec/60 dark:text-gray-400 font-bold">
-                    تسک فعالی در اسکرام‌ها به شما اختصاص نیافته است.
-                  </p>
+            {hasScrumMemberships && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 px-2 text-[11px] font-black text-sec/60 dark:text-gray-400">
+                  <Zap className="w-3.5 h-3.5 text-college-normal" />
+                  <span>تسک‌های اسکرام من</span>
                 </div>
-              ) : filteredActiveScrums.length === 0 ? (
-                <p className="px-3 py-2 text-[11px] text-sec/50 font-bold">
-                  موردی یافت نشد.
-                </p>
-              ) : (
-                <div className="space-y-2.5">
-                  {filteredActiveScrums.map((s) => {
-                    const colorMeta = SCRUM_COLOR_MAP[s.scrum.color] || SCRUM_COLOR_MAP.ECOSYSTEM;
-                    const scrumTasks = s.tasks || [];
 
-                    return (
-                      <div
-                        key={`scrum_${s.scrum.id}_${s.sprint?.id ?? 'none'}`}
-                        className="rounded-2xl border border-sec/15 dark:border-gray-700 p-2 space-y-2 bg-[#F8F9FA] dark:bg-gray-800/40"
-                      >
-                        <div className="flex items-center gap-2 px-1.5 py-0.5 text-xs font-black">
-                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colorMeta.solidBg)} />
-                          <span className="text-sec dark:text-white truncate">{s.scrum.name}</span>
-                          {s.sprint && (
-                            <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-primary/15 text-sec dark:text-primary font-bold">
-                              S{toPersianDigits(s.sprint.number)}
-                            </span>
-                          )}
-                        </div>
+                {totalScrumTargets === 0 ? (
+                  <div className="px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-sec/10 dark:border-gray-800 text-center">
+                    <p className="text-[11px] text-sec/60 dark:text-gray-400 font-bold">
+                      تسک فعالی در اسکرام‌ها به شما اختصاص نیافته است.
+                    </p>
+                  </div>
+                ) : filteredActiveScrums.length === 0 ? (
+                  <p className="px-3 py-2 text-[11px] text-sec/50 font-bold">
+                    موردی یافت نشد.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {filteredActiveScrums.map((s) => {
+                      const colorMeta = SCRUM_COLOR_MAP[s.scrum.color] || SCRUM_COLOR_MAP.ECOSYSTEM;
+                      const scrumTasks = s.tasks || [];
 
-                        {scrumTasks.length > 0 && (
-                          <div className="space-y-1">
-                            {scrumTasks.map((task) => {
-                              const isSelected =
-                                selectedTarget?.kind === 'TASK' &&
-                                selectedTarget?.id === task.id;
-                              const fullLabel = `[${s.scrum.name}] ${task.name}`;
+                      return (
+                        <div
+                          key={`scrum_${s.scrum.id}_${s.sprint?.id ?? 'none'}`}
+                          className="rounded-2xl border border-sec/15 dark:border-gray-700 p-2 space-y-2 bg-[#F8F9FA] dark:bg-gray-800/40"
+                        >
+                          <div className="flex items-center gap-2 px-1.5 py-0.5 text-xs font-black">
+                            <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colorMeta.solidBg)} />
+                            <span className="text-sec dark:text-white truncate">{s.scrum.name}</span>
+                            {s.sprint && (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-primary/15 text-sec dark:text-primary font-bold">
+                                S{toPersianDigits(s.sprint.number)}
+                              </span>
+                            )}
+                          </div>
 
-                              return (
-                                <button
-                                  key={`task_${task.id}`}
-                                  type="button"
-                                  onClick={() =>
-                                    handleSelect({
-                                      kind: 'TASK',
-                                      id: task.id,
-                                      label: fullLabel,
-                                      points: task.points,
-                                      scrumColor: s.scrum.color,
-                                    })
-                                  }
-                                  className={cn(
-                                    'w-full min-h-[38px] flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-start text-xs transition-colors cursor-pointer',
-                                    isSelected
-                                      ? 'bg-primary text-sec font-black shadow-hard-sm'
-                                      : 'hover:bg-white dark:hover:bg-gray-700 text-sec dark:text-gray-200 font-bold'
-                                  )}
-                                >
-                                  <span className="truncate min-w-0">{task.name}</span>
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    {task.sprint && (
+                          {scrumTasks.length > 0 && (
+                            <div className="space-y-1">
+                              {scrumTasks.map((task) => {
+                                const isSelected =
+                                  selectedTarget?.kind === 'TASK' &&
+                                  selectedTarget?.id === task.id;
+                                const fullLabel = `[${s.scrum.name}] ${task.name}`;
+
+                                return (
+                                  <button
+                                    key={`task_${task.id}`}
+                                    type="button"
+                                    onClick={() =>
+                                      handleSelect({
+                                        kind: 'TASK',
+                                        id: task.id,
+                                        label: fullLabel,
+                                        points: task.points,
+                                        scrumColor: s.scrum.color,
+                                      })
+                                    }
+                                    className={cn(
+                                      'w-full min-h-[38px] flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-start text-xs transition-colors cursor-pointer',
+                                      isSelected
+                                        ? 'bg-primary text-sec font-black shadow-hard-sm'
+                                        : 'hover:bg-white dark:hover:bg-gray-700 text-sec dark:text-gray-200 font-bold'
+                                    )}
+                                  >
+                                    <span className="truncate min-w-0">{task.name}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {task.sprint && (
+                                        <span
+                                          className={cn(
+                                            'text-[10px] px-1.5 py-0.5 rounded font-bold tabular-nums',
+                                            isSelected
+                                              ? 'bg-sec/15 text-sec'
+                                              : 'bg-primary/15 text-sec dark:text-primary'
+                                          )}
+                                        >
+                                          S{toPersianDigits(task.sprint.number)}
+                                        </span>
+                                      )}
                                       <span
                                         className={cn(
                                           'text-[10px] px-1.5 py-0.5 rounded font-bold tabular-nums',
                                           isSelected
                                             ? 'bg-sec/15 text-sec'
-                                            : 'bg-primary/15 text-sec dark:text-primary'
+                                            : 'bg-sec/[0.07] dark:bg-gray-700 text-sec/70 dark:text-gray-300'
                                         )}
                                       >
-                                        S{toPersianDigits(task.sprint.number)}
+                                        {toPersianDigits(task.points)} پوینت
                                       </span>
-                                    )}
-                                    <span
-                                      className={cn(
-                                        'text-[10px] px-1.5 py-0.5 rounded font-bold tabular-nums',
-                                        isSelected
-                                          ? 'bg-sec/15 text-sec'
-                                          : 'bg-sec/[0.07] dark:bg-gray-700 text-sec/70 dark:text-gray-300'
-                                      )}
-                                    >
-                                      {toPersianDigits(task.points)} پوینت
-                                    </span>
-                                    {isSelected && <Check className="w-3.5 h-3.5 text-sec" />}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-sec" />}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
-            <div className="space-y-1.5 pt-2 border-t border-sec/10 dark:border-gray-800">
+            <div
+              className={cn(
+                'space-y-1.5',
+                (hasScrumMemberships || (!searchTerm && recentTargets.length > 0)) &&
+                  'pt-2 border-t border-sec/10 dark:border-gray-800'
+              )}
+            >
               <div className="flex items-center gap-1.5 px-2 text-[11px] font-black text-sec/60 dark:text-gray-400">
                 <FolderKanban className="w-3.5 h-3.5 text-primary" />
                 <span>پروژه‌های استودیو</span>
