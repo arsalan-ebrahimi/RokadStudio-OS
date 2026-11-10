@@ -2,6 +2,11 @@ import { apiClient } from '@/shared/lib/api-client';
 import type { User, Role } from '@/shared/types/models';
 import type { ApiResponse } from '@/shared/types/api';
 
+export interface UserBasic {
+  id: number;
+  name: string;
+}
+
 export interface CreateUserPayload {
   code: string;
   name: string;
@@ -41,6 +46,13 @@ export async function deleteUser(id: number): Promise<void> {
 
 export async function searchActiveUsers(q?: string): Promise<User[]> {
   const res = await apiClient<User[]>('/api/users/search', { params: { q } });
+  return res.data;
+}
+
+export async function fetchScrumAdmins(q?: string): Promise<UserBasic[]> {
+  const res = await apiClient<UserBasic[]>('/api/users/scrum-admins', {
+    params: q && q.trim() ? { q: q.trim() } : undefined,
+  });
   return res.data;
 }
 

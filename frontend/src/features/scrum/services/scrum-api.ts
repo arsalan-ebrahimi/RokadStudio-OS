@@ -2,13 +2,19 @@ import { apiClient } from '@/shared/lib/api-client';
 import type {
   Scrum,
   ScrumMember,
+  ScrumUserRef,
   Sprint,
   SprintProject,
+  ScrumLinkedProject,
+  AvailableScrumProject,
   ScrumKpi,
   ScrumEvent,
   TodayScrumEvent,
   WorkTargetsResponse,
   ScrumReportData,
+  ScrumLeaderboardData,
+  ScrumAdminDashboardData,
+  LeaderboardPeriod,
   ScrumColor,
   SprintStatus,
   ItemStatus,
@@ -21,9 +27,9 @@ export async function fetchScrums(): Promise<Scrum[]> {
 
 export async function createScrum(payload: {
   name: string;
-  description?: string;
+  description?: string | null;
   color?: ScrumColor;
-  ownerId?: number;
+  adminIds?: number[];
 }): Promise<Scrum> {
   const res = await apiClient<Scrum>('/api/scrums', {
     method: 'POST',
@@ -39,7 +45,7 @@ export async function fetchScrumById(id: number): Promise<Scrum> {
 
 export async function updateScrum(
   id: number,
-  payload: { name?: string; description?: string; color?: ScrumColor; isActive?: boolean }
+  payload: { name?: string; description?: string | null; color?: ScrumColor; isActive?: boolean }
 ): Promise<Scrum> {
   const res = await apiClient<Scrum>(`/api/scrums/${id}`, {
     method: 'PATCH',
@@ -54,6 +60,14 @@ export async function deleteScrum(id: number): Promise<void> {
   });
 }
 
+export async function syncScrumAdmins(id: number, userIds: number[]): Promise<ScrumUserRef[]> {
+  const res = await apiClient<ScrumUserRef[]>(`/api/scrums/${id}/admins`, {
+    method: 'PUT',
+    body: JSON.stringify({ userIds }),
+  });
+  return res.data;
+}
+
 export async function syncScrumMembers(
   id: number,
   members: { userId: number; label?: string | null }[]
@@ -61,6 +75,61 @@ export async function syncScrumMembers(
   const res = await apiClient<ScrumMember[]>(`/api/scrums/${id}/members`, {
     method: 'PUT',
     body: JSON.stringify({ members }),
+  });
+  return res.data;
+}
+
+export async function fetchScrumProjects(scrumId: number): Promise<ScrumLinkedProject[]> {
+  const res = await apiClient<ScrumLinkedProject[]>(`/api/scrums/${scrumId}/projects`);
+  return res.data;
+}
+
+export async function createScrumProject(
+  scrumId: number,
+  payload: { name: string; description?: string | null; memberIds?: number[] }
+): Promise<ScrumLinkedProject> {
+  const res = await apiClient<ScrumLinkedProject>(`/api/scrums/${scrumId}/projects`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function fetchAvailableScrumProjects(
+  scrumId: number,
+  q?: string
+): Promise<AvailableScrumProject[]> {
+  const res = await apiClient<AvailableScrumProject[]>(`/api/scrums/${scrumId}/projects/available`, {
+    params: q && q.trim() ? { q: q.trim() } : undefined,
+  });
+  return res.data;
+}
+
+export async function linkProjectToScrum(
+  scrumId: number,
+  projectId: number
+): Promise<ScrumLinkedProject> {
+  const res = await apiClient<ScrumLinkedProject>(`/api/scrums/${scrumId}/projects/link`, {
+    method: 'POST',
+    body: JSON.stringify({ projectId }),
+  });
+  return res.data;
+}
+
+export async function unlinkProjectFromScrum(scrumId: number, projectId: number): Promise<void> {
+  await apiClient<null>(`/api/scrums/${scrumId}/projects/${projectId}/link`, {
+    method: 'DELETE',
+  });
+}
+
+export async function syncScrumProjectMembers(
+  scrumId: number,
+  projectId: number,
+  userIds: number[]
+): Promise<ScrumUserRef[]> {
+  const res = await apiClient<ScrumUserRef[]>(`/api/scrums/${scrumId}/projects/${projectId}/members`, {
+    method: 'PUT',
+    body: JSON.stringify({ userIds }),
   });
   return res.data;
 }
@@ -113,7 +182,7 @@ export async function deleteSprint(id: number): Promise<void> {
 
 export async function createSprintProject(
   sprintId: number,
-  payload: { name: string; points?: number; assigneeId?: number | null }
+  payload: { name: string; points?: number; assigneeId?: number | null; projectId?: number | null }
 ): Promise<SprintProject> {
   const res = await apiClient<SprintProject>(`/api/sprints/${sprintId}/projects`, {
     method: 'POST',
@@ -128,6 +197,7 @@ export async function updateSprintProject(
     name?: string;
     points?: number;
     assigneeId?: number | null;
+    projectId?: number | null;
     status?: ItemStatus;
     sortOrder?: number;
   }
@@ -191,3 +261,20 @@ export async function fetchScrumReport(
   return res.data;
 }
 
+export async function fetchScrumLeaderboard(
+  scrumId: number,
+  params?: { period?: LeaderboardPeriod; sprintId?: number }
+): Promise<ScrumLeaderboardData> {
+  const res = await apiClient<ScrumLeaderboardData>(`/api/scrums/${scrumId}/leaderboard`, {
+    params: {
+      period: params?.period,
+      sprintId: params?.period === 'SPRINT' && params?.sprintId ? params.sprintId : undefined,
+    },
+  });
+  return res.data;
+}
+
+export async function fetchScrumAdminDashboard(): Promise<ScrumAdminDashboardData> {
+  const res = await apiClient<ScrumAdminDashboardData>('/api/scrum-admin/dashboard');
+  return res.data;
+}

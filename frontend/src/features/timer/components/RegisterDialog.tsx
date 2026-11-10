@@ -28,7 +28,7 @@ export const RegisterDialog: React.FC<RegisterDialogProps> = ({
     if (match) {
       return (
         <span className="inline-flex items-center gap-1.5 flex-wrap align-middle">
-          <span className="px-2 py-0.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-black">
+          <span className="px-2 py-0.5 rounded-lg bg-ecosystem-light dark:bg-ecosystem-darker/60 border border-primary/35 text-sec dark:text-ecosystem-light text-xs font-black">
             {match[1]}
           </span>
           <span className="font-black text-sec dark:text-white">{match[2]}</span>
@@ -56,7 +56,7 @@ export const RegisterDialog: React.FC<RegisterDialogProps> = ({
             onClick={onConfirmContinue}
             isLoading={isLoading}
             disabled={isLoading}
-            className="w-full text-xs sm:text-sm py-2.5"
+            className="w-full text-xs sm:text-sm"
           >
             ثبت و ادامه‌ی پومودورو روی پروژه‌ی دیگر
           </Button>
@@ -65,16 +65,16 @@ export const RegisterDialog: React.FC<RegisterDialogProps> = ({
             variant="outline"
             onClick={onConfirmFinish}
             disabled={isLoading}
-            className="w-full text-xs sm:text-sm py-2.5"
+            className="w-full text-xs sm:text-sm"
           >
             ثبت و پایان کار (ریست پومودورو)
           </Button>
 
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={onClose}
             disabled={isLoading}
-            className="w-full text-xs sm:text-sm py-2 text-ink-normal/60 dark:text-gray-400"
+            className="w-full text-xs sm:text-sm text-sec/70 dark:text-gray-300"
           >
             انصراف
           </Button>

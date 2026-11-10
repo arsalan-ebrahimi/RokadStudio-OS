@@ -445,6 +445,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
         queryClient.invalidateQueries({ queryKey: ['scrum'] });
         queryClient.invalidateQueries({ queryKey: ['sprint'] });
+        queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان پروژه ثبت و پروژه تغییر یافت');
       } catch (err: unknown) {
         let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';
@@ -565,6 +566,7 @@ export function useTimer(initialTargetOrProjectId?: TimerTarget | number | null)
         queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
         queryClient.invalidateQueries({ queryKey: ['scrum'] });
         queryClient.invalidateQueries({ queryKey: ['sprint'] });
+        queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
         toast.success('زمان کار با موفقیت ثبت شد');
       } catch (err: unknown) {
         let errorMsg = 'ثبت انجام نشد. زمان شما حفظ شده است؛ دوباره تلاش کنید.';

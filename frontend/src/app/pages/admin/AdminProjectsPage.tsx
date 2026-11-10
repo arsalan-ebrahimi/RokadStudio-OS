@@ -1,14 +1,41 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, Edit2, Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
-import { Card, Button, Input, Checkbox, Select, Modal, ConfirmDialog, Skeleton, EmptyState, Badge, toast } from '@/shared/ui';
+import { Plus, Users, Edit2, Trash2, CheckCircle2, RotateCcw, Layers } from 'lucide-react';
+import {
+  Card,
+  Button,
+  Input,
+  Checkbox,
+  Select,
+  Modal,
+  ConfirmDialog,
+  Skeleton,
+  EmptyState,
+  ErrorState,
+  Badge,
+  SegmentedControl,
+  toast,
+} from '@/shared/ui';
 import { fetchAllProjects } from '@/features/projects/api/projects-api';
-import { createProject, updateProject, deleteProject, fetchProjectDetails, syncMembers } from '@/features/projects/api/projects-crud-api';
+import {
+  createProject,
+  updateProject,
+  deleteProject,
+  fetchProjectDetails,
+  syncMembers,
+  type UpdateProjectPayload,
+} from '@/features/projects/api/projects-crud-api';
 import { searchActiveUsers } from '@/features/users/api/users-api';
 import { useAuthStore } from '@/features/auth';
+import { useScrums, SCRUM_COLOR_MAP } from '@/features/scrum';
 import { cn } from '@/shared/lib/utils';
 import { toPersianDigits } from '@/shared/lib/formatters';
 import type { Project, User } from '@/shared/types/models';
+
+interface ProjectsListCache {
+  data: Project[];
+  meta?: unknown;
+}
 
 export const AdminProjectsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -19,6 +46,7 @@ export const AdminProjectsPage: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
+  const [formScrumId, setFormScrumId] = useState<number | null>(null);
 
   const [membersProject, setMembersProject] = useState<Project | null>(null);
   const [projectMembers, setProjectMembers] = useState<{ id: number; name: string }[]>([]);
@@ -29,14 +57,29 @@ export const AdminProjectsPage: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editIsActive, setEditIsActive] = useState(true);
+  const [editScrumId, setEditScrumId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [togglingProject, setTogglingProject] = useState<{ id: number; name: string; toActive: boolean } | null>(null);
+  const [togglingProject, setTogglingProject] = useState<{
+    id: number;
+    name: string;
+    toActive: boolean;
+  } | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['admin-projects'],
     queryFn: () => fetchAllProjects(),
     staleTime: 30_000,
   });
+
+  // Only SUPER_ADMIN fetches /api/scrums (ADMIN does not have access to /api/scrums)
+  const { data: scrumsList = [] } = useScrums({ enabled: isSuperAdmin });
+  const activeScrums = scrumsList.filter((s) => s.isActive);
 
   const { data: activeUsers = [], isLoading: isActiveUsersLoading } = useQuery({
     queryKey: ['active-users'],
@@ -47,37 +90,51 @@ export const AdminProjectsPage: React.FC = () => {
 
   const projects = data?.data || [];
 
+  const invalidateProjectRelatedQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+    queryClient.invalidateQueries({ queryKey: ['work-targets', 'mine'] });
+    queryClient.invalidateQueries({ queryKey: ['scrums'] });
+    queryClient.invalidateQueries({ queryKey: ['scrum'] });
+    queryClient.invalidateQueries({ queryKey: ['scrum-admin', 'dashboard'] });
+  };
+
   const createMut = useMutation({
-    mutationFn: () => createProject({ name: formName.trim(), description: formDesc.trim() || undefined }),
+    mutationFn: () =>
+      createProject({
+        name: formName.trim(),
+        description: formDesc.trim() || undefined,
+        scrumId: formScrumId,
+      }),
     onSuccess: (newProject: Project) => {
-      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+      queryClient.setQueriesData<ProjectsListCache>({ queryKey: ['admin-projects'] }, (old) => {
         if (!old?.data) return { data: [newProject] };
         return {
           ...old,
           data: [newProject, ...old.data.filter((p: Project) => p.id !== newProject.id)],
         };
       });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      invalidateProjectRelatedQueries();
       setIsAddOpen(false);
       setFormName('');
       setFormDesc('');
+      setFormScrumId(null);
       toast.success('پروژه ساخته شد');
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: { name?: string; description?: string; isActive?: boolean } }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateProjectPayload }) =>
       updateProject(id, payload),
     onSuccess: (updated: Project) => {
-      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+      queryClient.setQueriesData<ProjectsListCache>({ queryKey: ['admin-projects'] }, (old) => {
         if (!old?.data) return old;
         return {
           ...old,
           data: old.data.map((p: Project) => (p.id === updated.id ? { ...p, ...updated } : p)),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      invalidateProjectRelatedQueries();
       setEditingProject(null);
       toast.success('پروژه ویرایش شد');
     },
@@ -88,7 +145,7 @@ export const AdminProjectsPage: React.FC = () => {
     mutationFn: (id: number) => deleteProject(id),
     onMutate: async (deletedId: number) => {
       setDeletingId(null);
-      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+      queryClient.setQueriesData<ProjectsListCache>({ queryKey: ['admin-projects'] }, (old) => {
         if (!old?.data) return old;
         return {
           ...old,
@@ -98,7 +155,7 @@ export const AdminProjectsPage: React.FC = () => {
     },
     onSuccess: () => {
       toast.success('پروژه و سشن‌های مربوط به آن با موفقیت حذف شدند');
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      invalidateProjectRelatedQueries();
       queryClient.invalidateQueries({ queryKey: ['admin-work-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
     },
@@ -111,7 +168,7 @@ export const AdminProjectsPage: React.FC = () => {
   const syncMembersMut = useMutation({
     mutationFn: ({ id, userIds }: { id: number; userIds: number[] }) => syncMembers(id, userIds),
     onSuccess: (_, variables) => {
-      queryClient.setQueriesData({ queryKey: ['admin-projects'] }, (old: any) => {
+      queryClient.setQueriesData<ProjectsListCache>({ queryKey: ['admin-projects'] }, (old) => {
         if (!old?.data) return old;
         return {
           ...old,
@@ -120,7 +177,7 @@ export const AdminProjectsPage: React.FC = () => {
           ),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+      invalidateProjectRelatedQueries();
       setMembersProject(null);
       toast.success('اعضای پروژه بروزرسانی شدند');
     },
@@ -150,6 +207,7 @@ export const AdminProjectsPage: React.FC = () => {
     setEditName(p.name);
     setEditDesc(p.description || '');
     setEditIsActive(Boolean(p.isActive));
+    setEditScrumId(p.scrumId ?? p.scrum?.id ?? null);
   };
 
   const activeCount = projects.filter((p: Project) => p.isActive).length;
@@ -175,110 +233,140 @@ export const AdminProjectsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="h-[38px] flex items-center gap-1 bg-white dark:bg-[#151C28] p-1 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar max-w-full shrink-0">
-          <button
-            onClick={() => setStatusFilter('ALL')}
-            className={cn(
-              'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-              statusFilter === 'ALL'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-            )}
-          >
-            همه ({projects.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('ACTIVE')}
-            className={cn(
-              'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-              statusFilter === 'ACTIVE'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-            )}
-          >
-            در حال اجرا ({activeCount})
-          </button>
-          <button
-            onClick={() => setStatusFilter('COMPLETED')}
-            className={cn(
-              'h-full flex items-center px-2.5 sm:px-3 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-              statusFilter === 'COMPLETED'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-ink-normal/70 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-            )}
-          >
-            تمام شده ({completedCount})
-          </button>
-        </div>
+        <SegmentedControl<'ALL' | 'ACTIVE' | 'COMPLETED'>
+          value={statusFilter}
+          onChange={setStatusFilter}
+          aria-label="فیلتر وضعیت پروژه‌ها"
+          className="overflow-x-auto no-scrollbar max-w-full shrink-0"
+          options={[
+            { value: 'ALL', label: `همه (${toPersianDigits(projects.length)})` },
+            { value: 'ACTIVE', label: `در حال اجرا (${toPersianDigits(activeCount)})` },
+            { value: 'COMPLETED', label: `تمام شده (${toPersianDigits(completedCount)})` },
+          ]}
+        />
 
         {isSuperAdmin && (
-          <Button size="sm" variant="primary" onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto shrink-0">
-            <Plus className="w-4 h-4 me-1" />
-            پروژه جدید
+          <Button
+            variant="primary"
+            onClick={() => {
+              setFormName('');
+              setFormDesc('');
+              setFormScrumId(null);
+              setIsAddOpen(true);
+            }}
+            className="w-full sm:w-auto shrink-0 gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>پروژه جدید</span>
           </Button>
         )}
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array(3)
+            .fill(0)
+            .map((_, i) => (
+              <Skeleton key={i} className="h-44 w-full rounded-3xl" />
+            ))}
+        </div>
+      ) : isError ? (
+        <ErrorState
+          title="خطا در دریافت پروژه‌ها"
+          message={error instanceof Error ? error.message : 'دریافت فهرست پروژه‌ها با خطا مواجه شد.'}
+          onRetry={() => refetch()}
+        />
       ) : filteredProjects.length === 0 ? (
         <EmptyState title="هیچ پروژه‌ای در این بخش یافت نشد" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredProjects.map((p: Project) => (
-            <Card key={p.id} className="p-4 sm:p-5 flex flex-col justify-between space-y-4">
-              <div>
-                <div className="flex items-start justify-between gap-2 min-w-0">
-                  <h3 className="text-sm sm:text-base font-bold text-sec dark:text-white leading-snug break-words">
-                    {p.name}
-                  </h3>
-                  <Badge variant={p.isActive ? 'ecosystem' : 'neutral'} className="shrink-0">
-                    {p.isActive ? 'در حال اجرا' : 'تمام شده'}
-                  </Badge>
-                </div>
-                <p className="text-xs text-ink-normal/60 dark:text-gray-400 mt-2 line-clamp-2 min-h-[32px]">
-                  {p.description || 'بدون توضیحات'}
-                </p>
-              </div>
+          {filteredProjects.map((p: Project) => {
+            const scrumColor = p.scrum ? SCRUM_COLOR_MAP[p.scrum.color] || SCRUM_COLOR_MAP.CLUB : null;
 
-              <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                <Button size="sm" variant="outline" onClick={() => openMembersModal(p)}>
-                  <Users className="w-3.5 h-3.5 me-1 text-primary" />
-                  اعضا ({toPersianDigits(p.memberCount || 0)})
-                </Button>
-
-                {isSuperAdmin && (
-                  <div className="flex items-center gap-1.5">
-                    {p.isActive ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setTogglingProject({ id: p.id, name: p.name, toActive: false })}
-                        title="ثبت به عنوان تمام شده"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setTogglingProject({ id: p.id, name: p.name, toActive: true })}
-                        title="فعال‌سازی مجدد پروژه"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 text-ink-normal/60" />
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => openEditModal(p)} aria-label="ویرایش">
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button size="sm" variant="danger" onClick={() => setDeletingId(p.id)} aria-label="حذف">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+            return (
+              <Card
+                key={p.id}
+                className="p-5 rounded-3xl border-[1.5px] border-sec/20 dark:border-primary/25 flex flex-col justify-between space-y-4"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <h3 className="text-sm sm:text-base font-black text-sec dark:text-white leading-snug break-words">
+                      {p.name}
+                    </h3>
+                    <Badge dot variant={p.isActive ? 'ecosystem' : 'neutral'} className="shrink-0">
+                      {p.isActive ? 'در حال اجرا' : 'تمام شده'}
+                    </Badge>
                   </div>
-                )}
-              </div>
-            </Card>
-          ))}
+
+                  {p.scrum && scrumColor && (
+                    <div className="pt-0.5">
+                      <Badge variant={scrumColor.badgeVariant}>
+                        <Layers className="w-3 h-3 shrink-0" />
+                        <span>{p.scrum.name}</span>
+                      </Badge>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-ink-normal/65 dark:text-gray-400 line-clamp-2 min-h-[32px] leading-relaxed">
+                    {p.description || 'بدون توضیحات'}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-sec/10 dark:border-gray-800 flex items-center justify-between gap-2">
+                  <Button size="sm" variant="outline" onClick={() => openMembersModal(p)} className="gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-sec dark:text-primary" />
+                    <span className="tabular-nums">اعضا ({toPersianDigits(p.memberCount || 0)})</span>
+                  </Button>
+
+                  {isSuperAdmin && (
+                    <div className="flex items-center gap-1.5">
+                      {p.isActive ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setTogglingProject({ id: p.id, name: p.name, toActive: false })
+                          }
+                          title="ثبت به عنوان تمام شده"
+                          aria-label="ثبت به عنوان تمام شده"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#007A52] dark:text-primary" />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setTogglingProject({ id: p.id, name: p.name, toActive: true })
+                          }
+                          title="فعال‌سازی مجدد پروژه"
+                          aria-label="فعال‌سازی مجدد پروژه"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-sec/70 dark:text-gray-300" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEditModal(p)}
+                        aria-label="ویرایش"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setDeletingId(p.id)}
+                        aria-label="حذف"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -304,6 +392,18 @@ export const AdminProjectsPage: React.FC = () => {
             value={formDesc}
             onChange={(e) => setFormDesc(e.target.value)}
           />
+          <Select
+            label="اسکرام (اختیاری)"
+            value={formScrumId ?? ''}
+            onChange={(e) => setFormScrumId(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">بدون اسکرام (استودیو)</option>
+            {activeScrums.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
           <Button
             type="submit"
             variant="primary"
@@ -329,16 +429,46 @@ export const AdminProjectsPage: React.FC = () => {
                     name: editName.trim(),
                     description: editDesc.trim() || undefined,
                     isActive: editIsActive,
+                    scrumId: editScrumId,
                   },
                 });
               }
             }}
             className="space-y-4"
           >
-            <Input label="نام پروژه" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
-            <Input label="توضیحات (اختیاری)" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            <Input
+              label="نام پروژه"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              autoFocus
+            />
+            <Input
+              label="توضیحات (اختیاری)"
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value)}
+            />
+            <Select
+              label="اسکرام (اختیاری)"
+              value={editScrumId ?? ''}
+              onChange={(e) => setEditScrumId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">بدون اسکرام (استودیو)</option>
+              {editingProject.scrum &&
+                !activeScrums.some((s) => s.id === editingProject.scrum?.id) && (
+                  <option value={editingProject.scrum.id}>
+                    {editingProject.scrum.name} (بایگانی)
+                  </option>
+                )}
+              {activeScrums.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">وضعیت پروژه</label>
+              <label className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">
+                وضعیت پروژه
+              </label>
               <Select
                 value={editIsActive ? 'active' : 'completed'}
                 onChange={(e) => setEditIsActive(e.target.value === 'active')}
@@ -404,12 +534,14 @@ export const AdminProjectsPage: React.FC = () => {
                   placeholder="جستجوی نام یا کد پرسنل..."
                   value={memberSearchQuery}
                   onChange={(e) => setMemberSearchQuery(e.target.value)}
-                  className="h-9 text-xs"
                 />
-                <div className="flex items-center justify-between text-xs text-ink-normal/60 dark:text-gray-400 px-1">
+                <div className="flex items-center justify-between text-xs text-ink-normal/70 dark:text-gray-300 px-1">
                   <span>
                     تعداد اعضای انتخاب شده:{' '}
-                    <strong className="text-primary font-black">{toPersianDigits(selectedUserIds.length)}</strong> نفر
+                    <strong className="text-sec dark:text-primary font-black tabular-nums">
+                      {toPersianDigits(selectedUserIds.length)}
+                    </strong>{' '}
+                    نفر
                   </span>
                   {activeUsers.length > 0 && (
                     <button
@@ -421,9 +553,11 @@ export const AdminProjectsPage: React.FC = () => {
                           setSelectedUserIds(activeUsers.map((u: User) => u.id));
                         }
                       }}
-                      className="text-primary hover:underline font-bold text-xs"
+                      className="text-sec dark:text-primary hover:underline font-bold text-xs cursor-pointer"
                     >
-                      {selectedUserIds.length === activeUsers.length ? 'لغو انتخاب همه' : 'انتخاب همه'}
+                      {selectedUserIds.length === activeUsers.length
+                        ? 'لغو انتخاب همه'
+                        : 'انتخاب همه'}
                     </button>
                   )}
                 </div>
@@ -432,19 +566,30 @@ export const AdminProjectsPage: React.FC = () => {
               {/* Users List */}
               {filteredActiveUsers.length === 0 ? (
                 <EmptyState
-                  title={memberSearchQuery ? 'کاربری با این مشخصات یافت نشد' : 'هیچ کاربر فعالی یافت نشد'}
+                  title={
+                    memberSearchQuery ? 'کاربری با این مشخصات یافت نشد' : 'هیچ کاربر فعالی یافت نشد'
+                  }
                 />
               ) : (
                 <div className="space-y-2 max-h-80 overflow-y-auto p-1">
                   {filteredActiveUsers.map((u: User) => {
                     const isSelected = selectedUserIds.includes(u.id);
+                    const roleLabel =
+                      u.role === 'SUPER_ADMIN'
+                        ? 'مدیر ارشد'
+                        : u.role === 'SCRUM_ADMIN'
+                          ? 'مدیر اسکرام'
+                          : u.role === 'ADMIN'
+                            ? 'ادمین'
+                            : 'کاربر';
+
                     return (
                       <label
                         key={u.id}
                         className={cn(
-                          'flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer select-none',
+                          'flex items-center justify-between p-3 rounded-2xl border-[1.5px] transition-all cursor-pointer select-none',
                           isSelected
-                            ? 'border-primary bg-primary/10 dark:bg-primary/15 ring-1 ring-primary/40 shadow-sm'
+                            ? 'border-sec/40 dark:border-primary bg-ecosystem-light/70 dark:bg-ecosystem-darker/40 shadow-sm'
                             : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] hover:border-gray-300 dark:hover:border-gray-600'
                         )}
                       >
@@ -460,7 +605,7 @@ export const AdminProjectsPage: React.FC = () => {
                               {u.code && <span>کد: {u.code}</span>}
                               {u.role && (
                                 <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-semibold">
-                                  {u.role === 'SUPER_ADMIN' ? 'مدیر ارشد' : u.role === 'ADMIN' ? 'ادمین' : 'کاربر'}
+                                  {roleLabel}
                                 </span>
                               )}
                             </div>
@@ -484,7 +629,9 @@ export const AdminProjectsPage: React.FC = () => {
                 className="w-full mt-4"
                 isLoading={syncMembersMut.isPending}
                 disabled={isMembersModalLoading || syncMembersMut.isPending}
-                onClick={() => syncMembersMut.mutate({ id: membersProject.id, userIds: selectedUserIds })}
+                onClick={() =>
+                  syncMembersMut.mutate({ id: membersProject.id, userIds: selectedUserIds })
+                }
               >
                 ذخیره اعضا ({toPersianDigits(selectedUserIds.length)})
               </Button>
@@ -500,7 +647,9 @@ export const AdminProjectsPage: React.FC = () => {
                       key={m.id}
                       className="flex items-center justify-between p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#151C28]/50"
                     >
-                      <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">{m.name}</span>
+                      <span className="text-xs sm:text-sm font-bold text-sec dark:text-white">
+                        {m.name}
+                      </span>
                       <Badge variant="neutral">عضو</Badge>
                     </div>
                   ))}
@@ -542,7 +691,7 @@ export const AdminProjectsPage: React.FC = () => {
             },
             {
               onSuccess: () => {
-                queryClient.invalidateQueries({ queryKey: ['admin-projects'] });
+                invalidateProjectRelatedQueries();
                 toast.success(
                   togglingProject.toActive ? 'پروژه فعال شد' : 'پروژه به عنوان تمام شده ثبت شد'
                 );

@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { Play, Pause, CheckCircle, Coffee, Flame, AlertCircle, X, Sparkles } from 'lucide-react';
+import { Coffee, Flame, AlertCircle, X, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Button } from '@/shared/ui';
 import { formatSecondsToTime, formatSecondsToHms, toPersianDigits } from '@/shared/lib/formatters';
 import { FOCUS_MS, BREAK_MS } from '../config/timer-constants';
 import { PomodoroMode, TimerStatus } from '../lib/timer-engine';
+import { TimerControls } from './TimerControls';
 import { cn } from '@/shared/lib/utils';
 
 interface TimerDisplayProps {
@@ -26,6 +26,7 @@ interface TimerDisplayProps {
   isOtherTabActive: boolean;
   onDismissOtherTabLock?: () => void;
   isSubmitting: boolean;
+  headerSlot?: React.ReactNode;
 }
 
 export const TimerDisplay: React.FC<TimerDisplayProps> = ({
@@ -47,19 +48,25 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   isOtherTabActive,
   onDismissOtherTabLock,
   isSubmitting,
+  headerSlot,
 }) => {
   const isRunning = status === 'RUNNING';
+  const isPaused = status === 'PAUSED';
   const isBreak = pomodoroMode === 'BREAK';
   const prevModeRef = useRef<PomodoroMode>(pomodoroMode);
 
-  // Confetti when transition to break occurs
+  // Confetti when transition to break occurs (skipped under prefers-reduced-motion)
   useEffect(() => {
-    if (prevModeRef.current === 'FOCUS' && pomodoroMode === 'BREAK') {
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+    if (!prefersReducedMotion && prevModeRef.current === 'FOCUS' && pomodoroMode === 'BREAK') {
       confetti({
         particleCount: 70,
         spread: 60,
         origin: { y: 0.65 },
-        colors: ['#59BBAF', '#E0195B', '#F8A41D', '#612B89', '#202A5A'],
+        colors: ['#59BBAF', '#E0195B', '#F8A41D', '#652D90', '#202A5A'],
         shapes: ['square', 'circle'],
         ticks: 200,
       });
@@ -67,233 +74,205 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
     prevModeRef.current = pomodoroMode;
   }, [pomodoroMode]);
 
-  // Pomodoro SVG Progress calculation
   const totalPomodoroSeconds = isBreak ? BREAK_MS / 1000 : FOCUS_MS / 1000;
   const progress = Math.max(0, Math.min(1, pomodoroRemainingSeconds / totalPomodoroSeconds));
   const radius = 95;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - progress);
 
+  // Break shifts calmly to Mint (#59BBAF)
   const strokeColor = isBreak
-    ? '#E0195B'
-    : status === 'PAUSED'
-    ? '#F8A41D'
-    : isRunning
     ? '#59BBAF'
-    : '#CBD5E1';
-
-  // Determine active helper text under buttons
-  const activeHelperText =
-    isOtherTabActive
-      ? 'تایمر در تب دیگری فعال است.'
-      : mainButtonDisabled && mainButtonDisabledReason
-      ? mainButtonDisabledReason
-      : registerButtonDisabled && registerButtonDisabledReason && status === 'IDLE' && workSeconds < 1
-      ? 'برای شروع، ابتدا دکمه شروع را بزنید.'
-      : null;
+    : isPaused
+      ? '#F8A41D'
+      : isRunning
+        ? '#59BBAF'
+        : '#CBD5E1';
 
   return (
-    <div className="flex flex-col items-center justify-center p-2 sm:p-4 space-y-6">
+    <div className="flex flex-col items-center justify-center w-full gap-6">
       {/* Aria-live region for accessibility announcements on status changes */}
       <div className="sr-only" aria-live="polite">
         {isBreak
           ? 'زمان استراحت آغاز شد'
           : isRunning
-          ? 'تایمر شروع به کار کرد'
-          : status === 'PAUSED'
-          ? 'تایمر متوقف شد'
-          : 'تایمر در حالت آماده‌باش است'}
+            ? 'تایمر شروع به کار کرد'
+            : isPaused
+              ? 'تایمر متوقف شد'
+              : 'تایمر در حالت آماده‌باش است'}
       </div>
 
-      {/* Recovered Previous Session Notice */}
-      {showRecoveredNotice && (
-        <div className="w-full flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>جلسه‌ی قبلی بازیابی شد.</span>
-          </div>
-          <button
-            onClick={onDismissRecoveredNotice}
-            className="p-1 hover:bg-amber-200/60 dark:hover:bg-amber-800/60 rounded-lg transition-colors"
-            aria-label="بستن پیام"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+      {/* Transient Notices Stack (when present) */}
+      {(showRecoveredNotice || isOtherTabActive || showFocusBanner) && (
+        <div className="w-full space-y-2.5">
+          {showRecoveredNotice && (
+            <div className="w-full flex items-center justify-between p-3 rounded-2xl bg-college-light dark:bg-amber-950/40 border-[1.5px] border-college-normal/60 text-sec dark:text-amber-200 text-xs font-bold animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-college-dark dark:text-amber-400 shrink-0" />
+                <span>جلسه‌ی قبلی بازیابی شد.</span>
+              </div>
+              <button
+                type="button"
+                onClick={onDismissRecoveredNotice}
+                className="w-8 h-8 -m-1 flex items-center justify-center hover:bg-college-normal/20 rounded-xl transition-colors cursor-pointer"
+                aria-label="بستن پیام"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
-      {/* Multi-Tab Lock Warning */}
-      {isOtherTabActive && (
-        <div className="w-full flex items-center justify-between p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 text-xs font-bold animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-            <span>تایمر در تب دیگری فعال است.</span>
-          </div>
-          {onDismissOtherTabLock && (
-            <button
-              onClick={onDismissOtherTabLock}
-              className="p-1 hover:bg-rose-200/60 dark:hover:bg-rose-800/60 rounded-lg transition-colors flex items-center gap-1 text-[11px]"
-              aria-label="انتقال کنترل به این تب"
-              title="انتقال کنترل به این تب"
-            >
-              <span className="hidden sm:inline">انتقال به این تب</span>
-              <X className="w-3.5 h-3.5" />
-            </button>
+          {isOtherTabActive && (
+            <div className="w-full flex items-center justify-between p-3 rounded-2xl bg-female-light dark:bg-rose-950/40 border-[1.5px] border-female-normal/50 text-[#A81344] dark:text-rose-200 text-xs font-bold animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-[#C60036] dark:text-rose-400 shrink-0" />
+                <span>تایمر در تب دیگری فعال است.</span>
+              </div>
+              {onDismissOtherTabLock && (
+                <button
+                  type="button"
+                  onClick={onDismissOtherTabLock}
+                  className="px-2.5 py-1.5 hover:bg-female-normal/15 rounded-xl transition-colors flex items-center gap-1 text-[11px] font-black cursor-pointer"
+                  aria-label="انتقال کنترل به این تب"
+                  title="انتقال کنترل به این تب"
+                >
+                  <span className="hidden sm:inline">انتقال به این تب</span>
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {showFocusBanner && (
+            <div className="w-full flex items-center justify-between gap-3 p-3 rounded-2xl bg-ecosystem-light dark:bg-ecosystem-darker/40 border-[1.5px] border-primary text-sec dark:text-white text-xs font-bold shadow-ecosystem animate-in slide-in-from-top-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                <span className="truncate">۲۵ دقیقه کار کردید. زمان استراحت ۵ دقیقه‌ای است.</span>
+              </div>
+              <button
+                type="button"
+                onClick={onDismissFocusBanner}
+                className="w-8 h-8 -m-1 flex items-center justify-center hover:bg-primary/20 rounded-xl text-sec dark:text-white transition-colors shrink-0 cursor-pointer"
+                aria-label="بستن پیام"
+                title="بستن"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {/* Focus Complete Notification Banner */}
-      {showFocusBanner && (
-        <div className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-girl/10 dark:bg-girl/20 border-2 border-girl text-sec dark:text-white text-xs font-bold shadow-female animate-in slide-in-from-top-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="w-4 h-4 text-girl shrink-0" />
-            <span className="truncate">۲۵ دقیقه کار کردید. زمان استراحت ۵ دقیقه‌ای است.</span>
-          </div>
-          <button
-            onClick={onDismissFocusBanner}
-            className="p-1 hover:bg-girl/20 dark:hover:bg-girl/30 rounded-lg text-sec dark:text-white transition-colors shrink-0"
-            aria-label="بستن پیام"
-            title="بستن"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+      {/* 1. Compact Centered Project Chip Slot (24px gap below) */}
+      {headerSlot && <div className="w-full flex justify-center">{headerSlot}</div>}
 
-      {/* 1. Large Work Stopwatch (HH:MM:SS) */}
-      <div className="flex flex-col items-center justify-center select-none">
-        <span className="text-xs font-bold text-ink-normal/60 dark:text-gray-400 flex items-center gap-1.5 mb-2.5">
-          <Flame className="w-3.5 h-3.5 text-primary" />
-          <span>زمان کار روی پروژه</span>
-        </span>
-        <div
-          className="text-4xl sm:text-5xl lg:text-6xl font-black tabular-nums tracking-wider text-sec dark:text-white"
-          dir="ltr"
-        >
-          {toPersianDigits(formatSecondsToHms(workSeconds))}
-        </div>
-      </div>
-
-      {/* 2. Pomodoro Countdown Ring (MM:SS) */}
-      <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center select-none my-1">
-        {isRunning && !isBreak && (
-          <div className="absolute inset-4 rounded-full bg-primary/10 dark:bg-primary/15 blur-2xl animate-pulse pointer-events-none" />
-        )}
-        {isBreak && (
-          <div className="absolute inset-4 rounded-full bg-girl/15 dark:bg-girl/20 blur-2xl animate-pulse pointer-events-none" />
-        )}
-
-        {/* SVG Progress Ring */}
-        <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 240 240">
-          <circle
-            cx="120"
-            cy="120"
-            r={radius}
-            fill="none"
-            strokeWidth="9"
-            className="stroke-gray-100 dark:stroke-[#1A2333] transition-colors"
-          />
-          <circle
-            cx="120"
-            cy="120"
-            r={radius}
-            fill="none"
-            strokeWidth="10"
-            strokeLinecap="round"
-            stroke={strokeColor}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            className="transition-all duration-300 ease-out"
-          />
-        </svg>
-
-        {/* Inner Card Content */}
-        <div
-          className={cn(
-            'absolute inset-4 rounded-full flex flex-col items-center justify-center shadow-hard transition-all',
-            'bg-white dark:bg-[#151C28] border-2 border-[#121824] dark:border-gray-700',
-            isRunning && !isBreak && 'border-primary dark:border-primary shadow-ecosystem',
-            status === 'PAUSED' && !isBreak && 'border-third dark:border-third shadow-college',
-            isBreak && 'border-girl dark:border-girl shadow-female'
-          )}
-        >
-          {/* Explicit Label: Not relying on color alone */}
+      {/* 2. Countdown Ring + Total Work Stopwatch */}
+      <div className="flex flex-col items-center justify-center gap-4 select-none">
+        {/* Work Stopwatch Summary */}
+        <div className="flex flex-col items-center justify-center">
+          <span className="text-[11px] sm:text-xs font-bold text-sec/60 dark:text-gray-400 flex items-center gap-1.5 mb-1.5">
+            <Flame className="w-3.5 h-3.5 text-primary" />
+            <span>زمان کار روی پروژه</span>
+          </span>
           <div
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 mb-2.5 sm:mb-3',
-              isBreak
-                ? 'bg-girl/15 text-girl border border-girl/30'
-                : 'bg-primary/15 text-primary border border-primary/30'
-            )}
-          >
-            {isBreak ? (
-              <>
-                <Coffee className="w-3.5 h-3.5 shrink-0" />
-                <span>استراحت</span>
-              </>
-            ) : (
-              <>
-                <Flame className="w-3.5 h-3.5 shrink-0" />
-                <span>تمرکز</span>
-              </>
-            )}
-          </div>
-
-          <span
-            className="text-3xl min-[400px]:text-4xl sm:text-5xl font-black tracking-tight tabular-nums text-sec dark:text-white"
+            className="text-3xl sm:text-5xl lg:text-6xl font-black tabular-nums tracking-wider text-sec dark:text-white"
             dir="ltr"
           >
-            {toPersianDigits(formatSecondsToTime(pomodoroRemainingSeconds))}
-          </span>
+            {toPersianDigits(formatSecondsToHms(workSeconds))}
+          </div>
         </div>
-      </div>
 
-      {/* 3. The Two Buttons (Main Button + «ثبت») */}
-      <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-        <div className="flex items-center gap-3 w-full">
-          {/* Main Button: شروع / توقف / ادامه */}
-          <Button
-            variant={isRunning ? 'secondary' : 'primary'}
-            size="lg"
-            onClick={onMainClick}
-            disabled={mainButtonDisabled}
-            className="flex-1 text-sm font-black h-12 shadow-hard"
-          >
-            {isRunning ? (
-              <>
-                <Pause className="w-4 h-4 me-1.5" />
-                توقف
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 me-1.5" />
-                {mainButtonLabel}
-              </>
+        {/* Pomodoro Countdown Ring (MM:SS) */}
+        <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
+          {isRunning && (
+            <div className="absolute inset-4 rounded-full bg-primary/15 dark:bg-primary/15 blur-2xl animate-pulse pointer-events-none" />
+          )}
+
+          {/* SVG Progress Ring */}
+          <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 240 240">
+            <circle
+              cx="120"
+              cy="120"
+              r={radius}
+              fill="none"
+              strokeWidth="9"
+              className="stroke-sec/[0.08] dark:stroke-[#1A2333] transition-colors"
+            />
+            <circle
+              cx="120"
+              cy="120"
+              r={radius}
+              fill="none"
+              strokeWidth="10"
+              strokeLinecap="round"
+              stroke={strokeColor}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              className="transition-all duration-300 ease-out"
+            />
+          </svg>
+
+          {/* Inner Countdown Badge & Time */}
+          <div
+            className={cn(
+              'absolute inset-4 rounded-full flex flex-col items-center justify-center transition-all border-[1.5px]',
+              isBreak
+                ? 'bg-ecosystem-light/70 dark:bg-[#132225] border-primary shadow-ecosystem'
+                : isPaused
+                  ? 'bg-white dark:bg-[#151C28] border-third shadow-college'
+                  : isRunning
+                    ? 'bg-white dark:bg-[#151C28] border-sec dark:border-primary shadow-ecosystem'
+                    : 'bg-white dark:bg-[#151C28] border-sec/35 dark:border-gray-700 shadow-male dark:shadow-hard'
             )}
-          </Button>
-
-          {/* Register Button: ثبت */}
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={onRegisterClick}
-            disabled={registerButtonDisabled}
-            isLoading={isSubmitting}
-            className="w-28 text-sm font-black h-12 shadow-hard border-2"
           >
-            <CheckCircle className="w-4 h-4 me-1.5 text-primary" />
-            ثبت
-          </Button>
-        </div>
+            <div
+              className={cn(
+                'px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 mb-2.5 sm:mb-3 border',
+                isBreak
+                  ? 'bg-primary text-sec border-sec/25'
+                  : isPaused
+                    ? 'bg-college-light text-[#704A0D] dark:bg-college-darker/60 dark:text-amber-200 border-college-normal/50'
+                    : 'bg-ecosystem-light dark:bg-ecosystem-darker/70 text-sec dark:text-ecosystem-light border-primary/40'
+              )}
+            >
+              {isBreak ? (
+                <>
+                  <Coffee className="w-3.5 h-3.5 shrink-0" />
+                  <span>استراحت</span>
+                </>
+              ) : (
+                <>
+                  <Flame className="w-3.5 h-3.5 shrink-0 text-primary dark:text-primary" />
+                  <span>تمرکز</span>
+                </>
+              )}
+            </div>
 
-        {/* Helper text explaining why controls are disabled */}
-        {activeHelperText && (
-          <p className="text-xs text-ink-normal/60 dark:text-gray-400 text-center font-bold px-2 leading-relaxed animate-in fade-in">
-            {activeHelperText}
-          </p>
-        )}
+            <span
+              className="text-3xl min-[400px]:text-4xl sm:text-5xl font-black tracking-tight tabular-nums text-sec dark:text-white"
+              dir="ltr"
+            >
+              {toPersianDigits(formatSecondsToTime(pomodoroRemainingSeconds))}
+            </span>
+          </div>
+        </div>
       </div>
+
+      {/* 3. Adjacent Centered Controls directly below Countdown (24px gap above, 12px gap between buttons) */}
+      <TimerControls
+        status={status}
+        workSeconds={workSeconds}
+        pomodoroMode={pomodoroMode}
+        mainButtonLabel={mainButtonLabel}
+        mainButtonDisabled={mainButtonDisabled}
+        mainButtonDisabledReason={mainButtonDisabledReason}
+        registerButtonDisabled={registerButtonDisabled}
+        registerButtonDisabledReason={registerButtonDisabledReason}
+        isOtherTabActive={isOtherTabActive}
+        isSubmitting={isSubmitting}
+        onMainClick={onMainClick}
+        onRegisterClick={onRegisterClick}
+      />
     </div>
   );
 };

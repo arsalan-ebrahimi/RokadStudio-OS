@@ -27,19 +27,19 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         />
         <div
           className={cn(
-            'w-5 h-5 rounded-lg border-2 transition-all flex items-center justify-center select-none',
-            'border-gray-300 bg-white dark:border-gray-600 dark:bg-[#1C2536]',
+            'w-5 h-5 rounded-lg border-[1.5px] transition-all flex items-center justify-center select-none',
+            'border-sec/35 bg-white dark:border-gray-600 dark:bg-[#1C2536]',
             'peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-[#151C28]',
-            'peer-checked:bg-primary peer-checked:border-primary peer-checked:text-white',
+            'peer-checked:bg-primary peer-checked:border-sec peer-checked:text-sec',
             'peer-checked:shadow-[2px_2px_0_#202A5A] dark:peer-checked:shadow-[2px_2px_0_#59BBAF]',
-            'peer-hover:border-primary/80',
-            disabled ? 'opacity-50 cursor-not-allowed peer-hover:border-gray-300 dark:peer-hover:border-gray-600' : 'cursor-pointer',
+            'peer-hover:border-sec/65',
+            disabled ? 'opacity-50 cursor-not-allowed peer-hover:border-sec/35 dark:peer-hover:border-gray-600' : 'cursor-pointer',
             className
           )}
         />
         <Check
           className={cn(
-            'w-3.5 h-3.5 stroke-[3] text-white absolute pointer-events-none transition-transform duration-150',
+            'w-3.5 h-3.5 stroke-[3] text-sec absolute pointer-events-none transition-transform duration-150',
             'scale-0 opacity-0 peer-checked:scale-100 peer-checked:opacity-100'
           )}
         />
@@ -60,7 +60,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         )}
       >
         {control}
-        <div className="space-y-0.5 text-right">
+        <div className="space-y-0.5 text-start">
           {label && (
             <span className="block text-xs sm:text-sm font-bold text-sec dark:text-white">
               {label}

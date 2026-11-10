@@ -1,8 +1,19 @@
 import React, { useMemo } from 'react';
-import { Sparkles } from 'lucide-react';
-import { Button } from '@/shared/ui';
-import { EditableTable, type EditableTableColumn } from '@/shared/ui/EditableTable';
-import { PersianDatePicker } from '@/shared/ui/PersianDatePicker';
+import { Clock, Sparkles } from 'lucide-react';
+import {
+  AutoGrowTextarea,
+  Badge,
+  Button,
+  EditableTable,
+  ErrorState,
+  ExpandableTextCell,
+  PersianDatePicker,
+  Skeleton,
+  UnitChip,
+  INLINE_INPUT_CLASS,
+  type EditableTableColumn,
+} from '@/shared/ui';
+import { cn } from '@/shared/lib/utils';
 import { toPersianDigits } from '@/shared/lib/formatters';
 import { useEvents, useBatchUpdateEvents } from '../hooks/use-scrum';
 import type { ScrumEvent, Scrum, EventScheduleType } from '../types/scrum-types';
@@ -71,7 +82,7 @@ const STANDARD_CEREMONIES_TEMPLATE: ScrumEvent[] = [
 ];
 
 export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
-  const { data: events = [], isLoading } = useEvents(scrum.id);
+  const { data: events = [], isLoading, isError, error, refetch } = useEvents(scrum.id);
   const updateMut = useBatchUpdateEvents(scrum.id);
 
   const createEmptyRow = (): ScrumEvent => ({
@@ -86,12 +97,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
   });
 
   const isRowEmpty = (r: ScrumEvent): boolean => {
-    const fields = [
-      r.name,
-      r.startTime,
-      r.inputs,
-      r.outputs,
-    ];
+    const fields = [r.name, r.startTime, r.inputs, r.outputs];
     return fields.every(
       (f) => f === undefined || f === null || f === '' || (typeof f === 'string' && f.trim() === '')
     );
@@ -101,67 +107,78 @@ export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
     {
       id: 'name',
       header: 'رویداد',
-      width: '180px',
+      minWidth: '165px',
       isSticky: true,
       renderView: (row) => (
-        <span className="font-bold text-sec dark:text-white">
-          {row.name || '—'}
-        </span>
+        <ExpandableTextCell
+          text={row.name}
+          className="font-bold text-sec dark:text-white"
+        />
       ),
       renderEdit: (row, _index, onChange) => (
-        <input
-          type="text"
+        <AutoGrowTextarea
           value={row.name || ''}
           onChange={(e) => onChange({ name: e.target.value })}
           placeholder="عنوان رویداد..."
-          className="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white"
+          className="font-bold"
         />
       ),
     },
     {
       id: 'schedule',
       header: 'زمان برگزاری',
-      width: '260px',
+      minWidth: '210px',
+      mobileFullWidth: true,
       renderView: (row) => {
-        const timeStr = row.startTime ? `، ساعت ${toPersianDigits(row.startTime)}` : '';
-        if (row.scheduleType === 'WEEKLY') {
-          const wd = PERSIAN_WEEKDAYS.find((w) => w.value === row.dayOfWeek)?.label || 'نامشخص';
-          return (
-            <span className="text-ink-normal/80 dark:text-gray-300 font-bold">
-              هفتگی ({wd}){timeStr}
-            </span>
-          );
-        }
+        const isWeekly = row.scheduleType === 'WEEKLY';
+        const scheduleLabel = isWeekly
+          ? `هفتگی (${PERSIAN_WEEKDAYS.find((w) => w.value === row.dayOfWeek)?.label || 'نامشخص'})`
+          : `یکباره (${row.date ? toPersianDigits(row.date) : 'تعیین نشده'})`;
+
         return (
-          <span className="text-ink-normal/80 dark:text-gray-300 font-bold">
-            یکباره ({row.date ? toPersianDigits(row.date) : 'تعیین نشده'}){timeStr}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge dot variant={isWeekly ? 'ecosystem' : 'college'}>
+              {scheduleLabel}
+            </Badge>
+            {row.startTime && (
+              <span className="inline-flex items-center gap-1 text-xs font-mono font-black text-sec dark:text-white tabular-nums">
+                <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>{toPersianDigits(row.startTime)}</span>
+              </span>
+            )}
+          </div>
         );
       },
       renderEdit: (row, _index, onChange) => (
         <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Toggle Type */}
           <select
             value={row.scheduleType}
             onChange={(e) =>
               onChange({
                 scheduleType: e.target.value as EventScheduleType,
-                dayOfWeek: e.target.value === 'WEEKLY' ? (row.dayOfWeek ?? 0) : null,
+                dayOfWeek: e.target.value === 'WEEKLY' ? row.dayOfWeek ?? 0 : null,
                 date: e.target.value === 'ONCE' ? row.date : null,
               })
             }
-            className="text-[11px] font-bold px-1.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#182030]"
+            aria-label="نوع تکرار رویداد"
+            className={cn(
+              INLINE_INPUT_CLASS,
+              'w-auto bg-white/80 dark:bg-[#182030] border-sec/20 dark:border-gray-700 font-bold cursor-pointer'
+            )}
           >
             <option value="WEEKLY">هفتگی</option>
             <option value="ONCE">یکبار</option>
           </select>
 
-          {/* Weekday or Date picker */}
           {row.scheduleType === 'WEEKLY' ? (
             <select
               value={row.dayOfWeek ?? 0}
               onChange={(e) => onChange({ dayOfWeek: Number(e.target.value) })}
-              className="text-[11px] font-bold px-1.5 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#182030]"
+              aria-label="روز هفته"
+              className={cn(
+                INLINE_INPUT_CLASS,
+                'w-auto bg-white/80 dark:bg-[#182030] border-sec/20 dark:border-gray-700 font-bold cursor-pointer'
+              )}
             >
               {PERSIAN_WEEKDAYS.map((w) => (
                 <option key={w.value} value={w.value}>
@@ -170,22 +187,25 @@ export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
               ))}
             </select>
           ) : (
-            <div className="w-28">
-              <PersianDatePicker
-                value={row.date || ''}
-                onChange={(d) => onChange({ date: d })}
-                allowStep={false}
-              />
-            </div>
+            <PersianDatePicker
+              size="md"
+              value={row.date || ''}
+              onChange={(d) => onChange({ date: d })}
+              allowStep={false}
+            />
           )}
 
-          {/* Time input */}
           <input
             type="text"
             value={row.startTime || ''}
             onChange={(e) => onChange({ startTime: e.target.value })}
             placeholder="09:30"
-            className="w-16 px-1.5 py-1 text-xs text-center font-mono rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#182030]"
+            dir="ltr"
+            aria-label="ساعت شروع"
+            className={cn(
+              INLINE_INPUT_CLASS,
+              'w-20 text-center font-mono font-bold tabular-nums bg-white/80 dark:bg-[#182030] border-sec/20 dark:border-gray-700'
+            )}
           />
         </div>
       ),
@@ -193,14 +213,19 @@ export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
     {
       id: 'durationMinutes',
       header: 'مدت',
-      width: '100px',
-      renderView: (row) => (
-        <span className="text-sec dark:text-white font-bold">
-          {row.durationMinutes != null ? `${toPersianDigits(row.durationMinutes)} دقیقه` : '—'}
-        </span>
-      ),
+      minWidth: '95px',
+      align: 'center',
+      renderView: (row) =>
+        row.durationMinutes != null ? (
+          <span className="inline-flex items-center justify-center gap-1.5 text-sec dark:text-white font-bold tabular-nums">
+            <span>{toPersianDigits(row.durationMinutes)}</span>
+            <UnitChip unit="دقیقه" />
+          </span>
+        ) : (
+          <span className="text-sec/35 dark:text-gray-500">—</span>
+        ),
       renderEdit: (row, _index, onChange) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-center gap-1.5">
           <input
             type="number"
             min="1"
@@ -209,44 +234,45 @@ export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
             onChange={(e) =>
               onChange({ durationMinutes: e.target.value ? Number(e.target.value) : null })
             }
-            placeholder="دقیقه"
-            className="w-16 px-2 py-1 text-xs text-center rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#182030]"
+            placeholder="۳۰"
+            className={cn(INLINE_INPUT_CLASS, 'w-20 text-center tabular-nums font-bold')}
           />
-          <span className="text-[10px] text-gray-500">دقیقه</span>
+          <UnitChip unit="دقیقه" />
         </div>
       ),
     },
     {
       id: 'inputs',
       header: 'ورودی جلسه',
-      width: '200px',
+      minWidth: '175px',
+      mobileFullWidth: true,
       renderView: (row) => (
-        <span className="text-ink-normal/70 dark:text-gray-300 text-[11px] line-clamp-2">
-          {row.inputs || '—'}
-        </span>
+        <ExpandableTextCell
+          text={row.inputs}
+          className="text-sec/75 dark:text-gray-300 text-xs"
+        />
       ),
       renderEdit: (row, _index, onChange) => (
-        <input
-          type="text"
+        <AutoGrowTextarea
           value={row.inputs || ''}
           onChange={(e) => onChange({ inputs: e.target.value })}
           placeholder="ورودی‌های جلسه..."
-          className="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white"
         />
       ),
     },
     {
       id: 'outputs',
       header: 'خروجی جلسه',
-      width: '200px',
+      minWidth: '175px',
+      mobileFullWidth: true,
       renderView: (row) => (
-        <span className="text-ink-normal/70 dark:text-gray-300 text-[11px] line-clamp-2">
-          {row.outputs || '—'}
-        </span>
+        <ExpandableTextCell
+          text={row.outputs}
+          className="text-sec/75 dark:text-gray-300 text-xs"
+        />
       ),
       renderEdit: (row, _index, onChange, isLastCell, onTabLastCell) => (
-        <input
-          type="text"
+        <AutoGrowTextarea
           value={row.outputs || ''}
           onChange={(e) => onChange({ outputs: e.target.value })}
           onKeyDown={(e) => {
@@ -256,23 +282,58 @@ export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
             }
           }}
           placeholder="خروجی‌های مورد انتظار..."
-          className="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white"
         />
       ),
     },
   ], []);
 
   const handleApplyStandardTemplate = async () => {
-    // Appends standard rows without overwriting existing rows
-    const merged = [...events, ...STANDARD_CEREMONIES_TEMPLATE];
-    await updateMut.mutateAsync(merged);
+    try {
+      const merged = [...events, ...STANDARD_CEREMONIES_TEMPLATE];
+      await updateMut.mutateAsync(merged);
+    } catch {
+      // Handled by hook toast
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="py-12 text-center text-xs font-bold text-ink-normal/50 dark:text-gray-400 animate-pulse">
-        در حال بارگذاری ریتم جلسات...
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-sec/10 dark:border-gray-800">
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-52" />
+            <Skeleton className="h-3.5 w-80 max-w-full" />
+          </div>
+          <Skeleton className="h-10 w-36 rounded-xl" />
+        </div>
+        <div className="rounded-3xl border-[1.5px] border-sec dark:border-primary/40 bg-white dark:bg-[#121824] shadow-male dark:shadow-ecosystem overflow-hidden">
+          <div className="h-12 bg-[#ECF7F5] dark:bg-[#182730] border-b border-sec/15 dark:border-white/10 px-4 flex items-center gap-6">
+            <Skeleton className="h-3.5 w-8" />
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="h-3.5 w-32 hidden sm:block" />
+            <Skeleton className="h-3.5 w-24 hidden md:block" />
+          </div>
+          <div className="divide-y divide-sec/10 dark:divide-white/10">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="min-h-[56px] px-4 py-3 flex items-center justify-between gap-4">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-6 w-32 rounded-full" />
+                <Skeleton className="h-4 w-16 hidden sm:block" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ErrorState
+        title="خطا در دریافت ریتم جلسات"
+        message={error instanceof Error ? error.message : 'بارگذاری برنامه جلسات ناموفق بود.'}
+        onRetry={() => refetch()}
+      />
     );
   }
 
@@ -283,9 +344,9 @@ export const EventsTab: React.FC<EventsTabProps> = ({ scrum, canEdit }) => {
       type="button"
       onClick={handleApplyStandardTemplate}
       isLoading={updateMut.isPending}
-      className="text-xs font-bold gap-1.5 shadow-hard-sm border-primary/40 text-primary"
+      className="text-xs font-bold gap-1.5 border-sec/30 dark:border-primary/45 text-sec dark:text-primary"
     >
-      <Sparkles className="w-3.5 h-3.5" />
+      <Sparkles className="w-3.5 h-3.5 text-primary" />
       <span>پر کردن با قالب استاندارد اسکرام</span>
     </Button>
   );

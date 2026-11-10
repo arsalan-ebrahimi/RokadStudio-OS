@@ -56,14 +56,13 @@ export const AdminAttendancePage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="text-lg font-black text-sec dark:text-white">کارتابل حضور و غیاب</h1>
+        <h1 className="text-lg sm:text-xl font-black text-sec dark:text-white">کارتابل حضور و غیاب</h1>
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <div className="shrink-0">
             <PersianDatePicker value={selectedDate} onChange={setSelectedDate} />
           </div>
           <div className="flex-1 sm:w-44 min-w-[140px]">
             <Select
-              selectSize="sm"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -77,44 +76,46 @@ export const AdminAttendancePage: React.FC = () => {
       </div>
 
       {!isLoading && records.length > 0 && (
-        <Card className="p-3.5 sm:p-4 space-y-2.5">
+        <Card className="p-4 sm:p-5 rounded-3xl border-[1.5px] border-sec/20 dark:border-primary/25 space-y-3">
           <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-2">
-            <span className="text-sec dark:text-white">وضعیت روزانه ({toPersianDigits(records.length)} نفر)</span>
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-sec dark:text-white font-black tabular-nums">
+              وضعیت روزانه ({toPersianDigits(records.length)} نفر)
+            </span>
+            <div className="flex items-center gap-3 tabular-nums">
+              <span className="flex items-center gap-1.5 text-[#007A52] dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-[#007A52] dark:bg-emerald-400" />
                 تایید ({toPersianDigits(approvedCount)})
               </span>
-              <span className="flex items-center gap-1.5 text-amber-500">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="flex items-center gap-1.5 text-[#9C660D] dark:text-amber-300">
+                <span className="w-2 h-2 rounded-full bg-college-normal animate-pulse" />
                 انتظار ({toPersianDigits(pendingCount)})
               </span>
               {rejectedCount > 0 && (
-                <span className="flex items-center gap-1.5 text-rose-500">
-                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                <span className="flex items-center gap-1.5 text-[#C60036] dark:text-rose-400">
+                  <span className="w-2 h-2 rounded-full bg-[#C60036] dark:bg-rose-400" />
                   رد ({toPersianDigits(rejectedCount)})
                 </span>
               )}
             </div>
           </div>
 
-          <div className="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex">
+          <div className="w-full h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex">
             {approvedCount > 0 && (
               <div
                 style={{ width: `${(approvedCount / records.length) * 100}%` }}
-                className="h-full bg-emerald-500 transition-all duration-500"
+                className="h-full bg-[#007A52] dark:bg-emerald-500 transition-all duration-500"
               />
             )}
             {pendingCount > 0 && (
               <div
                 style={{ width: `${(pendingCount / records.length) * 100}%` }}
-                className="h-full bg-amber-400 transition-all duration-500"
+                className="h-full bg-college-normal transition-all duration-500"
               />
             )}
             {rejectedCount > 0 && (
               <div
                 style={{ width: `${(rejectedCount / records.length) * 100}%` }}
-                className="h-full bg-rose-500 transition-all duration-500"
+                className="h-full bg-[#C60036] dark:bg-rose-500 transition-all duration-500"
               />
             )}
           </div>
@@ -123,7 +124,7 @@ export const AdminAttendancePage: React.FC = () => {
 
       {isLoading ? (
         <div className="space-y-3">
-          {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+          {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-3xl" />)}
         </div>
       ) : records.length === 0 ? (
         <EmptyState title="هیچ رکوردی برای این تاریخ یافت نشد" />
@@ -132,24 +133,24 @@ export const AdminAttendancePage: React.FC = () => {
           {records.map((r: Attendance) => (
             <Card
               key={r.id}
-              className="p-3.5 sm:p-4 md:p-5 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 transition-all"
+              className="p-4 sm:p-5 rounded-3xl border-[1.5px] border-sec/20 dark:border-primary/25 flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 transition-all"
             >
               <div className="md:col-span-5 flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-sm shrink-0 border border-gray-200 dark:border-gray-700">
+                <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-800 text-sec dark:text-white flex items-center justify-center font-black text-sm shrink-0 border border-sec/15 dark:border-gray-700">
                   {r.user?.name?.slice(0, 1) || 'ک'}
                 </div>
-                <div className="min-w-0 flex-1 space-y-1">
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <p className="text-sm font-black text-sec dark:text-white truncate" title={r.user?.name}>
                     {r.user?.name || 'کاربر'}
                   </p>
                   <div className="flex items-center gap-2 flex-wrap">
                     <AttendanceBadge attendance={r} />
                     <span className="text-[10px] text-ink-normal/30 dark:text-gray-600 font-bold">•</span>
-                    <span className="text-xs text-ink-normal/60 dark:text-gray-400 font-medium">
+                    <span className="text-xs text-ink-normal/65 dark:text-gray-400 font-medium tabular-nums">
                       {formatToJalali(r.date)}
                     </span>
                     {r.reason && (
-                      <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800/80">
+                      <span className="text-[11px] font-bold text-[#704A0D] dark:text-amber-200 bg-college-light dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-college-normal/45">
                         علت: {r.reason}
                       </span>
                     )}
@@ -157,16 +158,16 @@ export const AdminAttendancePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-2 pt-2.5 md:pt-0 border-t border-gray-100 dark:border-gray-800 md:border-0 md:col-span-7">
+              <div className="flex items-center justify-between gap-2 pt-3 md:pt-0 border-t border-sec/10 dark:border-gray-800 md:border-0 md:col-span-7">
                 <button
                   type="button"
                   onClick={() => r.user?.id && setSessionsModalUser({ userId: r.user.id, userName: r.user.name || '', date: r.date })}
-                  className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0 hover:border-primary/60 hover:bg-gray-100 dark:hover:bg-[#1f293d] transition-all cursor-pointer"
+                  className="min-h-[40px] inline-flex items-center gap-1.5 bg-gray-50 dark:bg-[#182030] px-3.5 py-1.5 rounded-2xl border-[1.5px] border-sec/20 dark:border-gray-700 text-xs font-bold text-ink-normal/80 dark:text-gray-300 shrink-0 hover:border-sec/50 hover:bg-gray-100 dark:hover:bg-[#1f293d] transition-all cursor-pointer tabular-nums"
                   title="مشاهده، تایید، رد یا حذف سشن‌های کاری"
                 >
-                  <span className="tabular-nums text-sec dark:text-white font-extrabold">{toPersianDigits(calculateCompletedRounds(r.totalSeconds || 0))}</span> دور
+                  <span className="text-sec dark:text-white font-black">{toPersianDigits(calculateCompletedRounds(r.totalSeconds || 0))}</span> دور
                   <span className="mx-1 opacity-40">•</span>
-                  <span className="text-primary font-extrabold">{formatDurationToHoursMins(r.totalSeconds || 0)}</span>
+                  <span className="text-sec dark:text-primary font-black">{formatDurationToHoursMins(r.totalSeconds || 0)}</span>
                 </button>
 
                 <div className="flex items-center justify-end gap-2 shrink-0">

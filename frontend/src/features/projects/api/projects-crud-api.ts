@@ -5,12 +5,14 @@ export interface CreateProjectPayload {
   name: string;
   description?: string;
   memberIds?: number[];
+  scrumId?: number | null;
 }
 
 export interface UpdateProjectPayload {
   name?: string;
   description?: string;
   isActive?: boolean;
+  scrumId?: number | null;
 }
 
 export async function createProject(payload: CreateProjectPayload): Promise<Project> {

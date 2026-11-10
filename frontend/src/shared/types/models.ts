@@ -15,11 +15,19 @@ export interface User {
   createdAt?: string;
 }
 
+export interface ProjectScrumSummary {
+  id: number;
+  name: string;
+  color: 'ECOSYSTEM' | 'MALE' | 'FEMALE' | 'COLLEGE' | 'CLUB';
+}
+
 export interface Project {
   id: number;
   name: string;
   description?: string | null;
   isActive?: boolean;
+  scrumId?: number | null;
+  scrum?: ProjectScrumSummary | null;
   memberCount?: number;
   createdAt?: string;
 }

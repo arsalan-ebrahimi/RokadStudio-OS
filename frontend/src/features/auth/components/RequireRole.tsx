@@ -22,12 +22,13 @@ export const RequireRole: React.FC<RequireRoleProps> = ({ roles, children }) => 
   }
 
   if (!token || !user) {
-    const target = location.pathname.startsWith('/panel') ? '/rokad-admin' : '/login';
+    const isAdminArea = location.pathname.startsWith('/panel') || location.pathname.startsWith('/scrum-admin');
+    const target = isAdminArea ? '/rokad-admin' : '/login';
     return <Navigate to={target} state={{ from: location }} replace />;
   }
 
   if (!roles.includes(user.role)) {
-    const target = user.role === 'USER' ? '/' : (user.role === 'SCRUM_ADMIN' ? '/panel/scrums' : '/panel/attendance');
+    const target = user.role === 'USER' ? '/' : user.role === 'SCRUM_ADMIN' ? '/scrum-admin' : '/panel/attendance';
     return <Navigate to={target} replace />;
   }
 

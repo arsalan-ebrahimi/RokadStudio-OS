@@ -3,20 +3,17 @@ import LoginPage from './pages/LoginPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import { AdminLayout } from './layout/AdminLayout';
+import { ScrumAdminLayout } from './layout/ScrumAdminLayout';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminProjectsPage from './pages/admin/AdminProjectsPage';
-import { RequireRole, useAuthStore } from '@/features/auth';
-import { ScrumListPage, ScrumDetailPage } from '@/features/scrum';
-
-const PanelIndexRedirect: React.FC = () => {
-  const { user } = useAuthStore();
-  if (user?.role === 'SCRUM_ADMIN') {
-    return <Navigate to="/panel/scrums" replace />;
-  }
-  return <Navigate to="/panel/attendance" replace />;
-};
+import { RequireRole } from '@/features/auth';
+import {
+  ScrumListPage,
+  ScrumDetailPage,
+  ScrumAdminDashboardPage,
+} from '@/features/scrum';
 
 export const router = createBrowserRouter([
   {
@@ -64,16 +61,38 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/scrum-admin',
+    element: (
+      <RequireRole roles={['SCRUM_ADMIN', 'SUPER_ADMIN']}>
+        <ScrumAdminLayout />
+      </RequireRole>
+    ),
+    children: [
+      {
+        index: true,
+        element: <ScrumAdminDashboardPage />,
+      },
+      {
+        path: 'scrums',
+        element: <ScrumListPage />,
+      },
+      {
+        path: 'scrums/:id',
+        element: <ScrumDetailPage />,
+      },
+    ],
+  },
+  {
     path: '/panel',
     element: (
-      <RequireRole roles={['ADMIN', 'SUPER_ADMIN', 'SCRUM_ADMIN']}>
+      <RequireRole roles={['ADMIN', 'SUPER_ADMIN']}>
         <AdminLayout />
       </RequireRole>
     ),
     children: [
       {
         index: true,
-        element: <PanelIndexRedirect />,
+        element: <Navigate to="/panel/attendance" replace />,
       },
       {
         path: 'attendance',
@@ -110,7 +129,7 @@ export const router = createBrowserRouter([
       {
         path: 'scrums',
         element: (
-          <RequireRole roles={['SUPER_ADMIN', 'SCRUM_ADMIN']}>
+          <RequireRole roles={['SUPER_ADMIN']}>
             <ScrumListPage />
           </RequireRole>
         ),
@@ -118,7 +137,7 @@ export const router = createBrowserRouter([
       {
         path: 'scrums/:id',
         element: (
-          <RequireRole roles={['SUPER_ADMIN', 'SCRUM_ADMIN']}>
+          <RequireRole roles={['SUPER_ADMIN']}>
             <ScrumDetailPage />
           </RequireRole>
         ),
@@ -130,5 +149,3 @@ export const router = createBrowserRouter([
     element: <Navigate to="/" replace />,
   },
 ]);
-
-

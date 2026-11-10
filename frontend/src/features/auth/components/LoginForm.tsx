@@ -30,12 +30,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ title, isAdmin = false }) 
         setError('دسترسی مدیریت ندارید');
         return;
       }
-      if (!isAdmin && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) {
-        navigate('/panel/attendance');
+      if (user.role === 'SCRUM_ADMIN') {
+        navigate('/scrum-admin');
         return;
       }
-      if (isAdmin && user.role === 'SCRUM_ADMIN') {
-        navigate('/panel/scrums');
+      if (!isAdmin && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) {
+        navigate('/panel/attendance');
         return;
       }
       navigate(isAdmin ? '/panel/attendance' : '/');

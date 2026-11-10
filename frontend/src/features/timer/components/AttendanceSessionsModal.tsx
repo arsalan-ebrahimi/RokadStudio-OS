@@ -121,17 +121,17 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                 return (
                   <div
                     key={s.id}
-                    className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-[#182030] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="p-3.5 rounded-2xl border-[1.5px] border-sec/20 dark:border-gray-700 bg-[#F8FAFC] dark:bg-[#182030] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div className="space-y-1.5 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <FolderKanban className="w-4 h-4 text-primary shrink-0" />
                         <span className="text-xs font-black text-sec dark:text-white truncate">{projectTitle}</span>
                         <SessionBadge approval={s.approval} />
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-ink-normal/60 dark:text-gray-400 font-bold">
-                        <span className="flex items-center gap-1 text-primary">
-                          <Clock className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-2 text-[11px] text-sec/65 dark:text-gray-400 font-bold tabular-nums">
+                        <span className="flex items-center gap-1 text-sec dark:text-primary font-black">
+                          <Clock className="w-3.5 h-3.5 text-primary" />
                           {formatDurationToHoursMins(s.durationSeconds)}
                         </span>
                         <span>•</span>
@@ -139,13 +139,13 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 sm:gap-2.5 shrink-0 pt-2 sm:pt-0 border-t border-gray-200 dark:border-gray-700 sm:border-0">
+                    <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t border-sec/10 dark:border-gray-700 sm:border-0">
                       {s.approval !== 'APPROVED' && (
                         <Button
                           size="sm"
                           variant="primary"
                           onClick={() => setActiveDecision({ id: s.id, decision: 'APPROVED', info: sessionInfo })}
-                          className="h-8 px-2.5 text-xs font-bold"
+                          className="text-xs font-bold"
                         >
                           <Check className="w-3.5 h-3.5 me-1" />
                           {s.approval === 'REJECTED' ? 'تغییر به تایید' : 'تایید'}
@@ -156,7 +156,7 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                           size="sm"
                           variant="danger"
                           onClick={() => setActiveDecision({ id: s.id, decision: 'REJECTED', info: sessionInfo })}
-                          className="h-8 px-2.5 text-xs font-bold"
+                          className="text-xs font-bold"
                         >
                           <X className="w-3.5 h-3.5 me-1" />
                           {s.approval === 'APPROVED' ? 'تغییر به رد' : 'رد'}
@@ -165,7 +165,7 @@ export const AttendanceSessionsModal: React.FC<AttendanceSessionsModalProps> = (
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 h-8 px-2.5 text-xs font-bold"
+                        className="text-[#C60036] dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-300 dark:border-rose-900/50 text-xs font-bold"
                         onClick={() => setDeletingSession({ id: s.id, info: sessionInfo })}
                         aria-label="حذف سشن"
                       >

@@ -86,9 +86,9 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
           </div>
         </div>
       ) : (
-        <div className="space-y-4 py-1 text-right">
-          <div className="flex items-center gap-2 text-xs font-bold text-ink-normal/70 dark:text-gray-300">
-            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+        <div className="space-y-4 py-1 text-start">
+          <div className="flex items-center gap-2 text-xs font-bold text-ink-normal/75 dark:text-gray-300">
+            <AlertCircle className="w-4 h-4 text-college-normal shrink-0" />
             <span>علت عدم حضور خود را انتخاب کنید:</span>
           </div>
 
@@ -102,10 +102,10 @@ export const AttendanceModal: React.FC<AttendanceModalProps> = ({
                   type="button"
                   onClick={() => setSelectedTag(r.label)}
                   className={cn(
-                    'p-2.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all text-right cursor-pointer',
+                    'min-h-[44px] p-3 rounded-2xl border-[1.5px] text-xs font-bold flex items-center gap-2 transition-all text-start cursor-pointer',
                     isSelected
-                      ? 'border-primary bg-primary/10 dark:bg-primary/20 text-sec dark:text-white shadow-sm ring-1 ring-primary'
-                      : 'border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-[#182030] text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                      ? 'border-sec/50 dark:border-primary bg-ecosystem-light/70 dark:bg-ecosystem-darker/50 text-sec dark:text-white shadow-hard-sm'
+                      : 'border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-[#182030] text-ink-normal/80 dark:text-gray-300 hover:border-gray-400'
                   )}
                 >
                   <span className="text-base">{r.icon}</span>

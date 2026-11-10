@@ -26,19 +26,32 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onCancel,
 }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} title={title}>
+    <Modal isOpen={isOpen} onClose={onCancel} title={title} dismissible={!isLoading}>
       <p className="text-xs sm:text-sm text-ink-normal/80 dark:text-gray-300 mb-6 leading-relaxed">
         {message}
       </p>
       <div className="flex flex-row justify-end gap-2.5 mt-4">
-        <Button variant="outline" size="sm" onClick={onCancel} disabled={isLoading} className="flex-1 sm:flex-initial">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="flex-1 sm:flex-initial min-w-[92px]"
+        >
           {cancelLabel}
         </Button>
-        <Button variant={variant} size="sm" onClick={onConfirm} isLoading={isLoading} className="flex-1 sm:flex-initial">
+        <Button
+          type="button"
+          variant={variant}
+          size="sm"
+          onClick={onConfirm}
+          isLoading={isLoading}
+          className="flex-1 sm:flex-initial min-w-[110px]"
+        >
           {confirmLabel}
         </Button>
       </div>
     </Modal>
   );
 };
-

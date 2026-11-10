@@ -43,15 +43,15 @@ export const PetSelectorModal: React.FC<PetSelectorModalProps> = ({ isOpen, onCl
                 type="button"
                 onClick={() => handleSelect(opt.type)}
                 className={cn(
-                  'p-3.5 rounded-2xl border-2 flex flex-col items-center justify-between gap-2 transition-all cursor-pointer relative',
+                  'p-3.5 rounded-2xl border-[1.5px] flex flex-col items-center justify-between gap-2 transition-all cursor-pointer relative',
                   isSelected
-                    ? 'border-primary bg-primary/10 dark:bg-primary/15 shadow-[2px_2px_0_#202A5A] dark:shadow-[2px_2px_0_#59BBAF]'
+                    ? 'border-sec dark:border-primary bg-ecosystem-light/60 dark:bg-ecosystem-darker/40 shadow-[2px_2px_0_#202A5A] dark:shadow-[2px_2px_0_#59BBAF]'
                     : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1C2536] hover:border-gray-300 dark:hover:border-gray-600'
                 )}
               >
                 {isSelected && (
-                  <span className="absolute top-2 start-2 w-4 h-4 rounded-full bg-primary text-white flex items-center justify-center">
-                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                  <span className="absolute top-2 start-2 w-5 h-5 rounded-full bg-primary text-sec border border-sec/30 flex items-center justify-center">
+                    <Check className="w-3 h-3 stroke-[3]" />
                   </span>
                 )}
                 <div className="h-12 flex items-center justify-center">

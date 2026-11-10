@@ -11,5 +11,9 @@ export * from './ConfirmDialog';
 export * from './Toast';
 export * from './ErrorBoundary';
 export * from './PersianDatePicker';
+export * from './DataTable';
 export * from './EditableTable';
-
+export * from './ErrorState';
+export * from './ProgressBar';
+export * from './AvatarStack';
+export * from './SegmentedControl';

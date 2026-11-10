@@ -41,7 +41,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const selectId = id || name;
+    const generatedId = React.useId();
+    const selectId = id || name || generatedId;
 
     useEffect(() => {
       if (!isOpen || !containerRef.current) return;
@@ -120,7 +121,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className={cn('w-full relative', label ? 'space-y-1.5' : '', containerClassName)} ref={containerRef}>
         {label && (
-          <label htmlFor={selectId} className="block text-xs font-bold text-ink-normal/80 dark:text-gray-300">
+          <label htmlFor={selectId} className="block text-xs font-bold text-sec/85 dark:text-gray-300">
             {label}
           </label>
         )}
@@ -154,25 +155,26 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             onClick={() => !disabled && setIsOpen((prev) => !prev)}
             aria-haspopup="listbox"
             aria-expanded={isOpen}
+            aria-label={typeof label === 'string' ? label : props['aria-label']}
             className={cn(
-              'w-full flex items-center justify-between rounded-xl border font-bold transition-all text-right cursor-pointer select-none',
+              'w-full flex items-center justify-between rounded-xl border-[1.5px] font-bold transition-all text-start cursor-pointer select-none',
               'bg-[#FAFAFA] dark:bg-[#1C2536] text-sec dark:text-white',
-              'border-gray-200 dark:border-gray-700',
-              'hover:border-gray-300 dark:hover:border-gray-600',
-              'focus:outline-none focus:border-primary',
-              'shadow-hard-sm disabled:opacity-50 disabled:cursor-not-allowed',
-              isOpen && 'border-primary shadow-hard dark:border-primary',
-              selectSize === 'sm' ? 'h-[38px] px-3 text-xs' : 'min-h-[42px] py-2.5 px-3.5 text-xs sm:text-sm',
-              error && 'border-[#C60036] focus:border-[#C60036]',
+              'border-sec/25 dark:border-gray-700',
+              'hover:border-sec/55 dark:hover:border-gray-600',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sec dark:focus-visible:ring-primary focus-visible:ring-offset-1',
+              'shadow-[2px_2px_0_rgba(32,42,90,0.2)] dark:shadow-[2px_2px_0_rgba(89,187,175,0.25)] disabled:opacity-50 disabled:cursor-not-allowed',
+              isOpen && 'border-primary bg-white dark:bg-[#151C28] shadow-male dark:shadow-ecosystem',
+              selectSize === 'sm' ? 'min-h-[40px] py-1.5 px-3 text-xs' : 'min-h-[44px] py-2.5 px-3.5 text-xs sm:text-sm',
+              error && 'border-[#E0195B] focus:border-[#E0195B]',
               className
             )}
           >
             <span className="truncate pe-2">{displayLabel}</span>
             <ChevronDown
               className={cn(
-                'text-ink-normal/50 dark:text-gray-400 shrink-0 transition-transform duration-200',
+                'text-sec/55 dark:text-gray-400 shrink-0 transition-transform duration-200',
                 selectSize === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4',
-                isOpen && 'rotate-180 text-primary'
+                isOpen && 'rotate-180 text-sec dark:text-primary'
               )}
             />
           </button>
@@ -182,12 +184,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             <div
               role="listbox"
               className={cn(
-                'absolute start-0 z-50 w-full min-w-[160px]',
+                'absolute start-0 z-50 w-full min-w-[168px]',
                 openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
                 'bg-white dark:bg-[#151C28]',
-                'border-2 border-[#121824] dark:border-gray-700',
-                'rounded-xl p-1.5 shadow-hard',
-                'max-h-56 overflow-y-auto space-y-1',
+                'border-[1.5px] border-sec dark:border-primary/50',
+                'rounded-2xl p-1.5 shadow-male dark:shadow-ecosystem',
+                'max-h-60 overflow-y-auto space-y-1',
                 'animate-in fade-in-0 zoom-in-95 duration-100'
               )}
             >
@@ -202,14 +204,16 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     disabled={opt.disabled}
                     onClick={() => !opt.disabled && handleSelect(opt.value)}
                     className={cn(
-                      'w-full text-right px-3 py-2.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-between select-none touch-manipulation',
+                      'w-full text-start px-3 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-between select-none touch-manipulation cursor-pointer',
                       opt.disabled && 'opacity-40 cursor-not-allowed',
-                      !opt.disabled && !isSelected && 'text-sec dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/80 hover:text-primary dark:hover:text-primary',
-                      isSelected && 'bg-primary text-white shadow-hard-sm'
+                      !opt.disabled &&
+                        !isSelected &&
+                        'text-sec dark:text-gray-200 hover:bg-primary/[0.12] dark:hover:bg-primary/[0.16] hover:text-sec dark:hover:text-white',
+                      isSelected && 'bg-primary text-sec font-black shadow-hard-sm'
                     )}
                   >
                     <span className="truncate">{opt.label}</span>
-                    {isSelected && <Check className="w-4 h-4 shrink-0 ms-2 text-white" />}
+                    {isSelected && <Check className="w-4 h-4 shrink-0 ms-2 text-sec" />}
                   </button>
                 );
               })}
@@ -217,7 +221,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           )}
         </div>
 
-        {error && <p className="text-xs text-[#C60036] font-bold mt-1">{error}</p>}
+        {error && <p className="text-xs text-[#C60036] dark:text-rose-400 font-bold mt-1">{error}</p>}
       </div>
     );
   }

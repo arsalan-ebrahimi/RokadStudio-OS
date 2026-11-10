@@ -122,12 +122,19 @@ const UserDashboardPage: React.FC = () => {
     },
   });
 
-  // Desktop keyboard shortcut: Space to toggle start/pause
+  // Desktop keyboard shortcut: Space to toggle start/pause (avoid intercepting buttons/inputs/modals)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
-        const target = e.target as HTMLElement;
-        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable ||
+            Boolean(target.closest('button, a, [role="dialog"]')))
+        ) {
           return;
         }
         e.preventDefault();
@@ -159,10 +166,10 @@ const UserDashboardPage: React.FC = () => {
   // Dedicated Absence Screen if user declared ABSENT today
   if (isAbsentToday) {
     return (
-      <div className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-xl lg:max-w-3xl mx-auto flex flex-col justify-between">
+      <div className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto flex flex-col justify-between">
         {/* Header */}
-        <header className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <header className="flex flex-wrap items-center justify-between gap-2.5 pb-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0">
               <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
             </div>
@@ -170,9 +177,9 @@ const UserDashboardPage: React.FC = () => {
               <h1 className="text-sm sm:text-base font-black text-sec dark:text-white leading-tight truncate">
                 {user?.name}
               </h1>
-              <div className="mt-1 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <div className="mt-1 hidden sm:flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <AttendanceBadge attendance={attendance} />
-                <span className="text-[10px] sm:text-[11px] text-ink-normal/50 dark:text-gray-400 font-bold whitespace-nowrap">
+                <span className="text-[11px] text-ink-normal/50 dark:text-gray-400 font-bold whitespace-nowrap tabular-nums">
                   {formatToJalali(getTehranTodayString(), true)}
                 </span>
               </div>
@@ -181,30 +188,39 @@ const UserDashboardPage: React.FC = () => {
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
+              type="button"
               onClick={toggleTheme}
-              className="w-[38px] h-[38px] flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-gray-900 dark:hover:text-white shadow-hard-sm transition-all cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec/70 dark:text-gray-300 hover:text-sec dark:hover:text-white shadow-hard-sm transition-all cursor-pointer"
               aria-label="تغییر تم"
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button
+              type="button"
               onClick={logout}
-              className="h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-[#C60036] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
+              className="h-11 flex items-center gap-1.5 px-3 rounded-2xl border-[1.5px] border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-[#C60036] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
               aria-label="خروج از حساب"
               title="خروج از حساب"
             >
               <LogOut className="w-4 h-4 shrink-0 text-[#C60036] dark:text-rose-400" />
-              <span className="hidden sm:inline whitespace-nowrap">خروج از حساب</span>
+              <span className="hidden md:inline whitespace-nowrap">خروج از حساب</span>
             </button>
+          </div>
+
+          <div className="flex sm:hidden items-center justify-between gap-2 basis-full pt-0.5">
+            <AttendanceBadge attendance={attendance} />
+            <span className="text-[11px] text-ink-normal/55 dark:text-gray-400 font-bold whitespace-nowrap tabular-nums">
+              {formatToJalali(getTehranTodayString(), false)}
+            </span>
           </div>
         </header>
 
         {/* Absence Presentation Box */}
         <div className="my-auto py-8">
-          <Card className="p-6 sm:p-10 text-center space-y-6 border-2 border-primary/25 shadow-hard-lg">
+          <Card className="p-6 sm:p-10 rounded-3xl text-center space-y-6 border-[1.5px] border-sec/30 dark:border-primary/40 shadow-hard-lg">
             {/* Friendly Graphic */}
             <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto flex items-center justify-center">
-              <div className="w-full h-full rounded-3xl bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-950/40 dark:to-[#182030] border-2 border-amber-300 dark:border-amber-700/60 flex items-center justify-center text-5xl sm:text-6xl shadow-hard">
+              <div className="w-full h-full rounded-3xl bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-950/40 dark:to-[#182030] border-[1.5px] border-sec/30 dark:border-amber-700/60 flex items-center justify-center text-5xl sm:text-6xl shadow-hard">
                 🏖️
               </div>
             </div>
@@ -219,15 +235,15 @@ const UserDashboardPage: React.FC = () => {
             </div>
 
             {/* Absence Details Pill */}
-            <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-[#182030] border border-gray-200 dark:border-gray-700 inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs font-bold mx-auto text-ink-normal/80 dark:text-gray-300">
-              <span className="flex items-center gap-1.5 text-primary">
-                <Calendar className="w-4 h-4" />
+            <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-[#182030] border border-sec/15 dark:border-gray-700 inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs font-bold mx-auto text-ink-normal/80 dark:text-gray-300">
+              <span className="flex items-center gap-1.5 text-sec dark:text-primary">
+                <Calendar className="w-4 h-4 text-primary" />
                 <span>{formatToJalali(getTehranTodayString(), true)}</span>
               </span>
               {attendance.reason && (
                 <>
                   <span className="hidden sm:inline text-gray-300 dark:text-gray-600">•</span>
-                  <span className="text-amber-600 dark:text-amber-400">
+                  <span className="text-[#9C5700] dark:text-amber-300">
                     علت: {attendance.reason}
                   </span>
                 </>
@@ -235,15 +251,16 @@ const UserDashboardPage: React.FC = () => {
             </div>
 
             {/* Change mind section */}
-            <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+            <div className="pt-4 border-t border-sec/10 dark:border-gray-800 space-y-3">
               <p className="text-xs text-ink-normal/60 dark:text-gray-400 font-bold">
                 برنامه‌ات تغییر کرد و می‌خوای امروز کار کنی؟
               </p>
               <Button
                 variant="primary"
+                size="lg"
                 onClick={() => setIsConfirmComeOpen(true)}
                 isLoading={attSubmitting}
-                className="w-full sm:w-auto px-8 py-3.5 text-sm font-extrabold shadow-hard inline-flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 text-sm font-black shadow-hard inline-flex items-center justify-center gap-2"
               >
                 <Rocket className="w-5 h-5" />
                 <span>امروز هم می‌آم!</span>
@@ -259,7 +276,7 @@ const UserDashboardPage: React.FC = () => {
           title="ثبت حضور و شروع کار"
         >
           <div className="space-y-4 text-center py-2">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/20 text-primary flex items-center justify-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-ecosystem-light dark:bg-primary/20 text-sec dark:text-primary flex items-center justify-center border border-primary/35">
               <CheckCircle2 className="w-7 h-7" />
             </div>
             <div className="space-y-1.5">
@@ -270,10 +287,10 @@ const UserDashboardPage: React.FC = () => {
                 با تایید این درخواست، وضعیت حضور امروز شما به «حاضر» تغییر می‌کند و می‌توانید پروژه‌تان را انتخاب و تایمر را شروع کنید.
               </p>
             </div>
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2.5 pt-2">
               <Button
                 variant="outline"
-                className="flex-1 py-2.5 text-xs font-bold"
+                className="flex-1 text-xs font-bold"
                 onClick={() => setIsConfirmComeOpen(false)}
                 disabled={attSubmitting}
               >
@@ -281,7 +298,7 @@ const UserDashboardPage: React.FC = () => {
               </Button>
               <Button
                 variant="primary"
-                className="flex-[2] py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
+                className="flex-[2] text-xs font-black flex items-center justify-center gap-1.5"
                 isLoading={attSubmitting}
                 onClick={async () => {
                   await markPresent();
@@ -304,22 +321,21 @@ const UserDashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-xl lg:max-w-5xl mx-auto space-y-6 lg:space-y-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto space-y-6 lg:space-y-8">
       {/* Header */}
-      <header className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0">
+      <header className="flex flex-wrap items-center justify-between gap-2.5 pb-4 border-b border-sec/15 dark:border-gray-800">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div className="w-11 h-11 rounded-2xl bg-[#612B89] p-2 shadow-hard flex items-center justify-center shrink-0 border-[1.5px] border-sec">
             <img src="/rokad-sign.svg" alt="Rokad" className="w-full h-full object-contain filter invert" />
           </div>
           <div className="min-w-0">
             <h1 className="text-sm sm:text-base font-black text-sec dark:text-white leading-tight truncate">
               {user?.name}
             </h1>
-            <div className="mt-1 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <div className="mt-1 hidden sm:flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <AttendanceBadge attendance={attendance} />
-              <span className="text-[10px] sm:text-[11px] text-ink-normal/50 dark:text-gray-400 font-bold whitespace-nowrap">
-                <span className="hidden sm:inline">{formatToJalali(getTehranTodayString(), true)}</span>
-                <span className="sm:hidden">{formatToJalali(getTehranTodayString(), false)}</span>
+              <span className="text-[11px] text-ink-normal/55 dark:text-gray-400 font-bold whitespace-nowrap tabular-nums">
+                {formatToJalali(getTehranTodayString(), true)}
               </span>
             </div>
           </div>
@@ -328,51 +344,68 @@ const UserDashboardPage: React.FC = () => {
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Link
             to="/my-scrums"
-            className="h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary/50 shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
+            className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec dark:text-white hover:border-primary shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
             title="اسکرام‌های من"
+            aria-label="اسکرام‌های من"
           >
             <Layers className="w-4 h-4 text-primary shrink-0" />
-            <span className="hidden sm:inline whitespace-nowrap">اسکرام‌های من</span>
+            <span className="hidden md:inline whitespace-nowrap">اسکرام‌های من</span>
           </Link>
           <button
+            type="button"
             onClick={() => setIsPetModalOpen(true)}
-            className="w-[38px] h-[38px] flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-sec dark:hover:text-white shadow-hard-sm transition-all cursor-pointer"
+            className="w-11 h-11 flex items-center justify-center rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec/70 hover:text-sec dark:hover:text-white shadow-hard-sm transition-all cursor-pointer"
             title="انتخاب همراه تمرکز"
             aria-label="همراه تمرکز"
           >
             <Sparkles className="w-4 h-4 text-primary" />
           </button>
           <button
+            type="button"
             onClick={toggleTheme}
-            className="w-[38px] h-[38px] flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#182030] text-gray-500 hover:text-gray-900 dark:hover:text-white shadow-hard-sm transition-all cursor-pointer"
+            className="w-11 h-11 flex items-center justify-center rounded-2xl border-[1.5px] border-sec/25 dark:border-gray-700 bg-white dark:bg-[#182030] text-sec/70 dark:text-gray-300 hover:text-sec dark:hover:text-white shadow-hard-sm transition-all cursor-pointer"
             aria-label="تغییر تم"
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
           <button
+            type="button"
             onClick={logout}
-            className="h-[38px] flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-[#C60036] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
+            className="min-w-[44px] h-11 flex items-center justify-center gap-1.5 px-2.5 md:px-3.5 rounded-2xl border-[1.5px] border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-[#C60036] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 shadow-hard-sm transition-all text-xs font-bold shrink-0 cursor-pointer"
             aria-label="خروج از حساب"
             title="خروج از حساب"
           >
             <LogOut className="w-4 h-4 shrink-0 text-[#C60036] dark:text-rose-400" />
-            <span className="hidden sm:inline whitespace-nowrap">خروج از حساب</span>
+            <span className="hidden md:inline whitespace-nowrap">خروج از حساب</span>
           </button>
+        </div>
+
+        <div className="flex sm:hidden items-center justify-between gap-2 basis-full pt-0.5">
+          <AttendanceBadge attendance={attendance} />
+          <span className="text-[11px] text-ink-normal/55 dark:text-gray-400 font-bold whitespace-nowrap tabular-nums">
+            {formatToJalali(getTehranTodayString(), false)}
+          </span>
         </div>
       </header>
 
       {/* Main Content: Responsive layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         {/* Focus Timer Area */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-          <Card className="p-5 sm:p-7 space-y-6">
-            <WorkTargetSelect
-              selectedTarget={timer.target}
-              onSelect={timer.handleSelectTarget}
-              isLocked={timer.isLocked}
-            />
-
+        <div className="lg:col-span-7 xl:col-span-8 space-y-5">
+          <Card
+            tabIndex={0}
+            aria-label="پنل تایمر تمرکز"
+            className="p-6 sm:p-8 rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sec dark:focus-visible:ring-primary"
+          >
             <TimerDisplay
+              headerSlot={
+                <WorkTargetSelect
+                  variant="chip"
+                  selectedTarget={timer.target}
+                  onSelect={timer.handleSelectTarget}
+                  isLocked={timer.isLocked}
+                />
+              }
               status={timer.status}
               workSeconds={timer.workSeconds}
               pomodoroRemainingSeconds={timer.pomodoroRemainingSeconds}
@@ -397,9 +430,9 @@ const UserDashboardPage: React.FC = () => {
           </Card>
 
           {/* Desktop Keyboard Tip */}
-          <div className="hidden lg:flex items-center justify-center gap-2 text-xs font-bold text-ink-normal/50 dark:text-gray-400">
+          <div className="hidden lg:flex items-center justify-center gap-2 text-xs font-bold text-ink-normal/55 dark:text-gray-400">
             <span>کلید میانبر:</span>
-            <kbd className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 font-mono text-[11px] text-sec dark:text-white shadow-sm">
+            <kbd className="px-2 py-0.5 rounded-lg bg-white dark:bg-gray-800 border-[1.5px] border-sec/25 dark:border-gray-700 font-mono text-[11px] text-sec dark:text-white shadow-sm">
               Space
             </kbd>
             <span>برای شروع یا توقف</span>
@@ -412,25 +445,25 @@ const UserDashboardPage: React.FC = () => {
           <TodayScrumEventsCard />
 
           {/* Daily Performance Card */}
-          <Card className="p-5 space-y-4">
-            <h2 className="text-xs font-bold text-ink-normal/60 dark:text-gray-400">عملکرد امروز</h2>
+          <Card className="p-5 rounded-3xl space-y-4">
+            <h2 className="text-xs font-black text-sec/70 dark:text-gray-300">عملکرد امروز</h2>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-[#182030] border border-gray-200 dark:border-gray-700 space-y-1">
-                <div className="flex items-center gap-1.5 text-third">
-                  <Flame className="w-4 h-4" />
-                  <span className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400">دورهای تکمیل</span>
+              <div className="p-3.5 rounded-2xl bg-[#F8FAFC] dark:bg-[#182030] border-[1.5px] border-sec/15 dark:border-gray-700 space-y-1">
+                <div className="flex items-center gap-1.5 text-[#9C5700] dark:text-amber-300">
+                  <Flame className="w-4 h-4 text-third shrink-0" />
+                  <span className="text-[11px] font-bold text-sec/65 dark:text-gray-400">دورهای تکمیل</span>
                 </div>
-                <p className="text-xl font-black text-sec dark:text-white tabular-nums font-sans">
+                <p className="text-xl font-black text-sec dark:text-white tabular-nums">
                   {toPersianDigits(sessionsCount)} <span className="text-xs font-bold">دور</span>
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-[#182030] border border-gray-200 dark:border-gray-700 space-y-1">
-                <div className="flex items-center gap-1.5 text-primary">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400">مجموع زمان</span>
+              <div className="p-3.5 rounded-2xl bg-[#ECF7F5] dark:bg-[#182730] border-[1.5px] border-primary/35 space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-[11px] font-bold text-sec/70 dark:text-gray-300">مجموع زمان</span>
                 </div>
-                <p className="text-xl font-black text-primary tabular-nums font-sans">
+                <p className="text-xl font-black text-sec dark:text-primary tabular-nums">
                   {formatDurationToHoursMins(totalSeconds)}
                 </p>
               </div>
@@ -438,41 +471,40 @@ const UserDashboardPage: React.FC = () => {
 
             {/* Today's Logged Sessions */}
             {mySessions.length > 0 && (
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-2">
-                <span className="text-[11px] font-bold text-ink-normal/60 dark:text-gray-400">
+              <div className="pt-3 border-t border-sec/10 dark:border-gray-800 space-y-2.5">
+                <span className="block text-[11px] font-bold text-sec/65 dark:text-gray-400">
                   سشن‌های ثبت‌شده امروز ({toPersianDigits(mySessions.length)})
                 </span>
-                <div className="space-y-2 max-h-52 overflow-y-auto pe-1">
+                <div className="space-y-2 max-h-56 overflow-y-auto pe-1">
                   {mySessions.map((s) => {
                     const pName = s.projectName || 'پروژه';
                     const sInfo = `${pName} (${formatDurationToHoursMins(s.durationSeconds)})`;
                     return (
                       <div
                         key={s.id}
-                        className="p-2.5 rounded-xl bg-gray-50 dark:bg-[#182030] border border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 text-xs"
+                        className="group p-3 rounded-2xl bg-[#F8FAFC] dark:bg-[#182030] border border-sec/15 dark:border-gray-700 flex items-center justify-between gap-2 text-xs transition-colors hover:border-sec/35"
                       >
-                        <div className="min-w-0 flex-1 space-y-1">
+                        <div className="min-w-0 flex-1 space-y-1.5">
                           <div className="flex items-center gap-1.5 font-black text-sec dark:text-white truncate">
                             <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
                             <span className="truncate">{pName}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <SessionBadge approval={s.approval} className="text-[10px] py-0.5 px-1.5" />
-                            <span className="text-[11px] font-bold text-primary">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <SessionBadge approval={s.approval} className="text-[10px] py-0.5 px-2" />
+                            <span className="text-[11px] font-black text-sec dark:text-primary tabular-nums">
                               {formatDurationToHoursMins(s.durationSeconds)}
                             </span>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-[#C60036] hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 p-1.5 shrink-0"
+                        <button
+                          type="button"
+                          className="w-11 h-11 flex items-center justify-center rounded-xl border border-transparent text-sec/45 dark:text-gray-400 hover:text-[#C60036] dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-200 dark:hover:border-rose-900/50 transition-all shrink-0 cursor-pointer"
                           onClick={() => setDeletingSession({ id: s.id, info: sInfo })}
                           title="حذف سشن"
                           aria-label="حذف سشن"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     );
                   })}
@@ -482,23 +514,23 @@ const UserDashboardPage: React.FC = () => {
           </Card>
 
           {/* Active Info Card */}
-          <Card className="p-5 space-y-3.5">
-            <h2 className="text-xs font-bold text-ink-normal/60 dark:text-gray-400">جزئیات نشست</h2>
+          <Card className="p-5 rounded-3xl space-y-3.5">
+            <h2 className="text-xs font-black text-sec/70 dark:text-gray-300">جزئیات نشست</h2>
             <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-                <span className="text-ink-normal/60 dark:text-gray-400 font-bold">هدف کاری جاری</span>
-                <span className="font-extrabold text-sec dark:text-white flex items-center gap-1 truncate max-w-[200px]" title={timer.target?.label || ''}>
+              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-sec/10 dark:border-gray-800">
+                <span className="text-sec/65 dark:text-gray-400 font-bold shrink-0">هدف کاری جاری</span>
+                <span className="font-extrabold text-sec dark:text-white flex items-center gap-1.5 truncate max-w-[200px]" title={timer.target?.label || ''}>
                   <FolderKanban className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="truncate">{timer.target?.label || 'انتخاب نشده'}</span>
                 </span>
               </div>
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-                <span className="text-ink-normal/60 dark:text-gray-400 font-bold">وضعیت حضور</span>
+              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-sec/10 dark:border-gray-800">
+                <span className="text-sec/65 dark:text-gray-400 font-bold">وضعیت حضور</span>
                 <AttendanceBadge attendance={attendance} />
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-ink-normal/60 dark:text-gray-400 font-bold">تاریخ سیستم</span>
-                <span className="font-bold text-sec dark:text-white">{formatToJalali(getTehranTodayString(), true)}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sec/65 dark:text-gray-400 font-bold">تاریخ سیستم</span>
+                <span className="font-bold text-sec dark:text-white tabular-nums">{formatToJalali(getTehranTodayString(), true)}</span>
               </div>
             </div>
           </Card>

@@ -7,7 +7,7 @@ const AdminLoginPage: React.FC = () => {
 
   if (token && user) {
     if (user.role === 'SCRUM_ADMIN') {
-      return <Navigate to="/panel/scrums" replace />;
+      return <Navigate to="/scrum-admin" replace />;
     }
     return <Navigate to={user.role === 'USER' ? '/' : '/panel/attendance'} replace />;
   }
